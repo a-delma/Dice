@@ -9,8 +9,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - uses: ocaml/setup-ocaml@v1.1.11
+    # - uses: ocaml/setup-ocaml@v1.1.11
     
+    - name: Install ocaml
+      run:  sudo apt install ocaml
     - name: Install ocamlbuild
       run:  sudo apt install ocamlbuild  
     - name: List all installed things
