@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+
+# Most of this file is copied from configurations for:
+# https://github.com/dafny-lang/dafny
+
 """
 Simple driver around python's difflib that implements a basic ``diff`` like
 tool. This exists to provide a simple ``diff`` like tool that will run on
