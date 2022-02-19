@@ -16,9 +16,9 @@ type expr =
   | Id of string
   | Binop of expr * op * expr
   | Unop of uop * expr
-  | Assign of string * expr
+  | Assign of expr * expr
   | Call of string * expr list
-  | StructId of string list
+  | RecordAccess of expr * string
   | Noexpr
 
 type stmt =
@@ -69,12 +69,10 @@ let rec string_of_expr = function
   | Binop(e1, o, e2) ->
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
   | Unop(o, e) -> string_of_uop o ^ string_of_expr e
-  | Assign(v, e) -> v ^ " = " ^ string_of_expr e
+  | Assign(e1, e2) -> string_of_expr e1 ^ " = " ^ string_of_expr e2
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
-  | StructId(h :: h2 :: t) -> h ^ "." ^ string_of_expr(StructId(h2 :: t))
-  | StructId(h :: []) -> h
-  | StructId([]) -> ""
+  | RecordAccess(e, s) -> string_of_expr e ^ "." ^ s
   | Noexpr -> ""
 
 let rec string_of_stmt = function

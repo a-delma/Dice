@@ -84,10 +84,6 @@ expr_opt:
     /* nothing */ { Noexpr }
   | expr          { $1 }
 
-rec_access:
-    ID DOT ID          { [$1; $3] } //TODO make sure this is the right order
-  | ID DOT rec_access  { $1 :: $3 }
-
 expr:
     LITERAL          { Literal($1)            }
   | FLIT	     { Fliteral($1)           }
@@ -107,9 +103,9 @@ expr:
   | expr OR     expr { Binop($1, Or,    $3)   }
   | MINUS expr %prec NOT { Unop(Neg, $2)      }
   | NOT expr         { Unop(Not, $2)          }
-  | ID ASSIGN expr   { Assign($1, $3)         }
+  | expr ASSIGN expr   { Assign($1, $3)         }
   //TODO NEED SOMETHING HERE like rec_access ASSIGN expr
-  | rec_access       { StructId($1)           } //TODO link with actual record rules
+  | expr DOT ID      { RecordAccess($1, $3)   } //TODO link with actual record rules
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN { $2                   }
 
