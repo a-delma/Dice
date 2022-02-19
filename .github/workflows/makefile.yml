@@ -15,11 +15,11 @@ jobs:
       run:  sudo apt install ocaml
     - name: Install ocamlbuild
       run:  sudo apt install ocamlbuild  
-    - name: List all installed things
-      run: ls /usr/bin/ocaml*
-    - name: Compile
+    - name: Install lit
+      run:  pip install lit
+    - name: Compile Dice Compiler
       run: make
       
     - name: Run tests
-      run: make tests
+      run: lit tests
     

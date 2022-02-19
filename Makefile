@@ -13,10 +13,6 @@ all : toplevel.native
 toplevel.native : toplevel.ml ast.ml parser.mly scanner.mll
 	ocamlbuild toplevel.native
 
-
-tests : toplevel.native
-	python3 runTests.py
-
 #################################
 
 clean :

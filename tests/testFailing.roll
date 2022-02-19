@@ -1,0 +1,7 @@
+/*
+XFAIL: *
+RUN: ../toplevel.native "%s" > "%t"
+*/
+int k;
+int h;
+asdfasfd
