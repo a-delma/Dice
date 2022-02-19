@@ -1,5 +1,5 @@
 /*
-RUN: ../toplevel.native "%s" > "%t"
+RUN: %compiler "%s" > "%t"
 RUN: %diff "%s.expect" "%t"
 */
 int k;

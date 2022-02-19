@@ -1,6 +1,6 @@
 /*
 XFAIL: *
-RUN: ../toplevel.native "%s" > "%t"
+RUN: %compiler "%s" > "%t"
 */
 int k;
 int h;
