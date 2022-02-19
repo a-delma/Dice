@@ -108,6 +108,7 @@ expr:
   | MINUS expr %prec NOT { Unop(Neg, $2)      }
   | NOT expr         { Unop(Not, $2)          }
   | ID ASSIGN expr   { Assign($1, $3)         }
+  //TODO NEED SOMETHING HERE like rec_access ASSIGN expr
   | rec_access       { StructId($1)           } //TODO link with actual record rules
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN { $2                   }

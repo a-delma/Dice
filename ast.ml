@@ -72,8 +72,9 @@ let rec string_of_expr = function
   | Assign(v, e) -> v ^ " = " ^ string_of_expr e
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
+  | StructId(h :: h2 :: t) -> h ^ "." ^ string_of_expr(StructId(h2 :: t))
+  | StructId(h :: []) -> h
   | StructId([]) -> ""
-  | StructId(h :: t) -> h ^ "." ^ string_of_expr(StructId(t))
   | Noexpr -> ""
 
 let rec string_of_stmt = function
