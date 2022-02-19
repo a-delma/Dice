@@ -1,0 +1,9 @@
+
+Can you do multiple assignments in a row? (do assignments return a value?)
+
+int j;
+int k;
+
+j = k = 3;
+
+

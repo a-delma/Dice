@@ -5,7 +5,7 @@ open Ast
 %}
 
 %token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN
-%token NOT EQ NEQ LT LEQ GT GEQ AND OR
+%token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT
 %token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID
 %token <int> LITERAL
 %token <bool> BLIT
@@ -18,6 +18,7 @@ open Ast
 %nonassoc NOELSE
 %nonassoc ELSE
 %right ASSIGN
+%left DOT
 %left OR
 %left AND
 %left EQ NEQ
@@ -83,6 +84,10 @@ expr_opt:
     /* nothing */ { Noexpr }
   | expr          { $1 }
 
+rec_access:
+    ID DOT ID          { [$1; $3] } //TODO make sure this is the right order
+  | ID DOT rec_access  { $1 :: $3 }
+
 expr:
     LITERAL          { Literal($1)            }
   | FLIT	     { Fliteral($1)           }
@@ -103,8 +108,10 @@ expr:
   | MINUS expr %prec NOT { Unop(Neg, $2)      }
   | NOT expr         { Unop(Not, $2)          }
   | ID ASSIGN expr   { Assign($1, $3)         }
+  | rec_access       { StructId($1)           } //TODO link with actual record rules
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN { $2                   }
+
 
 args_opt:
     /* nothing */ { [] }
