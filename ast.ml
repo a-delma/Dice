@@ -5,7 +5,7 @@ type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
 
 type uop = Neg | Not
 
-type typ = Int | Bool | Float | Void
+type typ = Int | Bool | Float | Void | Arrow of typ * typ | TypVar of string
   
 type bind = typ * string
 
@@ -88,17 +88,22 @@ let rec string_of_stmt = function
       string_of_expr e3  ^ ") " ^ string_of_stmt s
   | While(e, s) -> "while (" ^ string_of_expr e ^ ") " ^ string_of_stmt s
 (*  *)
-let string_of_typ = function
-    Int -> "int"
-  | Bool -> "bool"
-  | Float -> "float"
-  | Void -> "void"
+let rec string_of_typ = function
+    Int               -> "Int"
+  | Bool              -> "Bool"
+  | Float             -> "Float"
+  | Void              -> "Void"
+  | Arrow  (fst, snd) -> string_of_typ fst ^ "->" ^ string_of_typ snd
+  | TypVar tv         -> tv
 
-let string_of_vdecl (t, id) = string_of_typ t ^ " " ^ id ^ ";\n"
+
+let string_of_typ_var_pair (t, id) = string_of_typ t ^ " " ^ id
+let string_of_vdecl decl = string_of_typ_var_pair decl ^ ";\n"
 
 let string_of_fdecl fdecl =
   string_of_typ fdecl.typ ^ " " ^
-  fdecl.fname ^ "(" ^ String.concat ", " (List.map snd fdecl.formals) ^
+  fdecl.fname ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair
+                                                   fdecl.formals) ^
   ")\n{\n" ^
   String.concat "" (List.map string_of_vdecl fdecl.locals) ^
   String.concat "" (List.map string_of_stmt fdecl.body) ^

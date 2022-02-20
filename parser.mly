@@ -7,9 +7,10 @@ open Ast
 %token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN
 %token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT
 %token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID
+%token ARROW /* Not sure about precedence or associativity */
 %token <int> LITERAL
 %token <bool> BLIT
-%token <string> ID FLIT
+%token <string> ID FLIT TYPVAR
 %token EOF
 
 %start program
@@ -25,12 +26,13 @@ open Ast
 %left LT GT LEQ GEQ
 %left PLUS MINUS
 %left TIMES DIVIDE
+%left ARROW /* Not sure about precedence or associativity */
 %right NOT
 
 %%
 
 program:
-  decls EOF { $1 }
+  decls EOF { List.rev (fst $1), List.rev (snd $1) }
 
 decls:
    /* nothing */ { ([], [])               }
@@ -54,10 +56,12 @@ formal_list:
   | formal_list COMMA typ ID { ($3,$4) :: $1 }
 
 typ:
-    INT   { Int   }
-  | BOOL  { Bool  }
-  | FLOAT { Float }
-  | VOID  { Void  }
+    INT           { Int   }
+  | BOOL          { Bool  }
+  | FLOAT         { Float }
+  | VOID          { Void  }
+  | typ ARROW typ { Arrow($1, $3) }
+  | TYPVAR        { TypVar $1 }
 
 vdecl_list:
     /* nothing */    { [] }
@@ -86,7 +90,7 @@ expr_opt:
 
 expr:
     LITERAL          { Literal($1)            }
-  | FLIT	     { Fliteral($1)           }
+  | FLIT	         { Fliteral($1)           }
   | BLIT             { BoolLit($1)            }
   | ID               { Id($1)                 }
   | expr PLUS   expr { Binop($1, Add,   $3)   }
