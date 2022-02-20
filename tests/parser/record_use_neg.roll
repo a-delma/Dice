@@ -1,0 +1,8 @@
+/*
+XFAIL: *
+RUN: %parser "%s" > "%t"
+*/
+
+player.1 = 3;
+
+player.hi = charles;

@@ -1,4 +1,7 @@
-
+/*
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
 //wow more comments, crazy
 
 //Hi how's it going
