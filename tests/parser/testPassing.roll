@@ -1,5 +1,5 @@
 /*
-RUN: %compiler "%s" > "%t"
+RUN: %parser "%s" > "%t"
 RUN: %diff "%s.expect" "%t"
 */
 int k;

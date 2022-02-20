@@ -10,8 +10,8 @@ Windows where only the ``fc`` tool is available.
 """
 import argparse
 import difflib
-import os
 import sys
+
 
 def main(args):
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -66,6 +66,7 @@ def main(args):
             sys.stdout.write(l)
         return 1
 
+
 def preProcess(openFile, stripTrailingCR=False, ignoreAllSpace=False):
     """
     Helper function to read lines in a file and do any necessary
@@ -95,8 +96,10 @@ def preProcess(openFile, stripTrailingCR=False, ignoreAllSpace=False):
 
     return (copy, openFile.name)
 
+
 def getFileName(openFile):
     return openFile.name
+
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))

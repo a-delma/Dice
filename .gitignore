@@ -35,3 +35,4 @@ _opam/
 
 # Test output:
 tests/Output/*
+tests/parser/Output/*

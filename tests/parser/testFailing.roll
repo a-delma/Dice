@@ -1,6 +1,6 @@
 /*
 XFAIL: *
-RUN: %compiler "%s" > "%t"
+RUN: %parser "%s" > "%t"
 */
 int k;
 int h;

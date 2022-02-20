@@ -17,4 +17,4 @@ toplevel.native : toplevel.ml ast.ml parser.mly scanner.mll
 
 clean :
 	ocamlbuild -clean
-	rm -f toplevel.native 
+	rm -f toplevel.native
