@@ -1,0 +1,6 @@
+/*
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+int k;
+int h;

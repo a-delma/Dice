@@ -1,0 +1,31 @@
+name: Makefile CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    # - uses: ocaml/setup-ocaml@v1.1.11
+    
+    - name: Install ocaml
+      run:  sudo apt install ocaml
+    - name: Install ocamlbuild
+      run:  sudo apt install ocamlbuild  
+    - name: Install lit
+      run:  pip install lit
+    - name: Compile Dice Compiler
+      run: make
+      
+    - name: Run tests
+      run: lit tests
+    
