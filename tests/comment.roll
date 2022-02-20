@@ -7,3 +7,9 @@ int main () {
     
     return 0;
 }
+/*and the other style*/
+
+/*which can be 
+multi 
+
+line! */

@@ -103,7 +103,7 @@ expr:
   | expr OR     expr { Binop($1, Or,    $3)   }
   | MINUS expr %prec NOT { Unop(Neg, $2)      }
   | NOT expr         { Unop(Not, $2)          }
-  | expr ASSIGN expr   { Assign($1, $3)         }
+  | expr ASSIGN expr { Assign($1, $3)         }
   //TODO NEED SOMETHING HERE like rec_access ASSIGN expr
   | expr DOT ID      { RecordAccess($1, $3)   } //TODO link with actual record rules
   | ID LPAREN args_opt RPAREN { Call($1, $3)  }

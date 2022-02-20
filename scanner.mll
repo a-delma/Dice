@@ -8,6 +8,7 @@ let digits = digit+
 rule token = parse
   [' ' '\t' '\r' '\n'] { token lexbuf } (* Whitespace *)
 | "//"     { comment lexbuf }           (* Comments *)
+| "/*"     { multiComment lexbuf}
 | '('      { LPAREN }
 | ')'      { RPAREN }
 | '{'      { LBRACE }
@@ -49,3 +50,7 @@ rule token = parse
 and comment = parse
   ['\r' '\n']{ token lexbuf }
 | _    { comment lexbuf }
+
+and multiComment = parse
+  "*/" { token lexbuf }
+| _    { multiComment lexbuf }
