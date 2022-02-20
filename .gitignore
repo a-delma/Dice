@@ -29,5 +29,10 @@ setup.log
 _opam/
 
 
-#VSCode
+# IDEs
 .vscode/
+.idea/
+
+# Test output:
+tests/Output/*
+tests/parser/Output/*
