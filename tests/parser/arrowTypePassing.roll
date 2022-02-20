@@ -2,8 +2,9 @@
 RUN: %parser "%s" > "%t"
 RUN: %diff "%s.expect" "%t"
 */
-
-Int main () {
+Int -> Bool a;
+B -> C a;
+Int -> C main (Bool -> D arg) {
 
     foo(1, a).bar;
 

@@ -1,5 +1,7 @@
+Int->Bool a;
+B->C a;
 
-Int main()
+Int->C main(Bool->D arg)
 {
 foo(1, a).bar;
 x.y = 2;

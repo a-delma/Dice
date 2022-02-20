@@ -5,7 +5,7 @@ RUN: %diff "%s.expect" "%t"
 //wow more comments, crazy
 
 //Hi how's it going
-int main () {
+Int main () {
     x = 5; //This is another commment// // // /////
     
     return 0;
