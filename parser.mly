@@ -76,7 +76,7 @@ typ:
   | FLOAT         { Float }
   | VOID          { Void  }
   | LPAREN typ_list RPAREN ARROW typ { Arrow(List.rev $2, $5) }
-  | LARROW TYPVAR RARROW { TypVar $2 }
+  | TYPVAR { TypVar $1 }
 
 vdecl_list:
     /* nothing */    { [] }
@@ -84,10 +84,6 @@ vdecl_list:
 
 vdecl:
    typ ID SEMI { ($1, $2) }
-
-sdecl_list:
-    /* nothing */    { [] }
-  | sdecl_list sdecl { $2 :: $1 }
 
 sdecl:
    STRUCT ID LBRACE vdecl_list RBRACE { ($2, $4) }
