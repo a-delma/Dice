@@ -1,8 +1,11 @@
 1.468658e-03 comment.roll
-5.782366e-03 parser/testFailing.roll
-5.090904e-02 parser/testPassing.roll
+2.092934e-02 parser/testFailing.roll
+1.969552e-02 parser/testPassing.roll
 1.481533e-03 record_use_neg.roll
 1.187563e-03 record_use_pos.roll
-4.777884e-02 parser/comment.roll
-7.061720e-03 parser/record_use_neg.roll
-4.901958e-02 parser/record_use_pos.roll
+1.917386e-02 parser/comment.roll
+2.066159e-02 parser/record_use_neg.roll
+2.137232e-02 parser/record_use_pos.roll
+2.108669e-02 parser/arrowTypePassing.roll
+2.337098e-02 parser/typesFailing.roll
+2.050018e-02 parser/assignTestPassing.roll

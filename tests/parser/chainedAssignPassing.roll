@@ -1,0 +1,13 @@
+/*
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+
+Int h;
+Int k;
+Int z;
+
+Int main()
+{
+    h = k = z = 1;
+}
