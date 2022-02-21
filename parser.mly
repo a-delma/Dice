@@ -15,6 +15,7 @@ let parse_error s = (* Called by the parser function on error *)
 %token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN
 %token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT
 %token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID
+%token LSQURE RSQURE
 %token ARROW STRUCT LARROW RARROW/* Not sure about precedence or associativity*/
 %token <int> LITERAL
 %token <bool> BLIT
@@ -75,7 +76,7 @@ typ:
   | BOOL          { Bool  }
   | FLOAT         { Float }
   | VOID          { Void  }
-  | LPAREN typ_list RPAREN ARROW typ { Arrow(List.rev $2, $5) }
+  | LSQURE typ_list RSQURE ARROW typ { Arrow(List.rev $2, $5) }
   | TYPVAR { TypVar $1 }
 
 vdecl_list:
