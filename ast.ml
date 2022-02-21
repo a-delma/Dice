@@ -5,7 +5,7 @@ type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
 
 type uop = Neg | Not
 
-type typ = Int | Bool | Float | Void | Arrow of typ * typ | TypVar of string
+type typ = Int | Bool | Float | Void | Arrow of typ list * typ | TypVar of string
   
 type bind = typ * string
 
@@ -91,15 +91,17 @@ let rec string_of_stmt = function
       string_of_expr e3  ^ ") " ^ string_of_stmt s
   | While(e, s) -> "while (" ^ string_of_expr e ^ ") " ^ string_of_stmt s
   | Struct(e) -> "TO BE ADDED"
-(*  *)
+
 let rec string_of_typ = function
     Int               -> "Int"
   | Bool              -> "Bool"
   | Float             -> "Float"
   | Void              -> "Void"
-  | Arrow  (fst, snd) -> string_of_typ fst ^ "->" ^ string_of_typ snd
+  | Arrow  (fst, snd) -> string_of_typ_list fst ^ "->" ^ string_of_typ snd
   | TypVar tv         -> tv
-
+and string_of_typ_list ls =
+  let rec recurse acc item =  acc ^ (string_of_typ item) ^ ","
+  in List.fold_left recurse "(" ls ^ ")"
 
 let string_of_typ_var_pair (t, id) = string_of_typ t ^ " " ^ id
 let string_of_vdecl decl = string_of_typ_var_pair decl ^ ";\n"

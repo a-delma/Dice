@@ -1,5 +1,3 @@
-Int k;
 
-Struct temp {
-    Int k;
-}
+
+(Int, Bool) -> Int temp;

@@ -5,16 +5,22 @@ open Ast
 let f (a, _, _) = a
 let s (_, b, a) = b
 let t (_, _, c) = c
+
+let parse_error s = (* Called by the parser function on error *)
+  print_endline s;
+  flush stdout
+
 %}
 
 %token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN
 %token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT
 %token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID
-%token ARROW STRUCT/* Not sure about precedence or associativity */
+%token ARROW STRUCT LARROW RARROW/* Not sure about precedence or associativity*/
 %token <int> LITERAL
 %token <bool> BLIT
 %token <string> ID FLIT TYPVAR
 %token EOF
+
 
 %start program
 %type <Ast.program> program
@@ -59,13 +65,18 @@ formal_list:
     typ ID                   { [($1,$2)]     }
   | formal_list COMMA typ ID { ($3,$4) :: $1 }
 
+typ_list:
+    /* nothing */    { [] }
+  | typ                { [$1] }
+  | typ_list COMMA typ { $3 :: $1 }
+
 typ:
     INT           { Int   }
   | BOOL          { Bool  }
   | FLOAT         { Float }
   | VOID          { Void  }
-  | typ ARROW typ { Arrow($1, $3) }
-  | TYPVAR        { TypVar $1 }
+  | LPAREN typ_list RPAREN ARROW typ { Arrow(List.rev $2, $5) }
+  | LARROW TYPVAR RARROW { TypVar $2 }
 
 vdecl_list:
     /* nothing */    { [] }
