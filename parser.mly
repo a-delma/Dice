@@ -2,12 +2,15 @@
 
 %{
 open Ast
+let f (a, _, _) = a
+let s (_, b, a) = b
+let t (_, _, c) = c
 %}
 
 %token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN
 %token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT
 %token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID
-%token ARROW /* Not sure about precedence or associativity */
+%token ARROW STRUCT/* Not sure about precedence or associativity */
 %token <int> LITERAL
 %token <bool> BLIT
 %token <string> ID FLIT TYPVAR
@@ -27,17 +30,18 @@ open Ast
 %left PLUS MINUS
 %left TIMES DIVIDE
 %left ARROW /* Not sure about precedence or associativity */
+%nonassoc STRUCT
 %right NOT
 
 %%
-
 program:
-  decls EOF { List.rev (fst $1), List.rev (snd $1) }
+  decls EOF { List.rev (f $1), List.rev (s $1), List.rev (t $1) }
 
 decls:
-   /* nothing */ { ([], [])               }
- | decls vdecl { (($2 :: fst $1), snd $1) }
- | decls fdecl { (fst $1, ($2 :: snd $1)) }
+   /* nothing */ { ([], [], [])               }
+ | decls vdecl { (($2 :: f $1), s $1, t $1) }
+ | decls fdecl { (f $1, ($2 :: s $1), t $1) }
+ | decls sdecl { (f $1, s $1, ($2 :: t $1)) }
 
 fdecl:
    typ ID LPAREN formals_opt RPAREN LBRACE vdecl_list stmt_list RBRACE
@@ -70,6 +74,13 @@ vdecl_list:
 vdecl:
    typ ID SEMI { ($1, $2) }
 
+sdecl_list:
+    /* nothing */    { [] }
+  | sdecl_list sdecl { $2 :: $1 }
+
+sdecl:
+   STRUCT ID LBRACE vdecl_list RBRACE { ($2, $4) }
+
 stmt_list:
     /* nothing */  { [] }
   | stmt_list stmt { $2 :: $1 }
@@ -90,7 +101,7 @@ expr_opt:
 
 expr:
     LITERAL          { Literal($1)            }
-  | FLIT	         { Fliteral($1)           }
+  | FLIT	           { Fliteral($1)           }
   | BLIT             { BoolLit($1)            }
   | ID               { Id($1)                 }
   | expr PLUS   expr { Binop($1, Add,   $3)   }

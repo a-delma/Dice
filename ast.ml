@@ -9,6 +9,7 @@ type typ = Int | Bool | Float | Void | Arrow of typ * typ | TypVar of string
   
 type bind = typ * string
 
+
 type expr =
     Literal of int
   | Fliteral of string
@@ -28,6 +29,7 @@ type stmt =
   | If of expr * stmt * stmt
   | For of expr * expr * expr * stmt
   | While of expr * stmt
+  | Struct of expr
 
 type func_decl = {
     typ : typ;
@@ -37,8 +39,9 @@ type func_decl = {
     body : stmt list;
   }
 
-type program = bind list * func_decl list
+type struct_decl = string * bind list
 
+type program = bind list * func_decl list * struct_decl list
 
 (* Pretty-printing functions *)
 
@@ -87,6 +90,7 @@ let rec string_of_stmt = function
       "for (" ^ string_of_expr e1  ^ " ; " ^ string_of_expr e2 ^ " ; " ^
       string_of_expr e3  ^ ") " ^ string_of_stmt s
   | While(e, s) -> "while (" ^ string_of_expr e ^ ") " ^ string_of_stmt s
+  | Struct(e) -> "TO BE ADDED"
 (*  *)
 let rec string_of_typ = function
     Int               -> "Int"
@@ -100,6 +104,10 @@ let rec string_of_typ = function
 let string_of_typ_var_pair (t, id) = string_of_typ t ^ " " ^ id
 let string_of_vdecl decl = string_of_typ_var_pair decl ^ ";\n"
 
+let string_of_sdecl (name, vdecls) = "Struct " ^ name ^ "{\n" ^ 
+    String.concat "" (List.map string_of_vdecl vdecls) ^
+    "}\n"
+
 let string_of_fdecl fdecl =
   string_of_typ fdecl.typ ^ " " ^
   fdecl.fname ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair
@@ -109,6 +117,7 @@ let string_of_fdecl fdecl =
   String.concat "" (List.map string_of_stmt fdecl.body) ^
   "}\n"
 
-let string_of_program (vars, funcs) =
+let string_of_program (vars, funcs, structs) =
   String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
-  String.concat "\n" (List.map string_of_fdecl funcs)
+  String.concat "\n" (List.map string_of_fdecl funcs) ^
+  String.concat "\n" (List.map string_of_sdecl structs)
