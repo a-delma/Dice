@@ -31,14 +31,6 @@ and stmt =
   | While of expr * stmt
   | Struct of expr
 
-type func_decl = {
-    typ : typ;
-    fname : string;
-    formals : bind list;
-    locals : bind list;
-    body : stmt list;
-  }
-
 type struct_decl = string * bind list
 
 type program = bind list * stmt list * struct_decl list
