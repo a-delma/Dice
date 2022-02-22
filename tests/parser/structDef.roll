@@ -1,9 +1,0 @@
-/*
-RUN: %parser "%s" > "%t"
-RUN: %diff "%s.expect" "%t"
-*/
-
-struct Temp {
-    Int h;
-    Bool k;
-}

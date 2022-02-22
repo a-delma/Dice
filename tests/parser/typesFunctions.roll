@@ -9,5 +9,4 @@ RUN: %diff "%s.expect" "%t"
 [[Int, Float] -> Bool] -> Int d;
 [Int, Float] -> [Int, Bool] -> Float e;
 [[Int, Float] -> [Int, Bool]] -> Float f;
-[Int, Float] -> [[Int, Bool] -> Float] g;
-[Int] -> [] h;
+[Int] -> [] g;

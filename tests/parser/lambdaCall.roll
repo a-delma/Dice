@@ -6,7 +6,7 @@ RUN: %diff "%s.expect" "%t"
 // Declarations
 []->Int zero;
 [Int, Int]->Int sum;
-[Int] -> [[Int] -> Int] curriedSum;
+[Int] -> [Int] -> Int curriedSum;
 
 zero = lambda () -> Int {
     return 0;
@@ -16,7 +16,7 @@ sum = lambda (Int x, Int y)->Int {
     return x + y;
 };
 
-curriedSum = lambda (Int x)->[[Int] -> Int] {
+curriedSum = lambda (Int x)->[Int] -> Int {
     return lambda(Int y)->Int {
         return x + y;
     };
@@ -25,3 +25,7 @@ curriedSum = lambda (Int x)->[[Int] -> Int] {
 zero();
 sum(1, 2);
 curriedSum(1)(2);
+lambda (Int x, Int y) -> Bool {
+        return true;
+}(1, 2); // call right after defining the function
+1(2, 3); // syntax is correct, but compiles to garbage

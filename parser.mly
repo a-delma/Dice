@@ -17,7 +17,7 @@ let parse_error s = (* Called by the parser function on error *)
 %token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID
 %token LSQURE RSQURE
 %token LAMBDA
-%token ARROW STRUCT LARROW RARROW/* Not sure about precedence or associativity*/
+%token ARROW STRUCT /* Not sure about precedence or associativity*/
 %token <int> LITERAL
 %token <bool> BLIT
 %token <string> ID FLIT TYPVAR

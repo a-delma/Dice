@@ -1,0 +1,6 @@
+/*
+Fail to parse a function type that has extra brackets.
+XFAIL: *
+RUN: %parser "%s" > "%t"
+*/
+[]->[Int] zero;
