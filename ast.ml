@@ -9,7 +9,6 @@ type typ = Int | Bool | Float | Void | Arrow of typ list * typ | TypVar of strin
   
 type bind = typ * string
 
-
 type expr =
     Literal of int
   | Fliteral of string
@@ -18,11 +17,12 @@ type expr =
   | Binop of expr * op * expr
   | Unop of uop * expr
   | Assign of expr * expr
-  | Call of string * expr list
+  | Call of expr * expr list
   | RecordAccess of expr * string
+  | Lambda of typ * bind list * stmt list
   | Noexpr
 
-type stmt =
+and stmt =
     Block of stmt list
   | Expr of expr
   | Return of expr
@@ -63,6 +63,18 @@ let string_of_uop = function
     Neg -> "-"
   | Not -> "!"
 
+let rec string_of_typ = function
+    Int               -> "Int"
+  | Bool              -> "Bool"
+  | Float             -> "Float"
+  | Void              -> "Void"
+  | Arrow  (fst, snd) -> string_of_typ_list fst ^ "->" ^ string_of_typ snd
+  | TypVar tv         -> tv
+and string_of_typ_list ls =
+  let rec recurse acc item =  acc ^ (string_of_typ item) ^ ","
+  in List.fold_left recurse "[" ls ^ "]"
+
+let string_of_typ_var_pair (t, id) = string_of_typ t ^ " " ^ id
 let rec string_of_expr = function
     Literal(l) -> string_of_int l
   | Fliteral(l) -> l
@@ -73,12 +85,16 @@ let rec string_of_expr = function
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
   | Unop(o, e) -> string_of_uop o ^ string_of_expr e
   | Assign(e1, e2) -> string_of_expr e1 ^ " = " ^ string_of_expr e2
-  | Call(f, el) ->
-      f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
+  | Call(e1, e2) ->
+      string_of_expr e1 ^ "(" ^ String.concat ", " (List.map string_of_expr e2) ^ ")"
   | RecordAccess(e, s) -> string_of_expr e ^ "." ^ s
+  | Lambda(t, f, s) -> "[" ^ String.concat ", " (List.map string_of_typ_var_pair f) ^
+                        "] -> " ^ string_of_typ t ^ " " ^ "{\n" ^
+                        String.concat "" (List.map string_of_stmt s) ^
+                        "}"
   | Noexpr -> ""
 
-let rec string_of_stmt = function
+and string_of_stmt = function
     Block(stmts) ->
       "{\n" ^ String.concat "" (List.map string_of_stmt stmts) ^ "}\n"
   | Expr(expr) -> string_of_expr expr ^ ";\n";
@@ -92,24 +108,17 @@ let rec string_of_stmt = function
   | While(e, s) -> "while (" ^ string_of_expr e ^ ") " ^ string_of_stmt s
   | Struct(e) -> "TO BE ADDED"
 
-let rec string_of_typ = function
-    Int               -> "Int"
-  | Bool              -> "Bool"
-  | Float             -> "Float"
-  | Void              -> "Void"
-  | Arrow  (fst, snd) -> string_of_typ_list fst ^ "->" ^ string_of_typ snd
-  | TypVar tv         -> tv
-and string_of_typ_list ls =
-  let rec recurse acc item =  acc ^ (string_of_typ item) ^ ","
-  in List.fold_left recurse "[" ls ^ "]"
 
-let string_of_typ_var_pair (t, id) = string_of_typ t ^ " " ^ id
+
+
 let string_of_vdecl decl = string_of_typ_var_pair decl ^ ";\n"
 
 let string_of_sdecl (name, vdecls) = "Struct " ^ name ^ "{\n" ^ 
     String.concat "" (List.map string_of_vdecl vdecls) ^
     "}\n"
 
+
+  
 let string_of_fdecl fdecl =
   string_of_typ fdecl.typ ^ " " ^
   fdecl.fname ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair

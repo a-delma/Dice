@@ -16,6 +16,7 @@ let parse_error s = (* Called by the parser function on error *)
 %token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT
 %token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID
 %token LSQURE RSQURE
+%token LAMBDA
 %token ARROW STRUCT LARROW RARROW/* Not sure about precedence or associativity*/
 %token <int> LITERAL
 %token <bool> BLIT
@@ -57,6 +58,7 @@ fdecl:
 	 formals = List.rev $4;
 	 locals = List.rev $7;
 	 body = List.rev $8 } }
+
 
 formals_opt:
     /* nothing */ { [] }
@@ -129,8 +131,10 @@ expr:
   | expr ASSIGN expr { Assign($1, $3)         }
   //TODO NEED SOMETHING HERE like rec_access ASSIGN expr
   | expr DOT ID      { RecordAccess($1, $3)   } //TODO link with actual record rules
-  | ID LPAREN args_opt RPAREN { Call($1, $3)  }
+  | expr LPAREN args_opt RPAREN { Call($1, $3)  }
   | LPAREN expr RPAREN { $2                   }
+  | LAMBDA LPAREN formals_opt RPAREN ARROW typ LBRACE stmt_list RBRACE 
+    { Lambda($6, $3, $8) }
 
 
 args_opt:

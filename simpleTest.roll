@@ -1,3 +1,14 @@
 
 
 [Int, Bool] -> Int temp;
+Int main () {
+    [Int, Int] -> Bool x;
+    lambda (Int x, Int y) -> Bool {
+        return true;
+    };
+    // syntax is correct, but compiles to garbage
+    1(2, 3);
+    x = lambda (Int x, Int y) -> Bool {
+        return true;
+    }(1, 2);
+}
