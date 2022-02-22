@@ -19,7 +19,7 @@ type expr =
   | Assign of expr * expr
   | Call of expr * expr list
   | RecordAccess of expr * string
-  | Lambda of typ * bind list * stmt list
+  | Lambda of typ * bind list * bind list * stmt list
   | Noexpr
 
 and stmt =
@@ -67,6 +67,8 @@ and string_of_typ_list ls =
 
 let string_of_typ_var_pair (t, id) = string_of_typ t ^ " " ^ id
 
+let string_of_vdecl decl = string_of_typ_var_pair decl ^ ";\n"
+
 let rec string_of_expr = function
     Literal(l) -> string_of_int l
   | Fliteral(l) -> l
@@ -80,10 +82,12 @@ let rec string_of_expr = function
   | Call(e1, e2) ->
       string_of_expr e1 ^ "(" ^ String.concat ", " (List.map string_of_expr e2) ^ ")"
   | RecordAccess(e, s) -> string_of_expr e ^ "." ^ s
-  | Lambda(t, f, s) -> "lambda (" ^ String.concat ", " (List.map string_of_typ_var_pair f) ^
-                        ") -> " ^ string_of_typ t ^ " " ^ "{\n" ^
-                        String.concat "" (List.map string_of_stmt s) ^
-                        "}"
+  | Lambda(t, f, v, s) ->
+      "lambda (" ^ String.concat ", " (List.map string_of_typ_var_pair f) ^
+      ") -> " ^ string_of_typ t ^ " " ^ "{\n" ^
+      String.concat "" (List.map string_of_vdecl v) ^
+      String.concat "" (List.map string_of_stmt s) ^
+      "}"
   | Noexpr -> ""
 
 and string_of_stmt = function
@@ -101,16 +105,10 @@ and string_of_stmt = function
   | Struct(e) -> "TO BE ADDED"
 
 
-
-
-let string_of_vdecl decl = string_of_typ_var_pair decl ^ ";\n"
-
 let string_of_sdecl (name, vdecls) = "struct " ^ name ^ " {\n" ^
     String.concat "" (List.map string_of_vdecl vdecls) ^
     "};\n"
 
-
-  
 
 let string_of_program (structs, vars, stmts) =
   String.concat "" ((List.map string_of_sdecl structs) @

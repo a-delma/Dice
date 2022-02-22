@@ -89,7 +89,7 @@ stmt_list:
 stmt:
     expr SEMI                               { Expr $1               }
   | RETURN expr_opt SEMI                    { Return $2             }
-  | LBRACE stmt_list RBRACE                 { Block(List.rev $2)    }
+  | LBRACE stmt_opt RBRACE                  { Block(List.rev $2)    }
   | IF LPAREN expr RPAREN stmt %prec NOELSE { If($3, $5, Block([])) }
   | IF LPAREN expr RPAREN stmt ELSE stmt    { If($3, $5, $7)        }
   | FOR LPAREN expr_opt SEMI expr SEMI expr_opt RPAREN stmt
@@ -124,10 +124,9 @@ expr:
   | expr DOT ID      { RecordAccess($1, $3)   } //TODO link with actual record rules
   | expr LPAREN args_opt RPAREN
                      { Call($1, $3)           }
-  | LPAREN expr RPAREN
-                     { $2                     }
-  | LAMBDA LPAREN formals_opt RPAREN ARROW typ LBRACE stmt_list RBRACE 
-                     { Lambda($6, $3, $8)     }
+  | LPAREN expr RPAREN { $2                   }
+  | LAMBDA LPAREN formals_opt RPAREN ARROW typ LBRACE vdecl_opt stmt_opt RBRACE
+                     { Lambda($6, $3, $8, $9)     }
 
 
 args_opt:
