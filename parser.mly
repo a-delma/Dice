@@ -48,16 +48,8 @@ program:
 decls:
    /* nothing */ { ([], [], [])               }
  | decls vdecl { (($2 :: f $1), s $1, t $1) }
- | decls fdecl { (f $1, ($2 :: s $1), t $1) }
+ | decls stmt { (f $1, ($2 :: s $1), t $1) }
  | decls sdecl { (f $1, s $1, ($2 :: t $1)) }
-
-fdecl:
-   typ ID LPAREN formals_opt RPAREN LBRACE vdecl_list stmt_list RBRACE
-     { { typ = $1;
-	 fname = $2;
-	 formals = List.rev $4;
-	 locals = List.rev $7;
-	 body = List.rev $8 } }
 
 
 formals_opt:
@@ -131,7 +123,7 @@ expr:
   | expr ASSIGN expr { Assign($1, $3)         }
   //TODO NEED SOMETHING HERE like rec_access ASSIGN expr
   | expr DOT ID      { RecordAccess($1, $3)   } //TODO link with actual record rules
-  | expr LPAREN args_opt RPAREN { Call($1, $3)  }
+  | ID LPAREN args_opt RPAREN { Call($1, $3)  } //expr instead of ID causes 16 shift reduce conflicts, will talk with group
   | LPAREN expr RPAREN { $2                   }
   | LAMBDA LPAREN formals_opt RPAREN ARROW typ LBRACE stmt_list RBRACE 
     { Lambda($6, $3, $8) }

@@ -17,7 +17,7 @@ type expr =
   | Binop of expr * op * expr
   | Unop of uop * expr
   | Assign of expr * expr
-  | Call of expr * expr list
+  | Call of string * expr list
   | RecordAccess of expr * string
   | Lambda of typ * bind list * stmt list
   | Noexpr
@@ -41,7 +41,7 @@ type func_decl = {
 
 type struct_decl = string * bind list
 
-type program = bind list * func_decl list * struct_decl list
+type program = bind list * stmt list * struct_decl list
 
 (* Pretty-printing functions *)
 
@@ -86,7 +86,7 @@ let rec string_of_expr = function
   | Unop(o, e) -> string_of_uop o ^ string_of_expr e
   | Assign(e1, e2) -> string_of_expr e1 ^ " = " ^ string_of_expr e2
   | Call(e1, e2) ->
-      string_of_expr e1 ^ "(" ^ String.concat ", " (List.map string_of_expr e2) ^ ")"
+      e1 ^ "(" ^ String.concat ", " (List.map string_of_expr e2) ^ ")"
   | RecordAccess(e, s) -> string_of_expr e ^ "." ^ s
   | Lambda(t, f, s) -> "[" ^ String.concat ", " (List.map string_of_typ_var_pair f) ^
                         "] -> " ^ string_of_typ t ^ " " ^ "{\n" ^
@@ -119,16 +119,8 @@ let string_of_sdecl (name, vdecls) = "Struct " ^ name ^ "{\n" ^
 
 
   
-let string_of_fdecl fdecl =
-  string_of_typ fdecl.typ ^ " " ^
-  fdecl.fname ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair
-                                                   fdecl.formals) ^
-  ")\n{\n" ^
-  String.concat "" (List.map string_of_vdecl fdecl.locals) ^
-  String.concat "" (List.map string_of_stmt fdecl.body) ^
-  "}\n"
 
-let string_of_program (vars, funcs, structs) =
+let string_of_program (vars, stmts, structs) =
   String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
-  String.concat "\n" (List.map string_of_fdecl funcs) ^
+  String.concat "\n" (List.map string_of_stmt stmts) ^
   String.concat "\n" (List.map string_of_sdecl structs)
