@@ -1,8 +1,0 @@
-
-int main()
-{
-foo(1, a).bar;
-x.y = 2;
-foo(1, a).bar = x.y;
-return 0;
-}

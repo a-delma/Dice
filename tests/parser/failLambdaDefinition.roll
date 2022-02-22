@@ -1,0 +1,9 @@
+/*
+Fail to parse a lambda definition that has no parameters.
+XFAIL: *
+RUN: %parser "%s" > "%t"
+*/
+[]->Int zero;
+zero = lambda -> Int {
+    return 0;
+};

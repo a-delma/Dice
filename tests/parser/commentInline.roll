@@ -1,0 +1,8 @@
+/*
+Test inline comments.
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+Int a; // here is a one line comment
+Int b; // still a one line comment /*
+Int c; ////////
