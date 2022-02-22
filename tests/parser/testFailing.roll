@@ -1,7 +1,0 @@
-/*
-XFAIL: *
-RUN: %parser "%s" > "%t"
-*/
-Int k;
-Int h;
-asdfasfd

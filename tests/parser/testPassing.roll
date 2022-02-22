@@ -1,6 +1,0 @@
-/*
-RUN: %parser "%s" > "%t"
-RUN: %diff "%s.expect" "%t"
-*/
-Int k;
-Int h;
