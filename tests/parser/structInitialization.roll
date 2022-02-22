@@ -13,4 +13,4 @@ struct K {
 T t;
 K k;
 t = {i=5};
-k = {i = 4, b = true}
+k = {i = 4, b = true};
