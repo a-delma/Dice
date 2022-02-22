@@ -1,11 +1,6 @@
 /* Ocamlyacc parser for MicroC */
 
-%{
-open Ast
-let f (a, _, _) = a
-let s (_, b, a) = b
-let t (_, _, c) = c
-%}
+%{ open Ast %}
 
 %token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN
 %token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT
@@ -38,14 +33,7 @@ let t (_, _, c) = c
 
 %%
 program:
-  decls EOF { List.rev (f $1), List.rev (s $1), List.rev (t $1) }
-
-decls:
-   /* nothing */ { ([], [], [])               }
- | decls vdecl { (($2 :: f $1), s $1, t $1) }
- | decls stmt { (f $1, ($2 :: s $1), t $1) }
- | decls sdecl { (f $1, s $1, ($2 :: t $1)) }
-
+  sdecl_opt vdecl_opt stmt_opt EOF {$1, $2, $3}
 
 formals_opt:
     /* nothing */ { [] }
@@ -56,34 +44,46 @@ formal_list:
   | formal_list COMMA typ ID { ($3,$4) :: $1 }
 
 typ_list:
-    /* nothing */    { [] }
-  | typ                { [$1] }
+    /* nothing */      { []       }
+  | typ                { [$1]     }
   | typ_list COMMA typ { $3 :: $1 }
 
 typ:
-    INT           { Int   }
-  | BOOL          { Bool  }
-  | FLOAT         { Float }
-  | VOID          { Void  }
+    INT                              { Int   }
+  | BOOL                             { Bool  }
+  | FLOAT                            { Float }
+  | VOID                             { Void  }
   | LSQURE typ_list RSQURE ARROW typ { Arrow(List.rev $2, $5) }
-  | TYPVAR { TypVar $1 }
+  | TYPVAR                           { TypVar $1 }
 
 vdecl_opt:
-    /* nothing */    { [] }
-  | vdecl_list { $1 }
+    /* nothing */ { []          }
+  | vdecl_list    { List.rev $1 }
 
 vdecl_list:
   | vdecl_list vdecl { $2 :: $1 }
-  | vdecl            { [$1] }
+  | vdecl            { [$1]     }
 
 vdecl:
    typ ID SEMI { ($1, $2) }
 
+sdecl_opt:
+    /* nothing */ { []          }
+  | sdecl_list    { List.rev $1 }
+
+sdecl_list:
+  | sdecl_list sdecl { $2 :: $1 }
+  | sdecl            { [$1]     }
+
 sdecl:
    STRUCT TYPVAR LBRACE vdecl_list RBRACE SEMI { ($2, $4) }
 
+stmt_opt:
+    /* nothing */ { []          }
+  | stmt_list     { List.rev $1 }
+
 stmt_list:
-    /* nothing */  { [] }
+  | stmt           { [$1]     }
   | stmt_list stmt { $2 :: $1 }
 
 stmt:
@@ -98,7 +98,7 @@ stmt:
 
 expr_opt:
     /* nothing */ { Noexpr }
-  | expr          { $1 }
+  | expr          { $1     }
 
 expr:
     LITERAL          { Literal($1)            }
@@ -122,10 +122,12 @@ expr:
   | expr ASSIGN expr { Assign($1, $3)         }
   //TODO NEED SOMETHING HERE like rec_access ASSIGN expr
   | expr DOT ID      { RecordAccess($1, $3)   } //TODO link with actual record rules
-  | expr LPAREN args_opt RPAREN { Call($1, $3)  } //expr instead of ID causes 16 shift reduce conflicts, will talk with group
-  | LPAREN expr RPAREN { $2                   }
+  | expr LPAREN args_opt RPAREN
+                     { Call($1, $3)           }
+  | LPAREN expr RPAREN
+                     { $2                     }
   | LAMBDA LPAREN formals_opt RPAREN ARROW typ LBRACE stmt_list RBRACE 
-    { Lambda($6, $3, $8) }
+                     { Lambda($6, $3, $8)     }
 
 
 args_opt:
@@ -133,5 +135,5 @@ args_opt:
   | args_list     { List.rev $1 }
 
 args_list:
-    expr                    { [$1] }
+    expr                 { [$1]     }
   | args_list COMMA expr { $3 :: $1 }

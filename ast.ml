@@ -33,7 +33,7 @@ and stmt =
 
 type struct_decl = string * bind list
 
-type program = bind list * stmt list * struct_decl list
+type program = struct_decl list * bind list * stmt list
 
 (* Pretty-printing functions *)
 
@@ -112,7 +112,7 @@ let string_of_sdecl (name, vdecls) = "struct " ^ name ^ " {\n" ^
 
   
 
-let string_of_program (vars, stmts, structs) =
-  String.concat "" ((List.map string_of_vdecl vars) @
-                    (List.map string_of_sdecl structs) @
+let string_of_program (structs, vars, stmts) =
+  String.concat "" ((List.map string_of_sdecl structs) @
+                    (List.map string_of_vdecl vars) @
                     (List.map string_of_stmt stmts))
