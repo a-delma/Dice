@@ -76,7 +76,7 @@ sdecl_list:
   | sdecl            { [$1]     }
 
 sdecl:
-   STRUCT TYPVAR LBRACE vdecl_list RBRACE SEMI { ($2, $4) }
+   STRUCT TYPARAM_LIST_OPT LBRACE vdecl_list RBRACE SEMI { ($2, $4) }
 
 stmt_opt:
     /* nothing */ { []          }
