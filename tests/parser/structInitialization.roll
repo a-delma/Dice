@@ -1,0 +1,16 @@
+/*
+Tests struct type initialization
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+struct T {
+    Int i;
+};
+struct K {
+    Int i;
+    Bool b;
+};
+T t;
+K k;
+t = {i=5};
+k = {i = 4, b = true}

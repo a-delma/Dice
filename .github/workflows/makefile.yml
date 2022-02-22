@@ -24,8 +24,7 @@ jobs:
     - name: Install lit
       run:  pip install lit
     - name: Compile Dice Compiler
-      run: make
-      
+      run: make toplevel.native
     - name: Run tests
-      run: lit tests
+      run: make test
     

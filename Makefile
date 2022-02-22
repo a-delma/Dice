@@ -2,7 +2,7 @@
 # This Makefile is inspired by one provided by Stephen Edwards for his Compilers
 # course at Columbia University.
 
-all : toplevel.native 
+all : toplevel.native test 
 
 #############################
 # 
@@ -13,7 +13,16 @@ verbose : toplevel.ml ast.ml parser.mly scanner.mll
 	ocamlyacc -v parser.mly
 
 toplevel.native : toplevel.ml ast.ml parser.mly scanner.mll
-	ocamlbuild toplevel.native
+	          ocamlbuild toplevel.native
+
+############################
+#
+# Testing
+#
+
+test :  toplevel.native
+	pip install lit
+	lit tests
 
 #################################
 
