@@ -5,11 +5,6 @@ open Ast
 let f (a, _, _) = a
 let s (_, b, a) = b
 let t (_, _, c) = c
-
-let parse_error s = (* Called by the parser function on error *)
-  print_endline s;
-  flush stdout
-
 %}
 
 %token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN
@@ -73,9 +68,13 @@ typ:
   | LSQURE typ_list RSQURE ARROW typ { Arrow(List.rev $2, $5) }
   | TYPVAR { TypVar $1 }
 
-vdecl_list:
+vdecl_opt:
     /* nothing */    { [] }
+  | vdecl_list { $1 }
+
+vdecl_list:
   | vdecl_list vdecl { $2 :: $1 }
+  | vdecl            { [$1] }
 
 vdecl:
    typ ID SEMI { ($1, $2) }
