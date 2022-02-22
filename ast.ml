@@ -17,7 +17,7 @@ type expr =
   | Binop of expr * op * expr
   | Unop of uop * expr
   | Assign of expr * expr
-  | Call of string * expr list
+  | Call of expr * expr list
   | RecordAccess of expr * string
   | Lambda of typ * bind list * stmt list
   | Noexpr
@@ -30,14 +30,6 @@ and stmt =
   | For of expr * expr * expr * stmt
   | While of expr * stmt
   | Struct of expr
-
-type func_decl = {
-    typ : typ;
-    fname : string;
-    formals : bind list;
-    locals : bind list;
-    body : stmt list;
-  }
 
 type struct_decl = string * bind list
 
@@ -86,9 +78,9 @@ let rec string_of_expr = function
   | Unop(o, e) -> string_of_uop o ^ string_of_expr e
   | Assign(e1, e2) -> string_of_expr e1 ^ " = " ^ string_of_expr e2
   | Call(e1, e2) ->
-      e1 ^ "(" ^ String.concat ", " (List.map string_of_expr e2) ^ ")"
+      string_of_expr e1 ^ "(" ^ String.concat ", " (List.map string_of_expr e2) ^ ")"
   | RecordAccess(e, s) -> string_of_expr e ^ "." ^ s
-  | Lambda(t, f, s) -> "(" ^ String.concat ", " (List.map string_of_typ_var_pair f) ^
+  | Lambda(t, f, s) -> "lambda (" ^ String.concat ", " (List.map string_of_typ_var_pair f) ^
                         ") -> " ^ string_of_typ t ^ " " ^ "{\n" ^
                         String.concat "" (List.map string_of_stmt s) ^
                         "}"

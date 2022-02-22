@@ -37,9 +37,9 @@ let parse_error s = (* Called by the parser function on error *)
 %left LT GT LEQ GEQ
 %left PLUS MINUS
 %left TIMES DIVIDE
-%left ARROW /* Not sure about precedence or associativity */
-%nonassoc STRUCT
+%left ARROW /* Menhir says the precedence is never used */
 %right NOT
+%nonassoc LPAREN
 
 %%
 program:
@@ -103,7 +103,7 @@ expr_opt:
 
 expr:
     LITERAL          { Literal($1)            }
-  | FLIT	           { Fliteral($1)           }
+  | FLIT             { Fliteral($1)           }
   | BLIT             { BoolLit($1)            }
   | ID               { Id($1)                 }
   | expr PLUS   expr { Binop($1, Add,   $3)   }
@@ -123,15 +123,15 @@ expr:
   | expr ASSIGN expr { Assign($1, $3)         }
   //TODO NEED SOMETHING HERE like rec_access ASSIGN expr
   | expr DOT ID      { RecordAccess($1, $3)   } //TODO link with actual record rules
-  | ID LPAREN args_opt RPAREN { Call($1, $3)  } //expr instead of ID causes 16 shift reduce conflicts, will talk with group
+  | expr LPAREN args_opt RPAREN { Call($1, $3)  } //expr instead of ID causes 16 shift reduce conflicts, will talk with group
   | LPAREN expr RPAREN { $2                   }
   | LAMBDA LPAREN formals_opt RPAREN ARROW typ LBRACE stmt_list RBRACE 
     { Lambda($6, $3, $8) }
 
 
 args_opt:
-    /* nothing */ { [] }
-  | args_list  { List.rev $1 }
+    /* nothing */ { []          }
+  | args_list     { List.rev $1 }
 
 args_list:
     expr                    { [$1] }
