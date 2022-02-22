@@ -13,6 +13,8 @@ rule token = parse
 | ')'      { RPAREN }
 | '{'      { LBRACE }
 | '}'      { RBRACE }
+| '['      { LSQURE }
+| ']'      { RSQURE }
 | '.'      { DOT }
 | ';'      { SEMI }
 | ','      { COMMA }
@@ -42,6 +44,8 @@ rule token = parse
 | "->"     { ARROW }
 | "true"   { BLIT(true)  }
 | "false"  { BLIT(false) }
+| "struct" { STRUCT }
+| "lambda" { LAMBDA }
 | digits as lxm { LITERAL(int_of_string lxm) }
 | digits '.'  digit* as lxm { FLIT(lxm) }
 | ['a'-'z']['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm { ID(lxm) }
@@ -50,9 +54,11 @@ rule token = parse
 | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
 
 and comment = parse
-  ['\r' '\n']{ token lexbuf }
-| _    { comment lexbuf }
+  ['\r' '\n'] { token lexbuf }
+| eof         { EOF }
+| _           { comment lexbuf }
 
 and multiComment = parse
   "*/" { token lexbuf }
+| eof  {  raise (Failure("Multiline comment not closed")) }
 | _    { multiComment lexbuf }

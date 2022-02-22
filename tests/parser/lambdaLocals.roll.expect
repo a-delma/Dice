@@ -1,0 +1,10 @@
+[Int] -> [Int] -> Int curriedSum;
+curriedSum = lambda (Int x) -> [Int] -> Int {
+Int arg;
+[Int] -> Int curried;
+arg = x;
+curried = lambda (Int y) -> Int {
+return arg + y;
+};
+return curried;
+};

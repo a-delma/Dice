@@ -1,17 +1,18 @@
 /* Ocamlyacc parser for MicroC */
 
-%{
-open Ast
-%}
+%{ open Ast %}
 
 %token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN
 %token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT
 %token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID
-%token ARROW /* Not sure about precedence or associativity */
+%token LSQURE RSQURE
+%token LAMBDA
+%token ARROW STRUCT /* Not sure about precedence or associativity*/
 %token <int> LITERAL
 %token <bool> BLIT
 %token <string> ID FLIT TYPVAR
 %token EOF
+
 
 %start program
 %type <Ast.program> program
@@ -26,26 +27,13 @@ open Ast
 %left LT GT LEQ GEQ
 %left PLUS MINUS
 %left TIMES DIVIDE
-%left ARROW /* Not sure about precedence or associativity */
+%left ARROW /* Menhir says the precedence is never used */
 %right NOT
+%nonassoc LPAREN
 
 %%
-
 program:
-  decls EOF { List.rev (fst $1), List.rev (snd $1) }
-
-decls:
-   /* nothing */ { ([], [])               }
- | decls vdecl { (($2 :: fst $1), snd $1) }
- | decls fdecl { (fst $1, ($2 :: snd $1)) }
-
-fdecl:
-   typ ID LPAREN formals_opt RPAREN LBRACE vdecl_list stmt_list RBRACE
-     { { typ = $1;
-	 fname = $2;
-	 formals = List.rev $4;
-	 locals = List.rev $7;
-	 body = List.rev $8 } }
+  sdecl_opt vdecl_opt stmt_opt EOF {$1, $2, $3}
 
 formals_opt:
     /* nothing */ { [] }
@@ -55,29 +43,53 @@ formal_list:
     typ ID                   { [($1,$2)]     }
   | formal_list COMMA typ ID { ($3,$4) :: $1 }
 
+typ_list:
+    /* nothing */      { []       }
+  | typ                { [$1]     }
+  | typ_list COMMA typ { $3 :: $1 }
+
 typ:
-    INT           { Int   }
-  | BOOL          { Bool  }
-  | FLOAT         { Float }
-  | VOID          { Void  }
-  | typ ARROW typ { Arrow($1, $3) }
-  | TYPVAR        { TypVar $1 }
+    INT                              { Int   }
+  | BOOL                             { Bool  }
+  | FLOAT                            { Float }
+  | VOID                             { Void  }
+  | LSQURE typ_list RSQURE ARROW typ { Arrow(List.rev $2, $5) }
+  | TYPVAR                           { TypVar $1 }
+
+vdecl_opt:
+    /* nothing */ { []          }
+  | vdecl_list    { List.rev $1 }
 
 vdecl_list:
-    /* nothing */    { [] }
   | vdecl_list vdecl { $2 :: $1 }
+  | vdecl            { [$1]     }
 
 vdecl:
    typ ID SEMI { ($1, $2) }
 
+sdecl_opt:
+    /* nothing */ { []          }
+  | sdecl_list    { List.rev $1 }
+
+sdecl_list:
+  | sdecl_list sdecl { $2 :: $1 }
+  | sdecl            { [$1]     }
+
+sdecl:
+   STRUCT TYPVAR LBRACE vdecl_list RBRACE SEMI { ($2, $4) }
+
+stmt_opt:
+    /* nothing */ { []          }
+  | stmt_list     { List.rev $1 }
+
 stmt_list:
-    /* nothing */  { [] }
+  | stmt           { [$1]     }
   | stmt_list stmt { $2 :: $1 }
 
 stmt:
     expr SEMI                               { Expr $1               }
   | RETURN expr_opt SEMI                    { Return $2             }
-  | LBRACE stmt_list RBRACE                 { Block(List.rev $2)    }
+  | LBRACE stmt_opt RBRACE                  { Block(List.rev $2)    }
   | IF LPAREN expr RPAREN stmt %prec NOELSE { If($3, $5, Block([])) }
   | IF LPAREN expr RPAREN stmt ELSE stmt    { If($3, $5, $7)        }
   | FOR LPAREN expr_opt SEMI expr SEMI expr_opt RPAREN stmt
@@ -86,11 +98,11 @@ stmt:
 
 expr_opt:
     /* nothing */ { Noexpr }
-  | expr          { $1 }
+  | expr          { $1     }
 
 expr:
     LITERAL          { Literal($1)            }
-  | FLIT	         { Fliteral($1)           }
+  | FLIT             { Fliteral($1)           }
   | BLIT             { BoolLit($1)            }
   | ID               { Id($1)                 }
   | expr PLUS   expr { Binop($1, Add,   $3)   }
@@ -110,14 +122,17 @@ expr:
   | expr ASSIGN expr { Assign($1, $3)         }
   //TODO NEED SOMETHING HERE like rec_access ASSIGN expr
   | expr DOT ID      { RecordAccess($1, $3)   } //TODO link with actual record rules
-  | ID LPAREN args_opt RPAREN { Call($1, $3)  }
+  | expr LPAREN args_opt RPAREN
+                     { Call($1, $3)           }
   | LPAREN expr RPAREN { $2                   }
+  | LAMBDA LPAREN formals_opt RPAREN ARROW typ LBRACE vdecl_opt stmt_opt RBRACE
+                     { Lambda($6, $3, $8, $9)     }
 
 
 args_opt:
-    /* nothing */ { [] }
-  | args_list  { List.rev $1 }
+    /* nothing */ { []          }
+  | args_list     { List.rev $1 }
 
 args_list:
-    expr                    { [$1] }
+    expr                 { [$1]     }
   | args_list COMMA expr { $3 :: $1 }
