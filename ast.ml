@@ -105,9 +105,9 @@ and string_of_stmt = function
 
 let string_of_vdecl decl = string_of_typ_var_pair decl ^ ";\n"
 
-let string_of_sdecl (name, vdecls) = "Struct " ^ name ^ "{\n" ^ 
+let string_of_sdecl (name, vdecls) = "struct " ^ name ^ " {\n" ^
     String.concat "" (List.map string_of_vdecl vdecls) ^
-    "}\n"
+    "};\n"
 
 
   

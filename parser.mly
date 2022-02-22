@@ -81,7 +81,7 @@ vdecl:
    typ ID SEMI { ($1, $2) }
 
 sdecl:
-   STRUCT ID LBRACE vdecl_list RBRACE { ($2, $4) }
+   STRUCT TYPVAR LBRACE vdecl_list RBRACE SEMI { ($2, $4) }
 
 stmt_list:
     /* nothing */  { [] }
