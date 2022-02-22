@@ -14,3 +14,6 @@ T t;
 K k;
 t = {i=5};
 k = {i = 4, b = true}
+
+{i=3}(3) // testing that {i=3} is an expression. Compiler will fail on this
+{l=lambda ()->Void {return;}}
