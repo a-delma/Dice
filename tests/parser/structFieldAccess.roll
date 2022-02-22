@@ -1,0 +1,8 @@
+/*
+Tests struct field access. Compiler would fail on this but parser should not.
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+// here we would declare some struct type, variables i, t, a, b, c, and func
+i = t.i;
+i = func(a, b, c).d;

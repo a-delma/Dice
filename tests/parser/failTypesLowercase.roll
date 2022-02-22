@@ -1,0 +1,6 @@
+/*
+Fail to parse because type names must be lowercase.
+XFAIL: *
+RUN: %parser "%s" > "%t"
+*/
+int a;
