@@ -1,0 +1,9 @@
+/*
+Tests declarations of variables that have primitive types.
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+Int i;
+Bool b;
+Float f;
+Char c;

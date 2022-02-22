@@ -1,0 +1,11 @@
+/*
+Test multiline comments.
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+Int a; /* a multiline comment
+Int b; */
+Int c; /* Still a multiline comment */
+Int d; /**/
+Int e; /*//////// Also multiline
+*/ Int f;

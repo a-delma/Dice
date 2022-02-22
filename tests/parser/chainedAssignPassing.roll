@@ -1,0 +1,8 @@
+/*
+Tests chained assign statements (assignment is an expression)
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+Int h;
+Int k;
+h = k = 3;

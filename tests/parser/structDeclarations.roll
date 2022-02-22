@@ -1,0 +1,9 @@
+/*
+Tests type (struct) declarations.
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+struct Temp {
+    Int i;
+    [Bool] -> Temp b;
+};

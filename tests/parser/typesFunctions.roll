@@ -1,0 +1,13 @@
+/*
+Tests declarations of first class functions.
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+[] -> Int a;
+[Int] -> Bool b;
+[Int, Float] -> Bool c;
+[[Int, Float] -> Bool] -> Int d;
+[Int, Float] -> [Int, Bool] -> Float e;
+[[Int, Float] -> [Int, Bool]] -> Float f;
+[Int, Float] -> [[Int, Bool] -> Float] g;
+[Int] -> [] h;

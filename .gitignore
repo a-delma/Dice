@@ -36,3 +36,7 @@ _opam/
 # Test output:
 tests/Output/*
 tests/parser/Output/*
+
+# LIT
+lit
+tests/.lit*
