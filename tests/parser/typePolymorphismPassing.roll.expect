@@ -1,0 +1,4 @@
+struct<T> List {
+List<List<List<T>>> tail;
+T head;
+};

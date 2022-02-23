@@ -1,0 +1,6 @@
+struct<T> Vector {
+T y;
+T x;
+};
+Vector<Int> cart;
+cart = {x: 2, y: 3};
