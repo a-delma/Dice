@@ -43,6 +43,14 @@ formal_list:
     typ ID                   { [($1,$2)]     }
   | formal_list COMMA typ ID { ($3,$4) :: $1 }
 
+typaram_list_opt:
+    /* nothing */ { [] }
+  |  LT typaram_list GT  { $2 }
+
+typaram_list:
+    TYPVAR                    { [$1]     }
+  | typaram_list COMMA TYPVAR { $3 :: $1 }
+
 typ_list:
     /* nothing */      { []       }
   | typ                { [$1]     }
@@ -121,8 +129,7 @@ expr:
   | NOT expr         { Unop(Not, $2)          }
   | expr ASSIGN expr { Assign($1, $3)         }
   | LBRACE assign_list RBRACE {AssignList(List.rev $2)}
-  //TODO NEED SOMETHING HERE like rec_access ASSIGN expr
-  | expr DOT ID      { RecordAccess($1, $3)   } //TODO link with actual record rules
+  | expr DOT ID      { RecordAccess($1, $3)   } 
   | expr LPAREN args_opt RPAREN
                      { Call($1, $3)           }
   | LPAREN expr RPAREN { $2                   }
