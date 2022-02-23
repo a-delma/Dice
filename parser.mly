@@ -125,8 +125,8 @@ expr:
   | expr LPAREN args_opt RPAREN
                      { Call($1, $3)           }
   | LPAREN expr RPAREN { $2                   }
-  | LAMBDA LPAREN formals_opt RPAREN ARROW typ LBRACE vdecl_opt stmt_opt RBRACE
-                     { Lambda($6, $3, $8, $9)     }
+  | LAMBDA typaram_opt LPAREN formals_opt RPAREN ARROW typ LBRACE vdecl_opt stmt_opt RBRACE
+                     { Lambda($2, $7, $4, $9, $10)     }
 
 
 args_opt:
