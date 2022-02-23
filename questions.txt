@@ -1,14 +1,2 @@
 
-Can you do multiple assignments in a row? (do assignments return a value?)
-
-int j;
-int k;
-
-j = k = 3;
-
-How do we handle assignment to records?
-
-x.y = 3;
-
-Should regular assignment be a subcase of record assignment?
-(In this case variables would all be "in" a global record)
+Do we want to fix the reverse order it prints struct fields?
