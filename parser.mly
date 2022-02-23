@@ -133,7 +133,7 @@ expr:
   | expr LPAREN args_opt RPAREN
                      { Call($1, $3)           }
   | LPAREN expr RPAREN { $2                   }
-  | LAMBDA typaram_opt LPAREN formals_opt RPAREN ARROW typ LBRACE vdecl_opt stmt_opt RBRACE
+  | LAMBDA typaram_list_opt LPAREN formals_opt RPAREN ARROW typ LBRACE vdecl_opt stmt_opt RBRACE
                      { Lambda($2, $7, $4, $9, $10)     }
 
 assign_list:
