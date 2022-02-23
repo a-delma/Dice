@@ -2,7 +2,7 @@
 
 %{ open Ast %}
 
-%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN
+%token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN COLON
 %token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT
 %token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID
 %token LSQURE RSQURE
@@ -128,12 +128,17 @@ expr:
   | MINUS expr %prec NOT { Unop(Neg, $2)      }
   | NOT expr         { Unop(Not, $2)          }
   | expr ASSIGN expr { Assign($1, $3)         }
-  | expr DOT ID      { RecordAccess($1, $3)   }
+  | LBRACE assign_list RBRACE {AssignList(List.rev $2)}
+  | expr DOT ID      { RecordAccess($1, $3)   } 
   | expr LPAREN args_opt RPAREN
                      { Call($1, $3)           }
   | LPAREN expr RPAREN { $2                   }
   | LAMBDA typaram_opt LPAREN formals_opt RPAREN ARROW typ LBRACE vdecl_opt stmt_opt RBRACE
                      { Lambda($2, $7, $4, $9, $10)     }
+
+assign_list:
+    ID COLON expr                   { [($1, $3)]   }
+  | assign_list COMMA ID COLON expr { ($3, $5)::$1 }
 
 args_opt:
     /* nothing */ { []          }

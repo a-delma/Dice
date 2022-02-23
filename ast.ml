@@ -18,6 +18,7 @@ type expr =
   | Binop of expr * op * expr
   | Unop of uop * expr
   | Assign of expr * expr
+  | AssignList of (string * expr) list
   | Call of expr * expr list
   | RecordAccess of expr * string
   | Lambda of typ list * typ * bind list * bind list * stmt list
@@ -82,6 +83,8 @@ let rec string_of_expr = function
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
   | Unop(o, e) -> string_of_uop o ^ string_of_expr e
   | Assign(e1, e2) -> string_of_expr e1 ^ " = " ^ string_of_expr e2
+  | AssignList(l) -> "{" ^
+      String.concat ", " (List.map string_of_field_assign l) ^ "}"
   | Call(e1, e2) ->
       string_of_expr e1 ^ "(" ^ String.concat ", " (List.map string_of_expr e2) ^ ")"
   | RecordAccess(e, s) -> string_of_expr e ^ "." ^ s
@@ -107,6 +110,7 @@ and string_of_stmt = function
   | While(e, s) -> "while (" ^ string_of_expr e ^ ") " ^ string_of_stmt s
   | Struct(e) -> "TO BE ADDED"
 
+and string_of_field_assign (id, e) = id ^ ": " ^ string_of_expr e
 
 let string_of_sdecl (name, vdecls) = "struct " ^ name ^ " {\n" ^
     String.concat "" (List.map string_of_vdecl vdecls) ^

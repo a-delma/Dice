@@ -17,6 +17,7 @@ rule token = parse
 | ']'      { RSQURE }
 | '.'      { DOT }
 | ';'      { SEMI }
+| ':'      { COLON }
 | ','      { COMMA }
 | '+'      { PLUS }
 | '-'      { MINUS }
