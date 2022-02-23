@@ -1,9 +1,6 @@
 /*
+Tests that a lambda body can be empty
 RUN: %parser "%s" > "%t"
 RUN: %diff "%s.expect" "%t"
 */
-
-struct Temp {
-    Int h;
-    Bool k;
-}
+lambda () -> Void {};

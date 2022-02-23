@@ -1,0 +1,10 @@
+/*
+Fail to parse because a statement precedes a type declaration.
+XFAIL: *
+RUN: %parser "%s" > "%t"
+*/
+a = 5;
+struct Temp {
+    Int i;
+    [Bool] -> Temp b;
+};

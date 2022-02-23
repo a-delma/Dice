@@ -1,0 +1,4 @@
+struct Temp {
+[Bool] -> Temp b;
+Int i;
+};

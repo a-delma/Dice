@@ -40,3 +40,6 @@ tests/parser/Output/*
 # LIT
 lit
 tests/.lit*
+
+# Menhir:
+parser.conflicts
