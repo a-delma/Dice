@@ -1,0 +1,2 @@
+i = t.i;
+i = func(a, b, c).d;

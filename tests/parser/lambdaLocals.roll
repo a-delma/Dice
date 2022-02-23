@@ -3,9 +3,9 @@ Test declaring local variables inside lambdas.
 RUN: %parser "%s" > "%t"
 RUN: %diff "%s.expect" "%t"
 */
-[Int] -> [[Int] -> Int] curriedSum;
+[Int] -> [Int] -> Int curriedSum;
 
-curriedSum = lambda (Int x)->[[Int] -> Int] {
+curriedSum = lambda (Int x)->[Int] -> Int {
     Int arg;
     [Int] -> Int curried;
     arg = x;

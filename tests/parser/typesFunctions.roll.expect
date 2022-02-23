@@ -1,8 +1,3 @@
-/*
-Tests declarations of first class functions.
-RUN: %parser "%s" > "%t"
-RUN: %diff "%s.expect" "%t"
-*/
 [] -> Int a;
 [Int] -> Bool b;
 [Int, Float] -> Bool c;
