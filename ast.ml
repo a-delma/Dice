@@ -71,7 +71,9 @@ let string_of_typ_var_pair (t, id) = string_of_typ t ^ " " ^ id
 
 let string_of_vdecl decl = string_of_typ_var_pair decl ^ ";\n"
 
-let string_of_typarams (tps) = "<" ^ String.concat ", "  tps ^ ">"
+let string_of_typarams = function 
+    [] -> ""
+  | tps -> "<" ^ String.concat ", "  tps ^ ">"
 
 let rec string_of_expr = function
     Literal(l) -> string_of_int l
