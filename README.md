@@ -5,14 +5,23 @@ Ezra Szanton (ezra.szanton@tufts.edu),
 Andrew DelMastro (andrew.delmastro@tufts.edu), 
 and Aleksandr Fedchin (aleksandr.fedchin@tufts.edu)
 
-To compile and test the parser please run `make` from the root directory.
-The script assumes that you have `ocaml`, `ocamlbuild`, and `python3` installed.
-The script also installs `lit` testing engine using `pip install lit`, so you
-need internet connection. The tests will work on Ubuntu (we have specifically 
-tested on GitHub Workflow's `ubuntu-latest` virtual machine). We have not 
-tried running the tests on other operation systems.
+To compile the parser please run `make toplevel.native` from the root directory.
+To execute the tests, please run `make test` from the root directory.
+**The script assumes that you are running Ubuntu, have internet connection,
+and have `ocaml`, `ocamlbuild`, `python`, and `pip` installed.**
+The internet connection is used to automatically install `lit` testing engine 
+via `pip install lit`. We have specifically tested on GitHub Workflow's 
+`ubuntu-latest` virtual machine. We expect the tests might fail on anything that
+is not Ubuntu. Upon successfully running the tests, `lit` should print the 
+following:
+
+```bash
+  Passed           : 19
+  Expectedly Failed: 13
+```
 
 For this assignment we have implemented the parser for all language features
-that we have planned, including first class functions and record types 
-(structs). We were thinking of adding support for parametric polymorphism
-in the future if we have time.
+that we have planned, including first class functions, record types 
+(structs), and parametric polymorphism. We have built off the MicroC parser, so
+other language features should be similar (with a few changes such as requiring
+all type identifiers be uppercase - see the tests).

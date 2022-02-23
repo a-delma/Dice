@@ -48,8 +48,8 @@ typaram_list_opt:
   |  LT typaram_list GT  { $2 }
 
 typaram_list:
-    TYPVAR                    { [TypVar($1)]     }
-  | typaram_list COMMA TYPVAR { TypVar($3) :: $1 }
+    TYPVAR                    { [$1]     }
+  | typaram_list COMMA TYPVAR { $3 :: $1 }
 
 typ_list:
     /* nothing */      { []       }
@@ -61,7 +61,8 @@ typ:
   | BOOL                             { Bool  }
   | FLOAT                            { Float }
   | VOID                             { Void  }
-  | LSQURE typ_list RSQURE ARROW typ { Arrow(List.rev $2, $5) }
+  | typaram_list_opt LSQURE typ_list RSQURE ARROW typ
+                                     { Arrow($1, List.rev $3, $6) }
   | TYPVAR                           { TypVar $1 }
   | TYPVAR LT typ_list GT            { PolyTyp($1, $3)}
 
