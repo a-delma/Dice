@@ -1,0 +1,15 @@
+struct T {
+Int i;
+};
+struct K {
+Bool b;
+Int i;
+};
+T t;
+K k;
+t = {i: 5};
+k = {i: 4, b: true};
+{i: 3}(3);
+{l: lambda () -> Void {
+return ;
+}};
