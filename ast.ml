@@ -21,7 +21,7 @@ type expr =
   | AssignList of (string * expr) list
   | Call of expr * expr list
   | RecordAccess of expr * string
-  | Lambda of typ list * typ * bind list * bind list * stmt list
+  | Lambda of string list * typ * bind list * bind list * stmt list
   | Noexpr
 
 and stmt =
@@ -33,7 +33,7 @@ and stmt =
   | While of expr * stmt
   | Struct of expr
 
-type struct_decl = string * bind list
+type struct_decl = string list * string * bind list
 
 type program = struct_decl list * bind list * stmt list
 
@@ -71,7 +71,7 @@ let string_of_typ_var_pair (t, id) = string_of_typ t ^ " " ^ id
 
 let string_of_vdecl decl = string_of_typ_var_pair decl ^ ";\n"
 
-let string_of_typarams (tps) = "<" ^ String.concatenate ", " (List.map string_of_typ tps) ^ ">"
+let string_of_typarams (tps) = "<" ^ String.concat ", "  tps ^ ">"
 
 let rec string_of_expr = function
     Literal(l) -> string_of_int l
@@ -112,7 +112,7 @@ and string_of_stmt = function
 
 and string_of_field_assign (id, e) = id ^ ": " ^ string_of_expr e
 
-let string_of_sdecl (name, vdecls) = "struct " ^ name ^ " {\n" ^
+let string_of_sdecl (types, name, vdecls) = "struct " ^ name ^ " {\n" ^
     String.concat "" (List.map string_of_vdecl vdecls) ^
     "};\n"
 
