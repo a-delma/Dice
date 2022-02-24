@@ -1,0 +1,10 @@
+/*
+Tests declarations of polymorphic structs.
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+
+struct<T> List {
+    T head;
+    List<List<List<T>>> tail;
+};

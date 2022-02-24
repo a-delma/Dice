@@ -1,0 +1,13 @@
+/*
+Tests initialization of polymorphic structs.
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+
+struct<T> Vector {
+    T x;
+    T y;
+};
+
+Vector<Int> cart;
+cart = {x : 2, y : 3};
