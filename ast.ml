@@ -34,7 +34,6 @@ and stmt =
   | If of expr * stmt * stmt
   | For of expr * expr * expr * stmt
   | While of expr * stmt
-  | Struct of expr
 
 type struct_decl = string list * string * bind list
 
@@ -120,7 +119,6 @@ and string_of_stmt = function
       "for (" ^ string_of_expr e1  ^ " ; " ^ string_of_expr e2 ^ " ; " ^
       string_of_expr e3  ^ ") " ^ string_of_stmt s
   | While(e, s) -> "while (" ^ string_of_expr e ^ ") " ^ string_of_stmt s
-  | Struct(e) -> "TO BE ADDED"
 
 and string_of_field_assign (id, e) = id ^ ": " ^ string_of_expr e
 
