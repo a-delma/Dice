@@ -11,7 +11,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
     - uses: actions/checkout@v2
@@ -22,7 +22,7 @@ jobs:
     - name: Install ocamlbuild
       run:  sudo apt install ocamlbuild  
     - name: Install lit
-      run:  pip install lit
+      run:  pip3 install lit
     - name: Compile Dice Compiler
       run: make toplevel.native
     - name: Run tests
