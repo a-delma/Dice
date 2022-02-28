@@ -22,7 +22,7 @@ jobs:
     - name: Install ocamlbuild
       run:  sudo apt install ocamlbuild  
     - name: Install lit
-      run:  pip install lit
+      run:  pip3 install lit
     - name: Compile Dice Compiler
       run: make toplevel.native
     - name: Run tests
