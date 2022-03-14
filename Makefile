@@ -21,7 +21,7 @@ toplevel.native : toplevel.ml ast.ml parser.mly scanner.mll
 #
 
 test :  toplevel.native
-	pip install lit
+	pip3 install lit
 	lit tests
 
 #################################

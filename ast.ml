@@ -6,7 +6,7 @@ type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
 type uop = Neg | Not
 
 type typ = Int | Bool | Float | Void 
-               | Arrow of typ list * typ 
+               | Arrow of string list * typ list * typ
                | TypVar of string 
                | PolyTyp of string * typ list
   
@@ -24,8 +24,7 @@ type expr =
   | AssignList of (string * expr) list
   | Call of expr * expr list
   | RecordAccess of expr * string
-  | Lambda of typ list * typ * bind list * bind list * stmt list
-  (* | RecordInit of (string * expr) list *)
+  | Lambda of string list * typ * bind list * bind list * stmt list
   | Noexpr
 
 and stmt =
@@ -37,8 +36,7 @@ and stmt =
   | While of expr * stmt
   (* | Struct of expr *)
 
-(* polymorphic variables , name of struct, variables with types *)
-type struct_decl = typ list * string * bind list
+type struct_decl = string list * string * bind list
 
 type program = struct_decl list * bind list * stmt list
 
@@ -67,13 +65,17 @@ let rec string_of_typ = function
   | Bool              -> "Bool"
   | Float             -> "Float"
   | Void              -> "Void"
-  | Arrow  (fst, snd) -> "[" ^ string_of_typ_list fst "" "" ^ "]" ^ " -> " ^ string_of_typ snd
+  | Arrow  (ty_params, fst, snd) ->
+    string_of_typ_list ty_params "<" ">" ^
+    "[" ^ String.concat ", " (List.map string_of_typ fst) ^ "]" ^
+    " -> " ^ string_of_typ snd
   | TypVar tv         -> tv
-  | PolyTyp (s, l)    -> s ^ string_of_typ_list l "<" ">"
+  | PolyTyp (s, l)    ->
+    s ^ string_of_typ_list (List.map string_of_typ l) "<" ">"
 and string_of_typ_list ls open_brac close_brac = 
   match ls with
    [] -> ""
- | ls -> open_brac ^ String.concat ", " (List.map string_of_typ ls) ^ close_brac
+ | ls -> open_brac ^ String.concat ", " ls ^ close_brac
 
 let string_of_typ_var_pair (t, id) = string_of_typ t ^ " " ^ id
 

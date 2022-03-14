@@ -1,5 +1,5 @@
 /*
-Tests declarations of first class functions.
+Tests initialization of polymorphic structs.
 RUN: %parser "%s" > "%t"
 RUN: %diff "%s.expect" "%t"
 */

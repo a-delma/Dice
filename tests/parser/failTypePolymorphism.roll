@@ -1,5 +1,5 @@
 /*
-Fail to parse a struct with no fields.
+Fail to parse a struct with extra angle braces.
 XFAIL: *
 RUN: %parser "%s" > "%t"
 */

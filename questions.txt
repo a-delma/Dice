@@ -1,2 +1,0 @@
-
-Do we want to fix the reverse order it prints struct fields?

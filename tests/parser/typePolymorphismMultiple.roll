@@ -1,0 +1,13 @@
+/*
+Tests usage of polymorphic structs with multiple type parameters.
+RUN: %parser "%s" > "%t"
+RUN: %diff "%s.expect" "%t"
+*/
+
+struct<T, K> Vector {
+    T x;
+    K y;
+};
+
+Vector<Int,Bool> cart;
+cart = {x : 2, y : true};
