@@ -25,6 +25,7 @@ type expr =
   | Call of expr * expr list
   | RecordAccess of expr * string
   | Lambda of typ list * typ * bind list * bind list * stmt list
+  (* | RecordInit of (string * expr) list *)
   | Noexpr
 
 and stmt =
@@ -34,8 +35,9 @@ and stmt =
   | If of expr * stmt * stmt
   | For of expr * expr * expr * stmt
   | While of expr * stmt
-  | Struct of expr
+  (* | Struct of expr *)
 
+(* polymorphic variables , name of struct, variables with types *)
 type struct_decl = typ list * string * bind list
 
 type program = struct_decl list * bind list * stmt list
@@ -102,7 +104,11 @@ let rec string_of_expr = function
       String.concat "" (List.map string_of_vdecl v) ^
       String.concat "" (List.map string_of_stmt s) ^
       "}"
+  (* | RecordInit l -> "{" ^ String.concat ", " (List.map str_of_struct_assign l) ^ "}"     *)
   | Noexpr -> ""
+
+(* and str_of_struct_assign (s, e) =
+  s ^ ":" ^ string_of_expr e *)
 
 and string_of_stmt = function
     Block(stmts) ->
@@ -116,7 +122,7 @@ and string_of_stmt = function
       "for (" ^ string_of_expr e1  ^ " ; " ^ string_of_expr e2 ^ " ; " ^
       string_of_expr e3  ^ ") " ^ string_of_stmt s
   | While(e, s) -> "while (" ^ string_of_expr e ^ ") " ^ string_of_stmt s
-  | Struct(e) -> "TO BE ADDED"
+  (* | Struct(e) -> "TO BE ADDED" *)
 
 and string_of_field_assign (id, e) = id ^ ": " ^ string_of_expr e
 
