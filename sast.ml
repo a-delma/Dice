@@ -14,10 +14,10 @@ and sx =
   | SAssignList of (string * sexpr) list
   | SCall of sexpr * sexpr list
   | SRecordAccess of sexpr * string
-  | SLam of typ list * typ * bind list * bind list * sstmt
+  | SLambda of string list * typ * bind list * bind list * sstmt list
   | SNoexpr
 
-type sstmt =
+and sstmt =
     SBlock of sstmt list
   | SExpr of sexpr
   | SReturn of sexpr
@@ -26,50 +26,40 @@ type sstmt =
   | SWhile of sexpr * sstmt
   (* | SStruct of sexpr *)
 
-(* struct definition *)
-type sstruct_decl = {
-  styp : typ list;
-  ssname : string; (* The name of the struct*)
-  sformals : bind list;
-  slocals : bind list;
-  sbody : sstmt list;
-}
-
-type sfunc_decl = {
-    styp : typ list;
-    sfname : string;
-    sformals : bind list;
-  }
-
-(* struct_decl list * bind list * stmt list *)
-
-type sprogram = sstruct_decl list * bind list * sstmt list
+type sprogram = struct_decl list * bind list * sstmt list
 
 (* Pretty-printing functions *)
 
-let rec string_of_sexpr (t, e) =
-  "(" ^ string_of_typ t ^ " : " ^ (match e with
+let rec string_of_sexpr(sexpression) = match (snd sexpression) with
     SLiteral(l) -> string_of_int l
+  | SFliteral(l) -> l
   | SBoolLit(true) -> "true"
   | SBoolLit(false) -> "false"
-  | SFliteral(l) -> l
   | SId(s) -> s
   | SBinop(e1, o, e2) ->
       string_of_sexpr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_sexpr e2
   | SUnop(o, e) -> string_of_uop o ^ string_of_sexpr e
-  | SAssign(v, e) -> v ^ " = " ^ string_of_sexpr e
-  | SCall(f, el) ->
-      f ^ "(" ^ String.concat ", " (List.map string_of_sexpr el) ^ ")"
+  | SAssign(e1, e2) -> string_of_sexpr e1 ^ " = " ^ string_of_sexpr e2
+  | SAssignList(l) -> "{" ^
+      String.concat ", " (List.map string_of_sfield_assign l) ^ "}"
+  | SCall(e1, e2) ->
+      string_of_sexpr e1 ^ "(" ^ String.concat ", " (List.map string_of_sexpr e2) ^ ")"
+  | SRecordAccess(e, s) -> string_of_sexpr e ^ "." ^ s
+  | SLambda(tps, t, f, v, s) ->
+      "lambda " ^ string_of_typ_list tps "<" ">" ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair f) ^
+      ") -> " ^ string_of_typ t ^ " " ^ "{\n" ^
+      String.concat "" (List.map string_of_vdecl v) ^
+      String.concat "" (List.map string_of_sstmt s) ^
+      "}"
   | SNoexpr -> ""
-				  ) ^ ")"				     
 
-let rec string_of_sstmt = function
+
+and string_of_sstmt = function
     SBlock(stmts) ->
       "{\n" ^ String.concat "" (List.map string_of_sstmt stmts) ^ "}\n"
   | SExpr(expr) -> string_of_sexpr expr ^ ";\n";
   | SReturn(expr) -> "return " ^ string_of_sexpr expr ^ ";\n";
-  | SIf(e, s, SBlock([])) ->
-      "if (" ^ string_of_sexpr e ^ ")\n" ^ string_of_sstmt s
+  | SIf(e, s, SBlock([])) -> "if (" ^ string_of_sexpr e ^ ")\n" ^ string_of_sstmt s
   | SIf(e, s1, s2) ->  "if (" ^ string_of_sexpr e ^ ")\n" ^
       string_of_sstmt s1 ^ "else\n" ^ string_of_sstmt s2
   | SFor(e1, e2, e3, s) ->
@@ -77,14 +67,9 @@ let rec string_of_sstmt = function
       string_of_sexpr e3  ^ ") " ^ string_of_sstmt s
   | SWhile(e, s) -> "while (" ^ string_of_sexpr e ^ ") " ^ string_of_sstmt s
 
-let string_of_sfdecl fdecl =
-  string_of_typ fdecl.styp ^ " " ^
-  fdecl.sfname ^ "(" ^ String.concat ", " (List.map snd fdecl.sformals) ^
-  ")\n{\n" ^
-  String.concat "" (List.map string_of_vdecl fdecl.slocals) ^
-  String.concat "" (List.map string_of_sstmt fdecl.sbody) ^
-  "}\n"
+and string_of_sfield_assign (id, e) = id ^ ": " ^ string_of_sexpr e
 
-let string_of_sprogram (structs, vars, funcs) =
-  String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
-  String.concat "\n" (List.map string_of_sfdecl funcs)
+let string_of_sprogram (structs, vars, stmts) =
+  String.concat "" ((List.map string_of_sdecl structs) @
+                    (List.map string_of_vdecl vars) @
+                    (List.map string_of_stmt stmts))
