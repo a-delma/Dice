@@ -72,4 +72,4 @@ and string_of_sfield_assign (id, e) = id ^ ": " ^ string_of_sexpr e
 let string_of_sprogram (structs, vars, stmts) =
   String.concat "" ((List.map string_of_sdecl structs) @
                     (List.map string_of_vdecl vars) @
-                    (List.map string_of_stmt stmts))
+                    (List.map string_of_sstmt stmts))
