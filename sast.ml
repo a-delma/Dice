@@ -2,7 +2,14 @@
 
 open Ast
 
-type sexpr = typ * sx
+type sLambdaBody = {
+    styp : typ; (* Function type *)
+    spolytype : bind list; (* Type Variables *)
+    sformals : bind list; (* Parameters *)
+    sbody : sstmt list;
+  }
+  
+and sexpr = typ * sx
 and sx =
     SLiteral of int
   | SFliteral of string
@@ -25,6 +32,14 @@ and sstmt =
   | SFor of sexpr * sexpr * sexpr * sstmt
   | SWhile of sexpr * sstmt
   (* | SStruct of sexpr *)
+
+type sfunc_decl = {
+  styp : typ;
+  sfname : string;
+  sformals : bind list;
+  slocals : bind list;
+  sbody : sstmt list;
+}
 
 type sprogram = struct_decl list * bind list * sstmt list
 

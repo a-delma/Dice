@@ -2,7 +2,7 @@
 # This Makefile is inspired by one provided by Stephen Edwards for his Compilers
 # course at Columbia University.
 
-all : toplevel.native  
+all : toplevel.native printbig
 
 #############################
 # 
@@ -11,6 +11,9 @@ all : toplevel.native
 
 verbose : toplevel.ml ast.ml parser.mly scanner.mll
 	ocamlyacc -v parser.mly
+
+printbig : printbig.c
+	cc -o printbig.o -DBUILD_TEST printbig.c
 
 toplevel.native : parser.mly scanner.mll codegen.ml semant.ml microc.ml
 	opam config exec -- \
@@ -38,3 +41,4 @@ clean :
 	rm *.mli
 	rm parser.ml
 	rm parser.output
+	rm printbig

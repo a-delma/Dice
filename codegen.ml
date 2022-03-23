@@ -21,7 +21,12 @@ module StringMap = Map.Make(String)
 
 (* Code Generation from the SAST. Returns an LLVM module if successful,
    throws an exception if something is wrong. *)
-let translate (structs, globals, functions) =
+let translate (structs, globals, stmts) =
+  let functions = [{ styp = A.Int; 
+                     sfname = "main";
+                     sformals = [];
+                     slocals = [];
+                     sbody = stmts}] in
   let context    = L.global_context () in
   (* Add types to the context so we can use them in our LLVM code *)
   let i32_t      = L.i32_type    context
@@ -54,13 +59,14 @@ let translate (structs, globals, functions) =
       L.var_arg_function_type i32_t [| L.pointer_type i8_t |] in
   let printf_func : L.llvalue = 
      L.declare_function "printf" printf_t the_module in
+  *)
 
   let printbig_t = L.function_type i32_t [| i32_t |] in
-  let printbig_func = L.declare_function "printbig" printbig_t the_module in *)
+  let printbig_func = L.declare_function "putchar" printbig_t the_module in
 
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
-  let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
+   let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
     let function_decl m fdecl =
       let name = fdecl.sfname
       and formal_types = 
@@ -115,45 +121,52 @@ let translate (structs, globals, functions) =
       | SId s -> L.build_load (lookup s) s builder
       | SAssign (e1, e2) -> raise (Failure "NotImplemented")
       | SBinop (e1, op, e2) ->
-	  let (t, _) = e1
-	  and e1' = expr builder e1
-	  and e2' = expr builder e2 in
-	  if t = A.Float then (match op with 
-	    A.Add     -> L.build_fadd
-	  | A.Sub     -> L.build_fsub
-	  | A.Mult    -> L.build_fmul
-	  | A.Div     -> L.build_fdiv 
-	  | A.Equal   -> L.build_fcmp L.Fcmp.Oeq
-	  | A.Neq     -> L.build_fcmp L.Fcmp.One
-	  | A.Less    -> L.build_fcmp L.Fcmp.Olt
-	  | A.Leq     -> L.build_fcmp L.Fcmp.Ole
-	  | A.Greater -> L.build_fcmp L.Fcmp.Ogt
-	  | A.Geq     -> L.build_fcmp L.Fcmp.Oge
-	  | A.And | A.Or ->
-	      raise (Failure "internal error: semant should have rejected and/or on float")
-	  ) e1' e2' "tmp" builder 
-	  else (match op with
-	  | A.Add     -> L.build_add
-	  | A.Sub     -> L.build_sub
-	  | A.Mult    -> L.build_mul
-          | A.Div     -> L.build_sdiv
-	  | A.And     -> L.build_and
-	  | A.Or      -> L.build_or
-	  | A.Equal   -> L.build_icmp L.Icmp.Eq
-	  | A.Neq     -> L.build_icmp L.Icmp.Ne
-	  | A.Less    -> L.build_icmp L.Icmp.Slt
-	  | A.Leq     -> L.build_icmp L.Icmp.Sle
-	  | A.Greater -> L.build_icmp L.Icmp.Sgt
-	  | A.Geq     -> L.build_icmp L.Icmp.Sge
-	  ) e1' e2' "tmp" builder
-      | SUnop(op, e) ->
-	  let (t, _) = e in
-          let e' = expr builder e in
-	  (match op with
-	    A.Neg when t = A.Float -> L.build_fneg 
-	  | A.Neg                  -> L.build_neg
-    | A.Not                  -> L.build_not) e' "tmp" builder
+        let (t, _) = e1
+        and e1' = expr builder e1
+        and e2' = expr builder e2 in
+        if t = A.Float then (match op with 
+          A.Add     -> L.build_fadd
+        | A.Sub     -> L.build_fsub
+        | A.Mult    -> L.build_fmul
+        | A.Div     -> L.build_fdiv 
+        | A.Equal   -> L.build_fcmp L.Fcmp.Oeq
+        | A.Neq     -> L.build_fcmp L.Fcmp.One
+        | A.Less    -> L.build_fcmp L.Fcmp.Olt
+        | A.Leq     -> L.build_fcmp L.Fcmp.Ole
+        | A.Greater -> L.build_fcmp L.Fcmp.Ogt
+        | A.Geq     -> L.build_fcmp L.Fcmp.Oge
+        | A.And | A.Or -> raise 
+        (Failure "internal error: semant should have rejected and/or on float")
+            ) e1' e2' "tmp" builder 
+        else (match op with
+        | A.Add     -> L.build_add
+        | A.Sub     -> L.build_sub
+        | A.Mult    -> L.build_mul
+              | A.Div     -> L.build_sdiv
+        | A.And     -> L.build_and
+        | A.Or      -> L.build_or
+        | A.Equal   -> L.build_icmp L.Icmp.Eq
+        | A.Neq     -> L.build_icmp L.Icmp.Ne
+        | A.Less    -> L.build_icmp L.Icmp.Slt
+        | A.Leq     -> L.build_icmp L.Icmp.Sle
+        | A.Greater -> L.build_icmp L.Icmp.Sgt
+        | A.Geq     -> L.build_icmp L.Icmp.Sge
+        ) e1' e2' "tmp" builder
+          | SUnop(op, e) ->
+        let (t, _) = e in
+              let e' = expr builder e in
+        (match op with
+          A.Neg when t = A.Float -> L.build_fneg 
+        | A.Neg                  -> L.build_neg
+        | A.Not                  -> L.build_not) e' "tmp" builder
+    | SAssignList ((str, sexp)::xs) -> raise (Failure "NotImplemented")
+    | SCall ((_, SId(s)), [e]) -> (match s with
+      | "putChar" -> L.build_call printbig_func [| (expr builder e) |] "putchar" builder
+      | _         -> raise (Failure "you thought"))
+	  (* L.build_call printbig_func [| (expr builder e) |] "printbig" builder *)
     | SCall (f, args) -> raise (Failure "NotImplemented")
+    | SRecordAccess(sexpr, str) -> raise (Failure "NotImplemented")
+    | SLambda (_) -> raise (Failure "NotImplemented")
     in
     
     (* Each basic block in a program ends with a "terminator" instruction i.e.
