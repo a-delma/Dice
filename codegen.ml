@@ -22,6 +22,7 @@ module StringMap = Map.Make(String)
 (* Code Generation from the SAST. Returns an LLVM module if successful,
    throws an exception if something is wrong. *)
 let translate (structs, globals, stmts) =
+  let initialized = ref false in
   let functions = [{ styp = A.Int; 
                      sfname = "main";
                      sformals = [];
@@ -40,10 +41,11 @@ let translate (structs, globals, stmts) =
 
   (* Convert MicroC types to LLVM types *)
   let ltype_of_typ = function
-      A.Int   -> i32_t
+      A.Int   -> i32_t 
     | A.Bool  -> i1_t
     | A.Float -> float_t
     | A.Void  -> void_t
+    | _ -> raise (Failure "We need to implement more complex types (for instance [Int] -> Void)")
   in
 
   (* Declare each global variable; remember its value in a map *)
@@ -60,9 +62,19 @@ let translate (structs, globals, stmts) =
   let printf_func : L.llvalue = 
      L.declare_function "printf" printf_t the_module in
   *)
+  (* Defines a struct with a function pointer which takes and returns an i32 *)
+  let f_i32_i32_struct = L.named_struct_type context "f_i32_i32_struct" in
+  let f_i32_i32 = (L.function_type i32_t [| (L.pointer_type f_i32_i32_struct); i32_t |]) in
+  L.struct_set_body f_i32_i32_struct [| (L.pointer_type f_i32_i32) |] false;
 
-  let printbig_t = L.function_type i32_t [| i32_t |] in
-  let printbig_func = L.declare_function "putchar" printbig_t the_module in
+  (* let struct2 = Llvm.struct_type context [| Llvm.i32_type context; Llvm.pointer_type (Llvm.i8_type context) |] in *)
+  (* let struct3 = L.function_type i32_t L.pointer_type struct2 in *)
+
+  (* let main_t = Llvm.function_type (Llvm.void_type context) [| f_i32_i32_struct|] in *)
+  let boogiewoogie = Llvm.declare_function "putchar_with_closure" f_i32_i32 the_module in
+
+  let putchar_t = L.function_type i32_t [| i32_t |] in
+  let putchar_func = L.declare_function "putchar" putchar_t the_module in
 
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
@@ -77,9 +89,15 @@ let translate (structs, globals, stmts) =
 
   (* Fill in the body of the given function *)
   let build_function_body fdecl =
+
     let (the_function, _) = StringMap.find fdecl.sfname function_decls in
     let builder = L.builder_at_end context (L.entry_block the_function) in
-
+    let _ = if not !initialized 
+      then 
+        (* Initialization that only runs once *)
+        let _ = L.build_alloca (L.pointer_type f_i32_i32) "putchar" builder in
+        initialized := true
+    in
     let int_format_str = L.build_global_stringptr "%d\n" "fmt" builder
     and float_format_str = L.build_global_stringptr "%g\n" "fmt" builder in
 
@@ -161,9 +179,9 @@ let translate (structs, globals, stmts) =
         | A.Not                  -> L.build_not) e' "tmp" builder
     | SAssignList ((str, sexp)::xs) -> raise (Failure "NotImplemented")
     | SCall ((_, SId(s)), [e]) -> (match s with
-      | "putChar" -> L.build_call printbig_func [| (expr builder e) |] "putchar" builder
+      | "putChar" -> L.build_call putchar_func [| (expr builder e) |] "putchar" builder
       | _         -> raise (Failure "you thought"))
-	  (* L.build_call printbig_func [| (expr builder e) |] "printbig" builder *)
+	  (* L.build_call putchar_func [| (expr builder e) |] "printbig" builder *)
     | SCall (f, args) -> raise (Failure "NotImplemented")
     | SRecordAccess(sexpr, str) -> raise (Failure "NotImplemented")
     | SLambda (_) -> raise (Failure "NotImplemented")

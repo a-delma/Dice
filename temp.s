@@ -50,6 +50,13 @@ temp:
 	.long	0                       # 0x0
 	.size	temp, 4
 
+	.type	temp2,@object           # @temp2
+	.globl	temp2
+	.p2align	2
+temp2:
+	.long	0                       # 0x0
+	.size	temp2, 4
+
 	.type	hello,@object           # @hello
 	.globl	hello
 hello:
