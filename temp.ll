@@ -9,13 +9,17 @@ source_filename = "MicroC"
 @fmt = private unnamed_addr constant [4 x i8] c"%d\0A\00", align 1
 @fmt.1 = private unnamed_addr constant [4 x i8] c"%g\0A\00", align 1
 
-declare i32 @putchar_with_closure(%f_i32_i32_struct*, i32)
-
 declare i32 @putchar(i32)
+
+define i32 @putchar_with_closure(%f_i32_i32_struct* %0, i32 %1) {
+entry:
+  %"we need to put something here" = call i32 @putchar(i32 %1)
+  ret i32 0
+}
 
 define i32 @main() {
 entry:
-  %putchar = alloca i32 (%f_i32_i32_struct*, i32)*
+  %putchar = alloca %f_i32_i32_struct
   %putchar1 = call i32 @putchar(i32 72)
   %putchar2 = call i32 @putchar(i32 69)
   %putchar3 = call i32 @putchar(i32 76)

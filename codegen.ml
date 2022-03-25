@@ -62,19 +62,35 @@ let translate (_, globals, stmts) =
   let printf_func : L.llvalue = 
      L.declare_function "printf" printf_t the_module in
   *)
+  
+  let putchar_t = L.function_type i32_t [| i32_t |] in
+  let putchar_func = L.declare_function "putchar" putchar_t the_module in
+
   (* Defines a struct with a function pointer which takes and returns an i32 *)
   let f_i32_i32_struct = L.named_struct_type context "f_i32_i32_struct" in
   let f_i32_i32 = (L.function_type i32_t [| (L.pointer_type f_i32_i32_struct); i32_t |]) in
   L.struct_set_body f_i32_i32_struct [| (L.pointer_type f_i32_i32) |] false;
+  
+  (* Creation of the with closure function *)
+  (* let func = L.declare_function "putchar_with_closure" f_i32_i32 the_module in *)
+  let func = L.define_function "putchar_with_closure" f_i32_i32 the_module in
 
-  (* let struct2 = Llvm.struct_type context [| Llvm.i32_type context; Llvm.pointer_type (Llvm.i8_type context) |] in *)
-  (* let struct3 = L.function_type i32_t L.pointer_type struct2 in *)
 
-  (* let main_t = Llvm.function_type (Llvm.void_type context) [| f_i32_i32_struct|] in *)
-  let _ = Llvm.declare_function "putchar_with_closure" f_i32_i32 the_module in
+  let builder_temp = L.builder_at_end context (L.entry_block func) in
+  let (_, param) = (L.param func 0, L.param func 1) in
+  let _ = L.build_call putchar_func [| param |] "we need to put something here" builder_temp in
 
-  let putchar_t = L.function_type i32_t [| i32_t |] in
-  let putchar_func = L.declare_function "putchar" putchar_t the_module in
+
+  let _ = L.build_ret (L.const_int i32_t 0) builder_temp in
+
+  let _ = L.dump_module the_module in
+
+
+  (* let _ = L.dump_module the_module in *)
+
+
+  (* creation of the c call *)
+  
 
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
@@ -95,7 +111,7 @@ let translate (_, globals, stmts) =
     let _ = if not !initialized 
       then 
         (* Initialization that only runs once *)
-        let _ = L.build_alloca (L.pointer_type f_i32_i32) "putchar" builder in
+        let _ = L.build_alloca f_i32_i32_struct "putchar" builder in
         initialized := true
     in
     (* let int_format_str = L.build_global_stringptr "%d\n" "fmt" builder

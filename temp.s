@@ -1,5 +1,23 @@
 	.text
 	.file	"MicroC"
+	.globl	putchar_with_closure    # -- Begin function putchar_with_closure
+	.p2align	4, 0x90
+	.type	putchar_with_closure,@function
+putchar_with_closure:                   # @putchar_with_closure
+	.cfi_startproc
+# %bb.0:                                # %entry
+	pushq	%rax
+	.cfi_def_cfa_offset 16
+	movl	%esi, %edi
+	callq	putchar@PLT
+	xorl	%eax, %eax
+	popq	%rcx
+	.cfi_def_cfa_offset 8
+	retq
+.Lfunc_end0:
+	.size	putchar_with_closure, .Lfunc_end0-putchar_with_closure
+	.cfi_endproc
+                                        # -- End function
 	.globl	main                    # -- Begin function main
 	.p2align	4, 0x90
 	.type	main,@function
@@ -38,8 +56,8 @@ main:                                   # @main
 	popq	%rcx
 	.cfi_def_cfa_offset 8
 	retq
-.Lfunc_end0:
-	.size	main, .Lfunc_end0-main
+.Lfunc_end1:
+	.size	main, .Lfunc_end1-main
 	.cfi_endproc
                                         # -- End function
 	.type	temp,@object            # @temp
