@@ -21,7 +21,7 @@ module StringMap = Map.Make(String)
 
 (* Code Generation from the SAST. Returns an LLVM module if successful,
    throws an exception if something is wrong. *)
-let translate (structs, globals, stmts) =
+let translate (_, globals, stmts) =
   let initialized = ref false in
   let functions = [{ styp = A.Int; 
                      sfname = "main";
@@ -31,7 +31,7 @@ let translate (structs, globals, stmts) =
   let context    = L.global_context () in
   (* Add types to the context so we can use them in our LLVM code *)
   let i32_t      = L.i32_type    context
-  and i8_t       = L.i8_type     context
+  (* and i8_t       = L.i8_type     context *)
   and i1_t       = L.i1_type     context
   and float_t    = L.double_type context
   and void_t     = L.void_type   context 
@@ -71,7 +71,7 @@ let translate (structs, globals, stmts) =
   (* let struct3 = L.function_type i32_t L.pointer_type struct2 in *)
 
   (* let main_t = Llvm.function_type (Llvm.void_type context) [| f_i32_i32_struct|] in *)
-  let boogiewoogie = Llvm.declare_function "putchar_with_closure" f_i32_i32 the_module in
+  let _ = Llvm.declare_function "putchar_with_closure" f_i32_i32 the_module in
 
   let putchar_t = L.function_type i32_t [| i32_t |] in
   let putchar_func = L.declare_function "putchar" putchar_t the_module in
@@ -98,8 +98,11 @@ let translate (structs, globals, stmts) =
         let _ = L.build_alloca (L.pointer_type f_i32_i32) "putchar" builder in
         initialized := true
     in
-    let int_format_str = L.build_global_stringptr "%d\n" "fmt" builder
-    and float_format_str = L.build_global_stringptr "%g\n" "fmt" builder in
+    (* let int_format_str = L.build_global_stringptr "%d\n" "fmt" builder
+    and float_format_str = L.build_global_stringptr "%g\n" "fmt" builder in *)
+
+    let _ = L.build_global_stringptr "%d\n" "fmt" builder
+    and _ = L.build_global_stringptr "%g\n" "fmt" builder in
 
     (* Construct the function's "locals": formal arguments and locally
        declared variables.  Allocate each on the stack, initialize their
@@ -137,7 +140,7 @@ let translate (structs, globals, stmts) =
       | SFliteral l -> L.const_float_of_string float_t l
       | SNoexpr -> L.const_int i32_t 0
       | SId s -> L.build_load (lookup s) s builder
-      | SAssign (e1, e2) -> raise (Failure "NotImplemented")
+      | SAssign (_, _) -> raise (Failure "NotImplemented")
       | SBinop (e1, op, e2) ->
         let (t, _) = e1
         and e1' = expr builder e1
@@ -177,13 +180,14 @@ let translate (structs, globals, stmts) =
           A.Neg when t = A.Float -> L.build_fneg 
         | A.Neg                  -> L.build_neg
         | A.Not                  -> L.build_not) e' "tmp" builder
-    | SAssignList ((str, sexp)::xs) -> raise (Failure "NotImplemented")
+    (* | SAssignList ((_, _)::_) -> raise (Failure "NotImplemented") *)
+    | SAssignList _ -> raise (Failure "NotImplemented")
     | SCall ((_, SId(s)), [e]) -> (match s with
       | "putChar" -> L.build_call putchar_func [| (expr builder e) |] "putchar" builder
       | _         -> raise (Failure "you thought"))
 	  (* L.build_call putchar_func [| (expr builder e) |] "printbig" builder *)
-    | SCall (f, args) -> raise (Failure "NotImplemented")
-    | SRecordAccess(sexpr, str) -> raise (Failure "NotImplemented")
+    | SCall (_, _) -> raise (Failure "NotImplemented")
+    | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
     | SLambda (_) -> raise (Failure "NotImplemented")
     in
     

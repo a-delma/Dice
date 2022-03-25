@@ -1,5 +1,5 @@
-open Ast
 open Sast
+open Ast
 
 module StringMap = Map.Make(String)
 
@@ -12,6 +12,7 @@ let type_of_identifier s =
   with Not_found -> raise (Failure ("Undeclared identifier " ^ s))
 
 let types_are_equal typ1 typ2 =
+  let _ = typ1 = typ2 in
   true (* TODO recursive type comparison. NO exception raising*) 
 
 (* Return a semantically-checked expression, i.e., with a type *)
@@ -54,7 +55,7 @@ let rec expr = function
     let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^ 
       string_of_typ rt ^ " in " ^ string_of_expr ex
     in (check_assign lt rt err, SAssign(var, (rt, e')))*)
-  | AssignList(l) -> raise (Failure "NotImplemented")  
+  | AssignList(_) -> raise (Failure "NotImplemented")  
   | Call(callable, args) as call -> 
     let (func_type, callable') = expr callable in
     let check_arg param_type arg = 
@@ -89,7 +90,7 @@ let rec check_stmt = function
   | For(e1, e2, e3, st) ->
 SFor(expr e1, check_bool_expr e2, expr e3, check_stmt st)
   | While(p, s) -> SWhile(check_bool_expr p, check_stmt s)
-  | Return e -> raise (Failure "NotImplemented")
+  | Return _ -> raise (Failure "NotImplemented")
     (*let (t, e') = expr e in
     if t = func.typ then SReturn (t, e') 
     else raise (
@@ -97,7 +98,7 @@ Failure ("return gives " ^ string_of_typ t ^ " expected " ^
     string_of_typ func.typ ^ " in " ^ string_of_expr e))
   (* A block is correct if each statement is correct and nothing
       follows any Return statement.  Nested blocks are flattened. *)*)
-  | Block sl -> raise (Failure "NotImplemented")
+  | Block _ -> raise (Failure "NotImplemented")
       (*let rec check_stmt_list = function
           [Return _ as s] -> [check_stmt s]
         | Return _ :: _   -> raise (Failure "Nothing may follow a return")
