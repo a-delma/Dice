@@ -1,18 +1,6 @@
 (* Code generation: translate takes a semantically checked AST and
-produces LLVM IR
+produces LLVM IR *)
 
-LLVM tutorial: Make sure to read the OCaml version of the tutorial
-
-http://llvm.org/docs/tutorial/index.html
-
-Detailed documentation on the OCaml LLVM library:
-
-http://llvm.moe/
-http://llvm.moe/ocaml/
-
-*)
-
-(* We'll refer to Llvm and Ast constructs with module names *)
 module L = Llvm
 module A = Ast
 open Sast 
@@ -38,13 +26,24 @@ let translate (_, globals, stmts) =
      generate actual code *)
   and the_module = L.create_module context "MicroC" in
 
+  let rec ltype_name = function
+    | A.Int                 -> "int"
+    | A.Bool                -> "bool"
+    | A.Float               -> "double"
+    | A.Void                -> "void"
+    | A.Arrow(_, args, ret) -> 
+      "map_" ^ (String.concat "_and_" (List.map ltype_name args)) ^ "_to_" ^ ltype_name ret
+    | _                     -> raise (Failure "Not implemented")  
+  in
+
   (* Convert MicroC types to LLVM types *)
   let ltype_of_typ = function
       A.Int   -> i32_t 
     | A.Bool  -> i1_t
     | A.Float -> float_t
     | A.Void  -> void_t
-    | A.Arrow(_, _, _) -> (match L.type_by_name the_module "f_i32_i32_struct" with 
+    | A.Arrow(_, _, _) as arrow -> 
+      (match L.type_by_name the_module ((ltype_name arrow) ^ "_struct") with 
         Some(t) -> t (* Hard-coding for now *)
       | None    -> raise (Failure "Type not found"))  
     | _ -> raise (Failure "We need to implement more complex types (for instance [Int] -> Void)")
@@ -69,7 +68,8 @@ let translate (_, globals, stmts) =
   let putchar_func = L.declare_function "putchar" putchar_t the_module in
 
   (* Defines a struct with a function pointer which takes and returns an i32 *)
-  let f_i32_i32_struct = L.named_struct_type context "f_i32_i32_struct" in
+  let function_struct_name = ((ltype_name (A.Arrow([], [A.Int], A.Void))) ^ "_struct") in 
+  let f_i32_i32_struct = L.named_struct_type context function_struct_name in
   let f_i32_i32 = (L.function_type i32_t [| (L.pointer_type f_i32_i32_struct); i32_t |]) in
   L.struct_set_body f_i32_i32_struct [| (L.pointer_type f_i32_i32) |] false;
   
@@ -205,7 +205,6 @@ let translate (_, globals, stmts) =
       let ptr = L.build_gep closure [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in 
       let fnc = L.build_load ptr "fnc" builder in
       L.build_call fnc (Array.of_list (closure::(List.map (expr builder) args))) "result" builder
-    | SCall (_, _) -> raise (Failure "NotImplemented")
     | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
     | SLambda (_) -> raise (Failure "NotImplemented")
     in
