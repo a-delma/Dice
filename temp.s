@@ -24,36 +24,57 @@ putchar_with_closure:                   # @putchar_with_closure
 main:                                   # @main
 	.cfi_startproc
 # %bb.0:                                # %entry
-	pushq	%rax
+	pushq	%rbx
 	.cfi_def_cfa_offset 16
-	movl	$72, %edi
-	callq	putchar@PLT
-	movl	$69, %edi
-	callq	putchar@PLT
-	movl	$76, %edi
-	callq	putchar@PLT
-	movl	$76, %edi
-	callq	putchar@PLT
-	movl	$79, %edi
-	callq	putchar@PLT
-	movl	$32, %edi
-	callq	putchar@PLT
-	movl	$87, %edi
-	callq	putchar@PLT
-	movl	$79, %edi
-	callq	putchar@PLT
-	movl	$82, %edi
-	callq	putchar@PLT
-	movl	$76, %edi
-	callq	putchar@PLT
-	movl	$68, %edi
-	callq	putchar@PLT
-	movl	$33, %edi
-	callq	putchar@PLT
-	movl	$10, %edi
-	callq	putchar@PLT
+	subq	$16, %rsp
+	.cfi_def_cfa_offset 32
+	.cfi_offset %rbx, -16
+	movq	putchar_with_closure@GOTPCREL(%rip), %rax
+	movq	%rax, 8(%rsp)
+	leaq	8(%rsp), %rbx
+	movq	%rbx, %rdi
+	movl	$72, %esi
+	callq	*%rax
+	movq	%rbx, %rdi
+	movl	$69, %esi
+	callq	*8(%rsp)
+	movq	%rbx, %rdi
+	movl	$76, %esi
+	callq	*8(%rsp)
+	movq	%rbx, %rdi
+	movl	$76, %esi
+	callq	*8(%rsp)
+	movq	%rbx, %rdi
+	movl	$79, %esi
+	callq	*8(%rsp)
+	movq	%rbx, %rdi
+	movl	$32, %esi
+	callq	*8(%rsp)
+	movq	%rbx, %rdi
+	movl	$87, %esi
+	callq	*8(%rsp)
+	movq	%rbx, %rdi
+	movl	$79, %esi
+	callq	*8(%rsp)
+	movq	%rbx, %rdi
+	movl	$82, %esi
+	callq	*8(%rsp)
+	movq	%rbx, %rdi
+	movl	$76, %esi
+	callq	*8(%rsp)
+	movq	%rbx, %rdi
+	movl	$68, %esi
+	callq	*8(%rsp)
+	movq	%rbx, %rdi
+	movl	$33, %esi
+	callq	*8(%rsp)
+	movq	%rbx, %rdi
+	movl	$10, %esi
+	callq	*8(%rsp)
 	xorl	%eax, %eax
-	popq	%rcx
+	addq	$16, %rsp
+	.cfi_def_cfa_offset 16
+	popq	%rbx
 	.cfi_def_cfa_offset 8
 	retq
 .Lfunc_end1:

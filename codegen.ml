@@ -22,7 +22,6 @@ module StringMap = Map.Make(String)
 (* Code Generation from the SAST. Returns an LLVM module if successful,
    throws an exception if something is wrong. *)
 let translate (_, globals, stmts) =
-  let initialized = ref false in
   let functions = [{ styp = A.Int; 
                      sfname = "main";
                      sformals = [];
@@ -45,6 +44,9 @@ let translate (_, globals, stmts) =
     | A.Bool  -> i1_t
     | A.Float -> float_t
     | A.Void  -> void_t
+    | A.Arrow(_, _, _) -> (match L.type_by_name the_module "f_i32_i32_struct" with 
+        Some(t) -> t (* Hard-coding for now *)
+      | None    -> raise (Failure "Type not found"))  
     | _ -> raise (Failure "We need to implement more complex types (for instance [Int] -> Void)")
   in
 
@@ -73,11 +75,11 @@ let translate (_, globals, stmts) =
   
   (* Creation of the with closure function *)
   (* let func = L.declare_function "putchar_with_closure" f_i32_i32 the_module in *)
-  let func = L.define_function "putchar_with_closure" f_i32_i32 the_module in
+  let putchar_with_closure = L.define_function "putchar_with_closure" f_i32_i32 the_module in
 
 
-  let builder_temp = L.builder_at_end context (L.entry_block func) in
-  let (_, param) = (L.param func 0, L.param func 1) in
+  let builder_temp = L.builder_at_end context (L.entry_block putchar_with_closure) in
+  let (_, param) = (L.param putchar_with_closure 0, L.param putchar_with_closure 1) in
   let _ = L.build_call putchar_func [| param |] "we need to put something here" builder_temp in
 
 
@@ -108,12 +110,6 @@ let translate (_, globals, stmts) =
 
     let (the_function, _) = StringMap.find fdecl.sfname function_decls in
     let builder = L.builder_at_end context (L.entry_block the_function) in
-    let _ = if not !initialized 
-      then 
-        (* Initialization that only runs once *)
-        let _ = L.build_alloca f_i32_i32_struct "putchar" builder in
-        initialized := true
-    in
     (* let int_format_str = L.build_global_stringptr "%d\n" "fmt" builder
     and float_format_str = L.build_global_stringptr "%g\n" "fmt" builder in *)
 
@@ -140,7 +136,8 @@ let translate (_, globals, stmts) =
 
       let formals = List.fold_left2 add_formal StringMap.empty fdecl.sformals
           (Array.to_list (L.params the_function)) in
-      List.fold_left add_local formals fdecl.slocals 
+      (* SHould probably append putChar to the right in code below *)    
+      List.fold_left add_local formals ((A.Arrow([], [A.Int], A.Void), "putChar")::fdecl.slocals)
     in
 
     (* Return the value for a variable or formal argument. First check
@@ -149,13 +146,18 @@ let translate (_, globals, stmts) =
                    with Not_found -> StringMap.find n global_vars
     in
 
+    let ptr = L.build_gep (lookup "putChar") [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in
+    let _ =   L.build_store putchar_with_closure ptr builder in
+
     (* Construct code for an expression; return its value *)
-    let rec expr builder ((_, e) : sexpr) = match e with
+    let rec expr builder ((typ, e) : sexpr) = match e with
 	      SLiteral i -> L.const_int i32_t i
       | SBoolLit b -> L.const_int i1_t (if b then 1 else 0)
       | SFliteral l -> L.const_float_of_string float_t l
       | SNoexpr -> L.const_int i32_t 0
-      | SId s -> L.build_load (lookup s) s builder
+      | SId s -> (match typ with 
+          A.Arrow(_, _, _) -> (lookup s)
+        | _                -> L.build_load (lookup s) s builder)
       | SAssign (_, _) -> raise (Failure "NotImplemented")
       | SBinop (e1, op, e2) ->
         let (t, _) = e1
@@ -198,10 +200,11 @@ let translate (_, globals, stmts) =
         | A.Not                  -> L.build_not) e' "tmp" builder
     (* | SAssignList ((_, _)::_) -> raise (Failure "NotImplemented") *)
     | SAssignList _ -> raise (Failure "NotImplemented")
-    | SCall ((_, SId(s)), [e]) -> (match s with
-      | "putChar" -> L.build_call putchar_func [| (expr builder e) |] "putchar" builder
-      | _         -> raise (Failure "you thought"))
-	  (* L.build_call putchar_func [| (expr builder e) |] "printbig" builder *)
+    | SCall (callable, args) -> 
+      let closure = expr builder callable in
+      let ptr = L.build_gep closure [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in 
+      let fnc = L.build_load ptr "fnc" builder in
+      L.build_call fnc (Array.of_list (closure::(List.map (expr builder) args))) "result" builder
     | SCall (_, _) -> raise (Failure "NotImplemented")
     | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
     | SLambda (_) -> raise (Failure "NotImplemented")
