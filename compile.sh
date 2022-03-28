@@ -1,1 +1,3 @@
-make comp_file TARGET=$1
+name="${1%.*}"
+echo $name
+make comp_file TARGET=$name

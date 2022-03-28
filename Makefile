@@ -21,11 +21,11 @@ toplevel.native : parser.mly scanner.mll codegen.ml semant.ml
 # Testing
 #
 
-TARGET="hello"
+TARGET="tests/test-hello"
 
-test :  comp_file
-	./$(TARGET).exe > $(TARGET).out
-	diff $(TARGET).out $(TARGET).expect
+test: toplevel.native
+	./test.sh $(TARGET).roll
+	
 
 comp_file: toplevel.native
 	./toplevel.native $(TARGET).roll > $(TARGET).ll
@@ -45,3 +45,4 @@ clean :
 	rm -f hello.ll
 	rm -f hello.s
 	rm -f hello.exe
+	rm -f testall.log
