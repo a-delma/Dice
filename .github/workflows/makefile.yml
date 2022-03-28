@@ -3,10 +3,10 @@ name: Makefile CI
 on:
   push:
     branches:
-      - main
+      - Submission
   pull_request:
     branches:
-      - main
+      - Submission
 
 jobs:
   build:
@@ -21,10 +21,10 @@ jobs:
       run:  sudo apt install ocaml
     - name: Install ocamlbuild
       run:  sudo apt install ocamlbuild  
-    - name: Install lit
-      run:  pip3 install lit
     - name: Compile Dice Compiler
-      run: make toplevel.native
-    - name: Run tests
-      run: make test
+      run: make
+    - name: Compile A Program
+      run: ./compile.sh tests/test-hello.roll
+    - name: Test
+      run: ./test.sh tests/test-hello.roll
     
