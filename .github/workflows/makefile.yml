@@ -24,7 +24,7 @@ jobs:
             opam init
             opam install llvm.6.0.0
             eval $(opam config env)
-    - name: Install llvm:
+    - name: Install llvm
     - name: Compile Dice Compiler
       run: make
     - name: Compile A Program
