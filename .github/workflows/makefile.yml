@@ -17,10 +17,14 @@ jobs:
     - uses: actions/checkout@v2
     # - uses: ocaml/setup-ocaml@v1.1.11
     
-    - name: Install ocaml
-      run:  sudo apt install ocaml
-    - name: Install ocamlbuild
-      run:  sudo apt install ocamlbuild  
+    - name: Install everything
+      run:  sudo apt install ocaml llvm llvm-runtime m4 opam ocamlbuild
+    - name: Install llvm.6.0.0
+      run:  | 
+            opam init
+            opam install llvm.6.0.0
+            eval $(opam config env)
+    - name: Install llvm:
     - name: Compile Dice Compiler
       run: make
     - name: Compile A Program
