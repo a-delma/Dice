@@ -7,6 +7,8 @@ Diego Griese
 
 ## How to run the scripts provided
 
+All the actions below have to be done from the base directory. 
+
 1) Compile the Dice to LLVM compiler:
 
 `make`
