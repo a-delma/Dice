@@ -1,15 +1,3 @@
-
-Int temp;
-Int temp2;
-Bool hello;
-
-// Our white whale
-//[Int] -> Void p;
-//p = putChar;
-
-//p(72);
-// End white whale
-
 putChar(72);
 putChar(69);
 putChar(76);

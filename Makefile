@@ -2,7 +2,7 @@
 # This Makefile is inspired by one provided by Stephen Edwards for his Compilers
 # course at Columbia University.
 
-all : toplevel.native printbig
+all : toplevel.native
 
 #############################
 # 
@@ -12,17 +12,9 @@ all : toplevel.native printbig
 verbose : toplevel.ml ast.ml parser.mly scanner.mll
 	ocamlyacc -v parser.mly
 
-printbig : printbig.c
-	cc -o printbig.o -DBUILD_TEST printbig.c
-
-toplevel.native : parser.mly scanner.mll codegen.ml semant.ml microc.ml
+toplevel.native : parser.mly scanner.mll codegen.ml semant.ml
 	opam config exec -- \
 	ocamlbuild -use-ocamlfind toplevel.native
-
-
-# toplevel.native : toplevel.ml ast.ml sast.ml semant.ml parser.mly  \
-# 					scanner.mll codegen.ml
-# 	          ocamlbuild toplevel.native
 
 ############################
 #
@@ -30,15 +22,21 @@ toplevel.native : parser.mly scanner.mll codegen.ml semant.ml microc.ml
 #
 
 test :  toplevel.native
-	pip3 install lit
-	lit tests
+	./toplevel.native hello.roll > hello.ll
+	llc -relocation-model=pic hello.ll > hello.s
+	cc -o hello.exe hello.s
+	./hello.exe
+
 
 #################################
 
 clean :
 	ocamlbuild -clean
 	rm -f toplevel.native
-	rm *.mli
-	rm parser.ml
-	rm parser.output
-	rm printbig
+	rm -f *.mli
+	rm -f parser.ml
+	rm -f parser.output
+	rm -rf _build
+	rm -f hello.ll
+	rm -f hello.s
+	rm -f hello.exe

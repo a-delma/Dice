@@ -1,7 +1,0 @@
-/*
-Fail to parse because a statement precedes a variable declaration.
-XFAIL: *
-RUN: %parser "%s" > "%t"
-*/
-a = 5;
-Int a;

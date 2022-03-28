@@ -85,8 +85,6 @@ let translate (_, globals, stmts) =
 
   let _ = L.build_ret (L.const_int i32_t 0) builder_temp in
 
-  let _ = L.dump_module the_module in
-
 
   (* let _ = L.dump_module the_module in *)
 

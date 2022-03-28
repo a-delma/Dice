@@ -1,7 +1,0 @@
-/*
-Test that lambda cannot consist of a single statement
-XFAIL: *
-RUN: %parser "%s" > "%t"
-*/
-lambda () -> Int
-    return 1;;
