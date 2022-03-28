@@ -1,27 +1,32 @@
-# Dice: Probability based language
+#  DICE HELLO WORLD README  
 
-Authors: Diego Griese (diego.griese@tufts.edu), 
-Ezra Szanton (ezra.szanton@tufts.edu), 
-Andrew DelMastro (andrew.delmastro@tufts.edu), 
-and Aleksandr Fedchin (aleksandr.fedchin@tufts.edu)
+Andrew Delmastro,     
+Ezra Szanton,         
+Sasha Fedchin,        
+Diego Griese          
 
-To compile the parser please run `make toplevel.native` from the root directory.
-To execute the tests, please run `make test` from the root directory.
-**The script assumes that you are running Ubuntu, have internet connection,
-and have `ocaml`, `ocamlbuild`, `python`, and `pip` installed.**
-The internet connection is used to automatically install `lit` testing engine 
-via `pip install lit`. We have specifically tested on GitHub Workflow's 
-`ubuntu-latest` virtual machine. We expect the tests might fail on anything that
-is not Ubuntu. Upon successfully running the tests, `lit` should print the 
-following:
+## How to run the scripts provided
 
-```bash
-  Passed           : 19
-  Expectedly Failed: 13
-```
+1) Compile the Dice to LLVM compiler:
 
-For this assignment we have implemented the parser for all language features
-that we have planned, including first class functions, record types 
-(structs), and parametric polymorphism. We have built off the MicroC parser, so
-other language features should be similar (with a few changes such as requiring
-all type identifiers be uppercase - see the tests).
+`make`
+
+2) Compile a program named, for example, `filename.roll` with our compiler:
+
+`./compile.sh filename.roll`
+
+3) Test a specific file against the gold standard:
+
+`./test.sh tests/test-hello.roll`
+
+The test file should be in the `tests` directory.
+The gold standard file has same name except that its extension is `.out`
+
+
+## Description of our test case -
+
+The Dice program in `tests/test-hello.roll` repeatedly calls the built-in `putchar` function to print the string `HELLO WORLD!`
+
+We validate that the compiled llvm code prints `HELLO WORLD!` using the modified version of the `testall.sh` file from MicroC (which itself uses diff and checks its output).
+
+While putchar is a built-in function imported from C, we generate code for function calls in a manner that is agnostic to the function being called and supports first-class functions using function pointers and closures. Since we have not implemented code generation of lambda expressions, we can only test function calls on this built-in funciton. 
