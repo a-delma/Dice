@@ -21,11 +21,16 @@ toplevel.native : parser.mly scanner.mll codegen.ml semant.ml
 # Testing
 #
 
-test :  toplevel.native
-	./toplevel.native hello.roll > hello.ll
-	llc -relocation-model=pic hello.ll > hello.s
-	cc -o hello.exe hello.s
-	./hello.exe
+TARGET="hello"
+
+test :  comp_file
+	./$(TARGET).exe > $(TARGET).out
+	diff $(TARGET).out $(TARGET).expect
+
+comp_file: toplevel.native
+	./toplevel.native $(TARGET).roll > $(TARGET).ll
+	llc -relocation-model=pic $(TARGET).ll > $(TARGET).s
+	cc -o $(TARGET).exe $(TARGET).s
 
 
 #################################
