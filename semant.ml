@@ -76,7 +76,6 @@ let rec expr = (((function
                 string_of_typ t2 ^ " in " ^ string_of_expr e))
     in (ty, SBinop((t1, e1'), op, (t2, e2')))
   | Assign(le, re) -> (match le with 
-  (* TODO replace Int with a more intelligent way of finding the actual type *)
       Id(s)-> let (lt, _) = expr le in
               let (rt, sx) = expr re in 
               if types_are_equal lt rt 

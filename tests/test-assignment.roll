@@ -2,6 +2,6 @@
 Int a;
 Bool b;
 b = false;
-a = 97;
+a = 72;
 
 putChar(a);
