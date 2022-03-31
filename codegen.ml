@@ -1,18 +1,6 @@
 (* Code generation: translate takes a semantically checked AST and
-produces LLVM IR
+produces LLVM IR *)
 
-LLVM tutorial: Make sure to read the OCaml version of the tutorial
-
-http://llvm.org/docs/tutorial/index.html
-
-Detailed documentation on the OCaml LLVM library:
-
-http://llvm.moe/
-http://llvm.moe/ocaml/
-
-*)
-
-(* We'll refer to Llvm and Ast constructs with module names *)
 module L = Llvm
 module A = Ast
 open Sast 
@@ -21,7 +9,7 @@ module StringMap = Map.Make(String)
 
 (* Code Generation from the SAST. Returns an LLVM module if successful,
    throws an exception if something is wrong. *)
-let translate (structs, globals, stmts) =
+let translate (_, globals, stmts) =
   let functions = [{ styp = A.Int; 
                      sfname = "main";
                      sformals = [];
@@ -30,7 +18,7 @@ let translate (structs, globals, stmts) =
   let context    = L.global_context () in
   (* Add types to the context so we can use them in our LLVM code *)
   let i32_t      = L.i32_type    context
-  and i8_t       = L.i8_type     context
+  (* and i8_t       = L.i8_type     context *)
   and i1_t       = L.i1_type     context
   and float_t    = L.double_type context
   and void_t     = L.void_type   context 
@@ -38,12 +26,27 @@ let translate (structs, globals, stmts) =
      generate actual code *)
   and the_module = L.create_module context "MicroC" in
 
+  let rec ltype_name = function
+    | A.Int                 -> "int"
+    | A.Bool                -> "bool"
+    | A.Float               -> "double"
+    | A.Void                -> "void"
+    | A.Arrow(_, args, ret) -> 
+      "map_" ^ (String.concat "_and_" (List.map ltype_name args)) ^ "_to_" ^ ltype_name ret
+    | _                     -> raise (Failure "Not implemented")  
+  in
+
   (* Convert MicroC types to LLVM types *)
   let ltype_of_typ = function
-      A.Int   -> i32_t
+      A.Int   -> i32_t 
     | A.Bool  -> i1_t
     | A.Float -> float_t
     | A.Void  -> void_t
+    | A.Arrow(_, _, _) as arrow -> 
+      (match L.type_by_name the_module ((ltype_name arrow) ^ "_struct") with 
+        Some(t) -> t (* Hard-coding for now *)
+      | None    -> raise (Failure "Type not found"))  
+    | _ -> raise (Failure "We need to implement more complex types (for instance [Int] -> Void)")
   in
 
   (* Declare each global variable; remember its value in a map *)
@@ -54,15 +57,31 @@ let translate (structs, globals, stmts) =
         | _ -> L.const_int (ltype_of_typ t) 0
       in StringMap.add n (L.define_global n init the_module) m in
     List.fold_left global_var StringMap.empty globals in
+  
+  let putchar_t = L.function_type i32_t [| i32_t |] in
+  let putchar_func = L.declare_function "putchar" putchar_t the_module in
 
-  (* let printf_t : L.lltype = 
-      L.var_arg_function_type i32_t [| L.pointer_type i8_t |] in
-  let printf_func : L.llvalue = 
-     L.declare_function "printf" printf_t the_module in
-  *)
+  (* Defines a struct with a function pointer which takes and returns an i32 *)
+  let function_struct_name = ((ltype_name (A.Arrow([], [A.Int], A.Void))) ^ "_struct") in 
+  let f_i32_i32_struct = L.named_struct_type context function_struct_name in
+  let f_i32_i32 = (L.function_type i32_t [| (L.pointer_type f_i32_i32_struct); i32_t |]) in
+  L.struct_set_body f_i32_i32_struct [| (L.pointer_type f_i32_i32) |] false;
+  
+  (* Creation of the with closure function *)
+  (* let func = L.declare_function "putchar_with_closure" f_i32_i32 the_module in *)
+  let putchar_with_closure = L.define_function "putchar_with_closure" f_i32_i32 the_module in
 
-  let printbig_t = L.function_type i32_t [| i32_t |] in
-  let printbig_func = L.declare_function "putchar" printbig_t the_module in
+
+  let builder_temp = L.builder_at_end context (L.entry_block putchar_with_closure) in
+  let (_, param) = (L.param putchar_with_closure 0, L.param putchar_with_closure 1) in
+  let _ = L.build_call putchar_func [| param |] "we need to put something here" builder_temp in
+
+
+  let _ = L.build_ret (L.const_int i32_t 0) builder_temp in
+
+
+  (* creation of the c call *)
+  
 
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
@@ -77,11 +96,12 @@ let translate (structs, globals, stmts) =
 
   (* Fill in the body of the given function *)
   let build_function_body fdecl =
+
     let (the_function, _) = StringMap.find fdecl.sfname function_decls in
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
-    let int_format_str = L.build_global_stringptr "%d\n" "fmt" builder
-    and float_format_str = L.build_global_stringptr "%g\n" "fmt" builder in
+    let _ = L.build_global_stringptr "%d\n" "fmt" builder
+    and _ = L.build_global_stringptr "%g\n" "fmt" builder in
 
     (* Construct the function's "locals": formal arguments and locally
        declared variables.  Allocate each on the stack, initialize their
@@ -103,7 +123,8 @@ let translate (structs, globals, stmts) =
 
       let formals = List.fold_left2 add_formal StringMap.empty fdecl.sformals
           (Array.to_list (L.params the_function)) in
-      List.fold_left add_local formals fdecl.slocals 
+      (* SHould probably append putChar to the right in code below *)    
+      List.fold_left add_local formals ((A.Arrow([], [A.Int], A.Void), "putChar")::fdecl.slocals)
     in
 
     (* Return the value for a variable or formal argument. First check
@@ -112,14 +133,27 @@ let translate (structs, globals, stmts) =
                    with Not_found -> StringMap.find n global_vars
     in
 
+    let ptr = L.build_gep (lookup "putChar") [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in
+    let _ =   L.build_store putchar_with_closure ptr builder in
+
     (* Construct code for an expression; return its value *)
-    let rec expr builder ((_, e) : sexpr) = match e with
+    let rec expr builder ((typ, e) : sexpr) = match e with
 	      SLiteral i -> L.const_int i32_t i
       | SBoolLit b -> L.const_int i1_t (if b then 1 else 0)
       | SFliteral l -> L.const_float_of_string float_t l
       | SNoexpr -> L.const_int i32_t 0
-      | SId s -> L.build_load (lookup s) s builder
-      | SAssign (e1, e2) -> raise (Failure "NotImplemented")
+      | SId s -> (match typ with 
+          A.Arrow(_, _, _) -> (lookup s)
+        | _                -> L.build_load (lookup s) s builder)
+      | SAssign((_, le), rse) -> 
+          (match le with 
+          SId(s)-> let e' = expr builder rse in
+                   let _  = L.build_store e' (lookup s) builder in e'
+          (* TODO to implement record access where a function can 
+             return a record and then get it's field we'll need to 
+             incorperate expr builder le somehow as well *)
+          | SRecordAccess(s, e) -> raise (Failure "CodeGen NotImplemented Struct Stuff")
+          | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
         let (t, _) = e1
         and e1' = expr builder e1
@@ -159,13 +193,14 @@ let translate (structs, globals, stmts) =
           A.Neg when t = A.Float -> L.build_fneg 
         | A.Neg                  -> L.build_neg
         | A.Not                  -> L.build_not) e' "tmp" builder
-    | SAssignList ((str, sexp)::xs) -> raise (Failure "NotImplemented")
-    | SCall ((_, SId(s)), [e]) -> (match s with
-      | "putChar" -> L.build_call printbig_func [| (expr builder e) |] "putchar" builder
-      | _         -> raise (Failure "you thought"))
-	  (* L.build_call printbig_func [| (expr builder e) |] "printbig" builder *)
-    | SCall (f, args) -> raise (Failure "NotImplemented")
-    | SRecordAccess(sexpr, str) -> raise (Failure "NotImplemented")
+    (* | SAssignList ((_, _)::_) -> raise (Failure "NotImplemented") *)
+    | SAssignList _ -> raise (Failure "NotImplemented")
+    | SCall (callable, args) -> 
+      let closure = expr builder callable in
+      let ptr = L.build_gep closure [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in 
+      let fnc = L.build_load ptr "fnc" builder in
+      L.build_call fnc (Array.of_list (closure::(List.map (expr builder) args))) "result" builder
+    | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
     | SLambda (_) -> raise (Failure "NotImplemented")
     in
     

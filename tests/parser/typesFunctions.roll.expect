@@ -1,6 +1,0 @@
-[] -> Int a;
-[Int] -> Bool b;
-[Int, Float] -> Bool c;
-[[Int, Float] -> Bool] -> Int d;
-[Int, Float] -> [Int, Bool] -> Float e;
-[Int] -> Void f;

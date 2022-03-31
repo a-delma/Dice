@@ -1,7 +1,3 @@
-
-Int temp;
-Bool hello;
-
 putChar(72);
 putChar(69);
 putChar(76);

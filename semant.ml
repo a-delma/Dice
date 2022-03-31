@@ -1,21 +1,48 @@
-open Ast
 open Sast
+open Ast
 
 module StringMap = Map.Make(String)
 
-(* TODO *)
-let symbols = StringMap.add "putChar" (Arrow([], [Int], Void)) StringMap.empty
 
+let check (struct_decls, globals, stmts) =
+  
+(* Check if a certain kind of binding has void type or is a duplicate
+    of another, previously checked binding *)
+let check_binds (to_check : bind list) = 
+  let name_compare (_, n1) (_, n2) = compare n1 n2 in
+  let check_it checked binding = 
+    let void_err = "illegal void " ^ snd binding
+    and dup_err = "duplicate " ^ snd binding
+    in match binding with
+      (* No void bindings *)
+      (Void, _) -> raise (Failure void_err)
+    | (_, n1) -> match checked with
+                  (* No duplicate bindings *)
+                    ((_, n2) :: _) when n1 = n2 -> raise (Failure dup_err)
+                  | _ -> binding :: checked
+
+  in let _ = List.fold_left check_it [] (List.sort name_compare to_check) 
+      in to_check
+in 
+
+(**** Checking Global Variables ****)
+
+let globals' = check_binds globals in
+
+let symbols = StringMap.add "putChar" (Arrow([], [Int], Void)) 
+     (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
+              StringMap.empty (globals') )
+in
 (* Return a variable from our local symbol table *)
 let type_of_identifier s =
   try StringMap.find s symbols
   with Not_found -> raise (Failure ("Undeclared identifier " ^ s))
-
+in
 let types_are_equal typ1 typ2 =
-  true (* TODO recursive type comparison. NO exception raising*) 
-
+  typ1 = typ2 (* TODO recursive type comparison. NO exception raising*) 
+in
 (* Return a semantically-checked expression, i.e., with a type *)
-let rec expr = function
+let rec expr = (((function
     Literal  l -> (Int, SLiteral l)
   | Fliteral l -> (Float, SFliteral l)
   | BoolLit l  -> (Bool, SBoolLit l)
@@ -48,13 +75,20 @@ let rec expr = function
                 string_of_typ t1 ^ " " ^ string_of_op op ^ " " ^
                 string_of_typ t2 ^ " in " ^ string_of_expr e))
     in (ty, SBinop((t1, e1'), op, (t2, e2')))
-  | Assign(_) -> raise (Failure "NotImplemented")
+  | Assign(le, re) -> (match le with 
+      Id(s)-> let (lt, _) = expr le in
+              let (rt, sx) = expr re in 
+              if types_are_equal lt rt 
+                then (rt, SAssign((lt ,SId(s)), (rt, sx)))
+                else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
+      | RecordAccess(s, e) -> raise (Failure "NotImplementedStructStuff")
+      | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
     (*let lt = type_of_identifier var
     and (rt, e') = expr e in
     let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^ 
       string_of_typ rt ^ " in " ^ string_of_expr ex
     in (check_assign lt rt err, SAssign(var, (rt, e')))*)
-  | AssignList(l) -> raise (Failure "NotImplemented")  
+  | AssignList(_) -> raise (Failure "NotImplemented")  
   | Call(callable, args) as call -> 
     let (func_type, callable') = expr callable in
     let check_arg param_type arg = 
@@ -74,14 +108,14 @@ let rec expr = function
     )  
   | RecordAccess(_)  -> raise (Failure "NotImplemented")  
   | Lambda(_)        -> raise (Failure "NotImplemented")  
-  | Noexpr           -> (Void, SNoexpr)
-
+  | Noexpr           -> (Void, SNoexpr) : 'a -> 'b * 'c) : 'a -> 'b * 'c) : 'a -> 'b * 'c)
+      in
 let check_bool_expr e = 
   let (t', e') = expr e
   and err = "Expected Boolean or Float expression in " ^ string_of_expr e
   in if (types_are_equal t' Bool) || (types_are_equal t' Float) 
      then raise (Failure err) else (t', e') 
-
+in
 (* Return a semantically-checked statement i.e. containing sexprs *)
 let rec check_stmt = function
     Expr e -> SExpr (expr e)
@@ -89,7 +123,7 @@ let rec check_stmt = function
   | For(e1, e2, e3, st) ->
 SFor(expr e1, check_bool_expr e2, expr e3, check_stmt st)
   | While(p, s) -> SWhile(check_bool_expr p, check_stmt s)
-  | Return e -> raise (Failure "NotImplemented")
+  | Return _ -> raise (Failure "NotImplemented")
     (*let (t, e') = expr e in
     if t = func.typ then SReturn (t, e') 
     else raise (
@@ -97,7 +131,7 @@ Failure ("return gives " ^ string_of_typ t ^ " expected " ^
     string_of_typ func.typ ^ " in " ^ string_of_expr e))
   (* A block is correct if each statement is correct and nothing
       follows any Return statement.  Nested blocks are flattened. *)*)
-  | Block sl -> raise (Failure "NotImplemented")
+  | Block _ -> raise (Failure "NotImplemented")
       (*let rec check_stmt_list = function
           [Return _ as s] -> [check_stmt s]
         | Return _ :: _   -> raise (Failure "Nothing may follow a return")
@@ -105,6 +139,6 @@ Failure ("return gives " ^ string_of_typ t ^ " expected " ^
         | s :: ss         -> check_stmt s :: check_stmt_list ss
         | []              -> []
       in SBlock(check_stmt_list sl)*)
-
-let check (struct_decls, globals, stmts) =
-  (struct_decls, globals, List.map check_stmt stmts)
+    in
+    (* Body of check *)
+(struct_decls, globals', List.map check_stmt stmts)

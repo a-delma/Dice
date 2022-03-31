@@ -1,6 +1,0 @@
-/*
-Fail to parse a multiline comment that doesn't end before the file does.
-XFAIL: *
-RUN: %parser "%s" > "%t"
-*/
-/*

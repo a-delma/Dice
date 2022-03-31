@@ -1,4 +1,4 @@
-open Ast
+(* open Ast *)
 
 type action = Ast | Sast | LLVM_IR | Compile
 
