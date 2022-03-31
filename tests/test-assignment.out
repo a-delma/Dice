@@ -1,0 +1,5 @@
+
+Int a;
+a = 72;
+
+putChar(a);

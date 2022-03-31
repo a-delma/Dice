@@ -1,0 +1,7 @@
+
+Int a;
+Bool b;
+b = false;
+a = 97;
+
+putChar(a);
