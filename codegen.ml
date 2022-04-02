@@ -145,7 +145,15 @@ let translate (_, globals, stmts) =
       | SId s -> (match typ with 
           A.Arrow(_, _, _) -> (lookup s)
         | _                -> L.build_load (lookup s) s builder)
-      | SAssign (_, _) -> raise (Failure "NotImplemented")
+      | SAssign((_, le), rse) -> 
+          (match le with 
+          SId(s)-> let e' = expr builder rse in
+                   let _  = L.build_store e' (lookup s) builder in e'
+          (* TODO to implement record access where a function can 
+             return a record and then get it's field we'll need to 
+             incorperate expr builder le somehow as well *)
+          | SRecordAccess(s, e) -> raise (Failure "CodeGen NotImplemented Struct Stuff")
+          | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
         let (t, _) = e1
         and e1' = expr builder e1

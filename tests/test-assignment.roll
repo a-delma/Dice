@@ -1,0 +1,9 @@
+
+Int a;
+Bool b;
+Float c;
+b = false;
+a = 72;
+c = 3.2;
+
+putChar(a);
