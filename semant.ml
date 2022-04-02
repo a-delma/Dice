@@ -27,28 +27,25 @@ in
 
 (**** Checking Global Variables ****)
 
-let globals' = check_binds globals in
-
-let symbols = StringMap.add "putChar" (Arrow([], [Int], Void)) 
-     (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
-              StringMap.empty (globals') )
+let globals' = check_binds globals in (* TODO: Add putChar to globals BEFORE building global_env *)
+let global_env = StringMap.add "putChar" (Arrow([], [Int], Void)) (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
+                                 StringMap.empty 
+                                 globals')
 in
-(* Return a variable from our local symbol table *)
-let type_of_identifier s =
-  try StringMap.find s symbols
-  with Not_found -> raise (Failure ("Undeclared identifier " ^ s))
-in
-let types_are_equal typ1 typ2 =
-  typ1 = typ2 (* TODO recursive type comparison. NO exception raising*) 
+(* Return a variable from our symbol table *)
+let rec type_of_identifier s envs = match envs with
+    (inner::outer) -> (try StringMap.find s inner
+                      with Not_found -> type_of_identifier s outer)
+  | []             -> raise (Failure ("Undeclared identifier " ^ s))
 in
 (* Return a semantically-checked expression, i.e., with a type *)
-let rec expr = (((function
+let rec expr envs expression = match expression with
     Literal  l -> (Int, SLiteral l)
   | Fliteral l -> (Float, SFliteral l)
   | BoolLit l  -> (Bool, SBoolLit l)
-  | Id s       -> (type_of_identifier s, SId s)
+  | Id s       -> (type_of_identifier s envs, SId s)
   | Unop(op, e) as ex -> 
-    let (t, e') = expr e in
+    let (t, e') = expr envs e in
     let ty = match op with
       Neg when t = Int || t = Float -> t
     | Not when t = Bool -> Bool
@@ -57,8 +54,8 @@ let rec expr = (((function
                           " in " ^ string_of_expr ex))
     in (ty, SUnop(op, (t, e')))
   | Binop(e1, op, e2) as e -> 
-    let (t1, e1') = expr e1 
-    and (t2, e2') = expr e2 in
+    let (t1, e1') = expr envs e1 
+    and (t2, e2') = expr envs e2 in
     (* All binary operators require operands of the same type *)
     (* TODO: DO we want to change this? *)
     let same = t1 = t2 in
@@ -71,17 +68,17 @@ let rec expr = (((function
               when same && (t1 = Int || t1 = Float) -> Bool
     | And | Or when same && t1 = Bool -> Bool
     | _ -> raise (
-  Failure ("Illegal binary operator " ^
+      Failure ("Illegal binary operator " ^
                 string_of_typ t1 ^ " " ^ string_of_op op ^ " " ^
                 string_of_typ t2 ^ " in " ^ string_of_expr e))
     in (ty, SBinop((t1, e1'), op, (t2, e2')))
   | Assign(le, re) -> (match le with 
-      Id(s)-> let (lt, _) = expr le in
-              let (rt, sx) = expr re in 
-              if types_are_equal lt rt 
+      Id(s)-> let (lt, _) = expr envs le in
+              let (rt, sx) = expr envs re in 
+              if lt = rt (* TODO: use custom equality function? *) 
                 then (rt, SAssign((lt ,SId(s)), (rt, sx)))
                 else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
-      | RecordAccess(s, e) -> raise (Failure "NotImplementedStructStuff")
+      | RecordAccess(_, _) -> raise (Failure "NotImplementedStructStuff")
       | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
     (*let lt = type_of_identifier var
     and (rt, e') = expr e in
@@ -90,10 +87,10 @@ let rec expr = (((function
     in (check_assign lt rt err, SAssign(var, (rt, e')))*)
   | AssignList(_) -> raise (Failure "NotImplemented")  
   | Call(callable, args) as call -> 
-    let (func_type, callable') = expr callable in
+    let (func_type, callable') = expr envs callable in
     let check_arg param_type arg = 
-      let (arg_type, arg') = expr arg in 
-      if (types_are_equal param_type arg_type) then (arg_type, arg') else
+      let (arg_type, arg') = expr envs arg in 
+      if (param_type = arg_type) then (arg_type, arg') else (* TODO: use custom equality function? *) 
         raise (Failure ("Illegal argument found " ^ string_of_typ arg_type ^
         " expected " ^ string_of_typ param_type  ^ " in " ^ string_of_expr arg))
     in 
@@ -108,21 +105,23 @@ let rec expr = (((function
     )  
   | RecordAccess(_)  -> raise (Failure "NotImplemented")  
   | Lambda(_)        -> raise (Failure "NotImplemented")  
-  | Noexpr           -> (Void, SNoexpr) : 'a -> 'b * 'c) : 'a -> 'b * 'c) : 'a -> 'b * 'c)
+  | Noexpr           -> (Void, SNoexpr)
       in
-let check_bool_expr e = 
-  let (t', e') = expr e
+let check_bool_expr envs e = 
+  let (t', e') = expr envs e
   and err = "Expected Boolean or Float expression in " ^ string_of_expr e
-  in if (types_are_equal t' Bool) || (types_are_equal t' Float) 
+  in if (t' = Bool) || (t' = Float) (* TODO: use custom equality function? *) 
      then raise (Failure err) else (t', e') 
 in
+
+
 (* Return a semantically-checked statement i.e. containing sexprs *)
-let rec check_stmt = function
-    Expr e -> SExpr (expr e)
-  | If(p, b1, b2) -> SIf(check_bool_expr p, check_stmt b1, check_stmt b2)
+let rec check_stmt envs statement = match statement with
+    Expr e -> SExpr (expr envs e)
+  | If(p, b1, b2) -> SIf(check_bool_expr envs p, check_stmt envs b1, check_stmt envs b2)
   | For(e1, e2, e3, st) ->
-SFor(expr e1, check_bool_expr e2, expr e3, check_stmt st)
-  | While(p, s) -> SWhile(check_bool_expr p, check_stmt s)
+      SFor(expr envs e1, check_bool_expr envs e2, expr envs e3, check_stmt envs st)
+  | While(p, s) -> SWhile(check_bool_expr envs p, check_stmt envs s)
   | Return _ -> raise (Failure "NotImplemented")
     (*let (t, e') = expr e in
     if t = func.typ then SReturn (t, e') 
@@ -141,4 +140,5 @@ Failure ("return gives " ^ string_of_typ t ^ " expected " ^
       in SBlock(check_stmt_list sl)*)
     in
     (* Body of check *)
-(struct_decls, globals', List.map check_stmt stmts)
+(struct_decls, globals', List.map (fun stmt -> check_stmt [global_env] stmt)
+                                  stmts)

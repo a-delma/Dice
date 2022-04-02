@@ -152,7 +152,7 @@ let translate (_, globals, stmts) =
           (* TODO to implement record access where a function can 
              return a record and then get it's field we'll need to 
              incorperate expr builder le somehow as well *)
-          | SRecordAccess(s, e) -> raise (Failure "CodeGen NotImplemented Struct Stuff")
+          | SRecordAccess(_, _) -> raise (Failure "CodeGen NotImplemented Struct Stuff")
           | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
         let (t, _) = e1

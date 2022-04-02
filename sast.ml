@@ -34,8 +34,8 @@ and sstmt =
   | SIf of sexpr * sstmt * sstmt
   | SFor of sexpr * sexpr * sexpr * sstmt
   | SWhile of sexpr * sstmt
-  (* | SStruct of sexpr *)
 
+(* TODO: this type has to be removed *)
 type sfunc_decl = {
   styp : typ;
   sfname : string;
