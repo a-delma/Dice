@@ -3,10 +3,10 @@ name: Makefile CI
 on:
   push:
     branches:
-      - Submission
+      - main
   pull_request:
     branches:
-      - Submission
+      - main
 
 jobs:
   build:
@@ -29,5 +29,5 @@ jobs:
     - name: Compile A Program
       run: ./compile.sh tests/test-hello.roll
     - name: Test
-      run: ./test.sh tests/test-hello.roll
+      run: make test
     
