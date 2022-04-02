@@ -2,11 +2,14 @@
 
 open Ast
 
-type sLambdaBody = {
-    styp : typ; (* Function type *)
-    spolytype : bind list; (* Type Variables *)
-    sformals : bind list; (* Parameters *)
-    sbody : sstmt list;
+type sLambda = {
+    t       : typ;         (* Return type *)
+    id      : string;      (* A unique ID *)
+    tps     : string list; (* Type parameters *)
+    formals : bind list;   (* Parameters  *)
+    locals  : bind list; 
+    closure : bind list;
+    body    : sstmt list;
   }
   
 and sexpr = typ * sx
@@ -21,7 +24,7 @@ and sx =
   | SAssignList of (string * sexpr) list
   | SCall of sexpr * sexpr list
   | SRecordAccess of sexpr * string
-  | SLambda of string list * typ * bind list * bind list * sstmt list
+  | SLambda of sLambda
   | SNoexpr
 
 and sstmt =
@@ -60,11 +63,11 @@ let rec string_of_sexpr(sexpression) = match (snd sexpression) with
   | SCall(e1, e2) ->
       string_of_sexpr e1 ^ "(" ^ String.concat ", " (List.map string_of_sexpr e2) ^ ")"
   | SRecordAccess(e, s) -> string_of_sexpr e ^ "." ^ s
-  | SLambda(tps, t, f, v, s) ->
-      "lambda " ^ string_of_typ_list tps "<" ">" ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair f) ^
-      ") -> " ^ string_of_typ t ^ " " ^ "{\n" ^
-      String.concat "" (List.map string_of_vdecl v) ^
-      String.concat "" (List.map string_of_sstmt s) ^
+  | SLambda l->
+      "lambda " ^ string_of_typ_list l.tps "<" ">" ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair l.formals) ^
+      ") -> " ^ string_of_typ l.t ^ " " ^ "{\n" ^
+      String.concat "" (List.map string_of_vdecl l.locals) ^
+      String.concat "" (List.map string_of_sstmt l.body) ^
       "}"
   | SNoexpr -> ""
 
