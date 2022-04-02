@@ -27,10 +27,12 @@ in
 
 (**** Checking Global Variables ****)
 
-let globals' = check_binds globals in (* TODO: Add putChar to globals BEFORE building global_env *)
-let global_env = StringMap.add "putChar" (Arrow([], [Int], Void)) (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
-                                 StringMap.empty 
-                                 globals')
+let globals' = check_binds globals in (* TODO: Add putChar and self to globals BEFORE building global_env *)
+let global_env = StringMap.add "putChar" (Arrow([], [Int], Void)) 
+                (StringMap.add "self"    Void 
+                (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
+                                StringMap.empty 
+                                globals'))
 in
 (* Return a variable from our symbol table *)
 let rec type_of_identifier s envs = match envs with
@@ -80,11 +82,6 @@ let rec expr envs expression = match expression with
                 else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
       | RecordAccess(_, _) -> raise (Failure "NotImplementedStructStuff")
       | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
-    (*let lt = type_of_identifier var
-    and (rt, e') = expr e in
-    let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^ 
-      string_of_typ rt ^ " in " ^ string_of_expr ex
-    in (check_assign lt rt err, SAssign(var, (rt, e')))*)
   | AssignList(_) -> raise (Failure "NotImplemented")  
   | Call(callable, args) as call -> 
     let (func_type, callable') = expr envs callable in
@@ -104,40 +101,58 @@ let rec expr envs expression = match expression with
       | _ -> raise (Failure ("Type " ^ string_of_typ func_type ^ " is not a function type"))
     )  
   | RecordAccess(_)  -> raise (Failure "NotImplemented")  
-  | Lambda(_)        -> raise (Failure "NotImplemented")  
-  | Noexpr           -> (Void, SNoexpr)
-      in
-let check_bool_expr envs e = 
+  | Lambda l         ->
+    let func_type = Arrow(l.tps, List.map fst l.formals, l.t) in
+    let locals'   = check_binds l.locals in
+    let formals'  = check_binds l.formals in
+    (* TODO: Add "self" to locals BEFORE constructing local_env and check it is not in formals *)
+    let local_env = List.fold_left 
+                     (fun m (ty, name) -> StringMap.add name ty m)
+                     (StringMap.add "self" func_type StringMap.empty)
+                    (formals' @ locals') in 
+    let body      = (match (check_stmt (local_env::envs) (Block l.body)) with
+        SBlock(sl) -> sl
+      | _          -> raise (Failure "Block didn't become a block?")) (* TODO: Why does microc has this? *)  
+    in func_type, SLambda({st=l.t; 
+                  sid="TODO"; 
+                  stps=l.tps; 
+                  sformals=l.formals; 
+                  slocals=l.locals; 
+                  sclosure=[]; (* TODO: Compute closure! *)
+                  sbody=body})
+  | Noexpr         -> (Void, SNoexpr)
+
+
+and check_bool_expr envs e = 
   let (t', e') = expr envs e
   and err = "Expected Boolean or Float expression in " ^ string_of_expr e
   in if (t' = Bool) || (t' = Float) (* TODO: use custom equality function? *) 
      then raise (Failure err) else (t', e') 
-in
-
 
 (* Return a semantically-checked statement i.e. containing sexprs *)
-let rec check_stmt envs statement = match statement with
+and check_stmt envs statement = match statement with
     Expr e -> SExpr (expr envs e)
   | If(p, b1, b2) -> SIf(check_bool_expr envs p, check_stmt envs b1, check_stmt envs b2)
   | For(e1, e2, e3, st) ->
       SFor(expr envs e1, check_bool_expr envs e2, expr envs e3, check_stmt envs st)
   | While(p, s) -> SWhile(check_bool_expr envs p, check_stmt envs s)
-  | Return _ -> raise (Failure "NotImplemented")
-    (*let (t, e') = expr e in
-    if t = func.typ then SReturn (t, e') 
-    else raise (
-Failure ("return gives " ^ string_of_typ t ^ " expected " ^
-    string_of_typ func.typ ^ " in " ^ string_of_expr e))
+  | Return e -> 
+    let (t, e')   = expr envs e in
+    let func_type = type_of_identifier "self" envs in
+    if t = func_type then SReturn (t, e') 
+    else raise (Failure ("Return yields type " ^ string_of_typ t ^ " while " ^
+                         string_of_typ func_type ^ " expected in " ^ string_of_expr e))
   (* A block is correct if each statement is correct and nothing
-      follows any Return statement.  Nested blocks are flattened. *)*)
-  | Block _ -> raise (Failure "NotImplemented")
-      (*let rec check_stmt_list = function
-          [Return _ as s] -> [check_stmt s]
+      follows any Return statement.  Nested blocks are flattened. *)
+  | Block sl -> 
+      let rec check_stmt_list = function
+          [Return _ as s] -> [check_stmt envs s]
         | Return _ :: _   -> raise (Failure "Nothing may follow a return")
+        (* TODO: does flattening works differently in Dice because of lambdas? *)
         | Block sl :: ss  -> check_stmt_list (sl @ ss) (* Flatten blocks *)
-        | s :: ss         -> check_stmt s :: check_stmt_list ss
+        | s :: ss         -> check_stmt envs s :: check_stmt_list ss
         | []              -> []
-      in SBlock(check_stmt_list sl)*)
+      in SBlock(check_stmt_list sl)
     in
     (* Body of check *)
 (struct_decls, globals', List.map (fun stmt -> check_stmt [global_env] stmt)
