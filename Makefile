@@ -21,7 +21,7 @@ toplevel.native : parser.mly scanner.mll codegen.ml semant.ml
 # Testing
 #
 
-TARGET="tests/test-hello"
+TARGET="tests/*"
 
 test: toplevel.native
 	./test.sh $(TARGET).roll

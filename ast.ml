@@ -12,8 +12,15 @@ type typ = Int | Bool | Float | Void
   
 type bind = typ * string
 
+type lambda = {
+    t       : typ;         (* Return type *)
+    tps     : string list; (* Type parameters *)
+    formals : bind list;   (* Parameters  *)
+    locals  : bind list; 
+    body    : stmt list;
+}
 
-type expr =
+and expr =
     Literal of int
   | Fliteral of string
   | BoolLit of bool
@@ -24,7 +31,7 @@ type expr =
   | AssignList of (string * expr) list
   | Call of expr * expr list
   | RecordAccess of expr * string
-  | Lambda of string list * typ * bind list * bind list * stmt list
+  | Lambda of lambda
   | Noexpr
 
 and stmt =
@@ -100,11 +107,11 @@ let rec string_of_expr = function
   | Call(e1, e2) ->
       string_of_expr e1 ^ "(" ^ String.concat ", " (List.map string_of_expr e2) ^ ")"
   | RecordAccess(e, s) -> string_of_expr e ^ "." ^ s
-  | Lambda(tps, t, f, v, s) ->
-      "lambda " ^ string_of_typ_list tps "<" ">" ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair f) ^
-      ") -> " ^ string_of_typ t ^ " " ^ "{\n" ^
-      String.concat "" (List.map string_of_vdecl v) ^
-      String.concat "" (List.map string_of_stmt s) ^
+  | Lambda l ->
+      "lambda " ^ string_of_typ_list l.tps "<" ">" ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair l.formals) ^
+      ") -> " ^ string_of_typ l.t ^ " " ^ "{\n" ^
+      String.concat "" (List.map string_of_vdecl l.locals) ^
+      String.concat "" (List.map string_of_stmt l.body) ^
       "}"
   | Noexpr -> ""
 

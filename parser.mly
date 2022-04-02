@@ -136,7 +136,7 @@ expr:
                      { Call($1, $3)           }
   | LPAREN expr RPAREN { $2                   }
   | LAMBDA typaram_list_opt LPAREN formals_opt RPAREN ARROW typ LBRACE vdecl_opt stmt_opt RBRACE
-                     { Lambda($2, $7, $4, $9, $10)     }
+                     { Lambda({tps=$2; formals=$4; t=$7; locals=$9; body=$10})     }
 
 assign_list:
     ID COLON expr                   { [($1, $3)]   }

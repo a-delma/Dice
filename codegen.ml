@@ -12,9 +12,9 @@ module StringMap = Map.Make(String)
 let translate (_, globals, stmts) =
   let functions = [{ styp = A.Int; 
                      sfname = "main";
-                     sformals = [];
-                     slocals = [];
-                     sbody = stmts}] in
+                     sf = [];
+                     sl = [];
+                     sb = stmts}] in
   let context    = L.global_context () in
   (* Add types to the context so we can use them in our LLVM code *)
   let i32_t      = L.i32_type    context
@@ -89,7 +89,7 @@ let translate (_, globals, stmts) =
     let function_decl m fdecl =
       let name = fdecl.sfname
       and formal_types = 
-	Array.of_list (List.map (fun (t,_) -> ltype_of_typ t) fdecl.sformals)
+	Array.of_list (List.map (fun (t,_) -> ltype_of_typ t) fdecl.sf)
       in let ftype = L.function_type (ltype_of_typ fdecl.styp) formal_types in
       StringMap.add name (L.define_function name ftype the_module, fdecl) m in
     List.fold_left function_decl StringMap.empty functions in
@@ -121,10 +121,10 @@ let translate (_, globals, stmts) =
 	in StringMap.add n local_var m 
       in
 
-      let formals = List.fold_left2 add_formal StringMap.empty fdecl.sformals
+      let formals = List.fold_left2 add_formal StringMap.empty fdecl.sf
           (Array.to_list (L.params the_function)) in
       (* SHould probably append putChar to the right in code below *)    
-      List.fold_left add_local formals ((A.Arrow([], [A.Int], A.Void), "putChar")::fdecl.slocals)
+      List.fold_left add_local formals ((A.Arrow([], [A.Int], A.Void), "putChar")::fdecl.sl)
     in
 
     (* Return the value for a variable or formal argument. First check
@@ -152,7 +152,7 @@ let translate (_, globals, stmts) =
           (* TODO to implement record access where a function can 
              return a record and then get it's field we'll need to 
              incorperate expr builder le somehow as well *)
-          | SRecordAccess(s, e) -> raise (Failure "CodeGen NotImplemented Struct Stuff")
+          | SRecordAccess(_, _) -> raise (Failure "CodeGen NotImplemented Struct Stuff")
           | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
         let (t, _) = e1
@@ -292,7 +292,7 @@ let translate (_, globals, stmts) =
     in
 
     (* Build the code for each statement in the function *)
-    let builder = stmt builder (SBlock fdecl.sbody) in
+    let builder = stmt builder (SBlock fdecl.sb) in
 
     (* Add a return if the last block falls off the end *)
     add_terminal builder (match fdecl.styp with
