@@ -1,0 +1,25 @@
+/usr/bin/lli
+
+###### Testing test-assignment
+./toplevel.native tests/test-assignment.roll > test-assignment.ll
+llc -relocation-model=pic test-assignment.ll > test-assignment.s
+cc -o test-assignment.exe test-assignment.s
+./test-assignment.exe
+diff -b test-assignment.out tests/test-assignment.out > test-assignment.diff
+###### SUCCESS
+
+###### Testing test-chaining-assignment
+./toplevel.native tests/test-chaining-assignment.roll > test-chaining-assignment.ll
+llc -relocation-model=pic test-chaining-assignment.ll > test-chaining-assignment.s
+cc -o test-chaining-assignment.exe test-chaining-assignment.s
+./test-chaining-assignment.exe
+diff -b test-chaining-assignment.out tests/test-chaining-assignment.out > test-chaining-assignment.diff
+###### SUCCESS
+
+###### Testing test-hello
+./toplevel.native tests/test-hello.roll > test-hello.ll
+llc -relocation-model=pic test-hello.ll > test-hello.s
+cc -o test-hello.exe test-hello.s
+./test-hello.exe
+diff -b test-hello.out tests/test-hello.out > test-hello.diff
+###### SUCCESS
