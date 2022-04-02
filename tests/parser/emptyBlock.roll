@@ -1,8 +1,0 @@
-/*
-Tests that a block can be empty
-RUN: %parser "%s" > "%t"
-RUN: %diff "%s.expect" "%t"
-*/
-if (true) {
-    x = 1;
-} else {}

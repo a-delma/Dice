@@ -3,28 +3,31 @@ name: Makefile CI
 on:
   push:
     branches:
-      - main
+      - Submission
   pull_request:
     branches:
-      - main
+      - Submission
 
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
     - uses: actions/checkout@v2
     # - uses: ocaml/setup-ocaml@v1.1.11
     
-    - name: Install ocaml
-      run:  sudo apt install ocaml
-    - name: Install ocamlbuild
-      run:  sudo apt install ocamlbuild  
-    - name: Install lit
-      run:  pip install lit
+    - name: Install everything
+      run:  sudo apt install ocaml llvm llvm-runtime m4 opam
+    - name: Install llvm.6.0.0
+      run:  | 
+            opam init
+            opam install llvm.6.0.0
+            eval $(opam config env)
     - name: Compile Dice Compiler
-      run: make toplevel.native
-    - name: Run tests
-      run: make test
+      run: make
+    - name: Compile A Program
+      run: ./compile.sh tests/test-hello.roll
+    - name: Test
+      run: ./test.sh tests/test-hello.roll
     

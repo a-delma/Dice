@@ -34,6 +34,7 @@ and stmt =
   | If of expr * stmt * stmt
   | For of expr * expr * expr * stmt
   | While of expr * stmt
+  (* | Struct of expr *)
 
 type struct_decl = string list * string * bind list
 
@@ -106,6 +107,7 @@ let rec string_of_expr = function
       String.concat "" (List.map string_of_stmt s) ^
       "}"
   | Noexpr -> ""
+
 
 and string_of_stmt = function
     Block(stmts) ->

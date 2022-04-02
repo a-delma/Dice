@@ -1,6 +1,0 @@
-struct<K, T> Vector {
-K y;
-T x;
-};
-Vector<Bool, Int> cart;
-cart = {x: 2, y: true};

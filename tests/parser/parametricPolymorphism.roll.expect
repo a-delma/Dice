@@ -1,8 +1,0 @@
-struct<K, T> Pair {
-K snd;
-T fst;
-};
-<K, T>[Pair<K, T>] -> T getFirst;
-getFirst = lambda <K, T>(Pair<K, T> pair) -> T {
-return pair.fst;
-};

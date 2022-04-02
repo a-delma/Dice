@@ -1,8 +1,0 @@
-/*
-Tests declarations of variables that have a user-defined type.
-Compiler would fail on these tests but parser should be OK.
-RUN: %parser "%s" > "%t"
-RUN: %diff "%s.expect" "%t"
-*/
-T a;
-[T, K] -> T b;

@@ -1,7 +1,0 @@
-/*
-Fail to parse because the list of argument types in a function type must always
-be inside square brackets.
-XFAIL: *
-RUN: %parser "%s" > "%t"
-*/
-Int -> Int a;
