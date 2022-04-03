@@ -1,3 +1,0 @@
-Int h;
-Int k;
-h = k = 3;

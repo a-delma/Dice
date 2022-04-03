@@ -61,8 +61,10 @@ typ:
   | BOOL                             { Bool  }
   | FLOAT                            { Float }
   | VOID                             { Void  }
-  | LSQURE typ_list RSQURE ARROW typ { Arrow(List.rev $2, $5) }
+  | typaram_list_opt LSQURE typ_list RSQURE ARROW typ
+                                     { Arrow($1, List.rev $3, $6) }
   | TYPVAR                           { TypVar $1 }
+  | TYPVAR LT typ_list GT            { PolyTyp($1, $3)}
 
 vdecl_opt:
     /* nothing */ { []          }
@@ -84,7 +86,7 @@ sdecl_list:
   | sdecl            { [$1]     }
 
 sdecl:
-   STRUCT TYPVAR LBRACE vdecl_list RBRACE SEMI { ($2, $4) }
+   STRUCT typaram_list_opt TYPVAR LBRACE vdecl_list RBRACE SEMI { ($2, $3, $5) }
 
 stmt_opt:
     /* nothing */ { []          }
@@ -134,7 +136,7 @@ expr:
                      { Call($1, $3)           }
   | LPAREN expr RPAREN { $2                   }
   | LAMBDA typaram_list_opt LPAREN formals_opt RPAREN ARROW typ LBRACE vdecl_opt stmt_opt RBRACE
-                     { Lambda($2, $7, $4, $9, $10)     }
+                     { Lambda({tps=$2; formals=$4; t=$7; locals=$9; body=$10})     }
 
 assign_list:
     ID COLON expr                   { [($1, $3)]   }
