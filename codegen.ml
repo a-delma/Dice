@@ -136,6 +136,12 @@ let translate (_, globals, stmts) =
     let ptr = L.build_gep (lookup "putChar") [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in
     let _ =   L.build_store putchar_with_closure ptr builder in
 
+    (* Keep floats as floats, cast ints to floats for binops *)
+    let floatify num = match num with
+        Float -> num 
+      | Int -> of_int num
+    in
+
     (* Construct code for an expression; return its value *)
     let rec expr builder ((typ, e) : sexpr) = match e with
 	      SLiteral i -> L.const_int i32_t i
@@ -155,10 +161,12 @@ let translate (_, globals, stmts) =
           | SRecordAccess(_, _) -> raise (Failure "CodeGen NotImplemented Struct Stuff")
           | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
-        let (t, _) = e1
+        let (t1, _) = e1
+        and (t2, _) = e2
         and e1' = expr builder e1
-        and e2' = expr builder e2 in
-        if t = A.Float then (match op with 
+        and e2' = expr builder e2
+        and floatPresent = (t1 = A.Float || t2 = A.Float) in
+        if floatPresent then (match op with 
           A.Add     -> L.build_fadd
         | A.Sub     -> L.build_fsub
         | A.Mult    -> L.build_fmul
@@ -171,12 +179,12 @@ let translate (_, globals, stmts) =
         | A.Geq     -> L.build_fcmp L.Fcmp.Oge
         | A.And | A.Or -> raise 
         (Failure "internal error: semant should have rejected and/or on float")
-            ) e1' e2' "tmp" builder 
+            ) (floatify e1') (floatify e2') "tmp" builder 
         else (match op with
         | A.Add     -> L.build_add
         | A.Sub     -> L.build_sub
         | A.Mult    -> L.build_mul
-              | A.Div     -> L.build_sdiv
+        | A.Div     -> L.build_sdiv
         | A.And     -> L.build_and
         | A.Or      -> L.build_or
         | A.Equal   -> L.build_icmp L.Icmp.Eq
@@ -186,23 +194,23 @@ let translate (_, globals, stmts) =
         | A.Greater -> L.build_icmp L.Icmp.Sgt
         | A.Geq     -> L.build_icmp L.Icmp.Sge
         ) e1' e2' "tmp" builder
-          | SUnop(op, e) ->
+      | SUnop(op, e) ->
         let (t, _) = e in
               let e' = expr builder e in
         (match op with
           A.Neg when t = A.Float -> L.build_fneg 
         | A.Neg                  -> L.build_neg
         | A.Not                  -> L.build_not) e' "tmp" builder
-    (* | SAssignList ((_, _)::_) -> raise (Failure "NotImplemented") *)
-    | SAssignList _ -> raise (Failure "NotImplemented")
-    | SCall (callable, args) -> 
-      let closure = expr builder callable in
-      let ptr = L.build_gep closure [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in 
-      let fnc = L.build_load ptr "fnc" builder in
-      L.build_call fnc (Array.of_list (closure::(List.map (expr builder) args))) "result" builder
-    | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
-    | SLambda (_) -> raise (Failure "NotImplemented")
-    in
+      (* | SAssignList ((_, _)::_) -> raise (Failure "NotImplemented") *)
+      | SAssignList _ -> raise (Failure "NotImplemented")
+      | SCall (callable, args) -> 
+        let closure = expr builder callable in
+        let ptr = L.build_gep closure [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in 
+        let fnc = L.build_load ptr "fnc" builder in
+        L.build_call fnc (Array.of_list (closure::(List.map (expr builder) args))) "result" builder
+      | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
+      | SLambda (_) -> raise (Failure "NotImplemented")
+      in
     
     (* Each basic block in a program ends with a "terminator" instruction i.e.
     one that ends the basic block. By definition, these instructions must
