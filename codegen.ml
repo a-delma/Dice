@@ -9,7 +9,7 @@ module StringMap = Map.Make(String)
 
 (* Code Generation from the SAST. Returns an LLVM module if successful,
    throws an exception if something is wrong. *)
-let translate (_, globals, stmts) =
+let translate (struct_decls, globals, stmts) =
   let functions = [{ styp = A.Int; 
                      sfname = "main";
                      sf = [];
@@ -31,7 +31,7 @@ let translate (_, globals, stmts) =
     | A.Bool                -> "bool"
     | A.Float               -> "double"
     | A.Void                -> "void"
-    | A.Arrow(_, args, ret) -> 
+    | A.Arrow(args, ret) -> 
       "map_" ^ (String.concat "_and_" (List.map ltype_name args)) ^ "_to_" ^ ltype_name ret
     | _                     -> raise (Failure "Not implemented")  
   in
@@ -42,12 +42,31 @@ let translate (_, globals, stmts) =
     | A.Bool  -> i1_t
     | A.Float -> float_t
     | A.Void  -> void_t
-    | A.Arrow(_, _, _) as arrow -> 
+    | A.Arrow(_, _) as arrow -> 
       (match L.type_by_name the_module ((ltype_name arrow) ^ "_struct") with 
         Some(t) -> t (* Hard-coding for now *)
       | None    -> raise (Failure "Type not found"))  
     | _ -> raise (Failure "We need to implement more complex types (for instance [Int] -> Void)")
   in
+
+  (* A function that takes an sdecl and creates the associated LLVM stype *)
+  let makeStruct (name, binds) = 
+    (* Creates the named struct type *)
+    let sName = L.named_struct_type context name in
+    (* Converts all the types to their LLVM type *)
+    let ltypes = Array.of_list (List.map ltype_of_typ (List.map fst binds)) in
+    (* let _ = prerr_endline ("making struct: " ^ name) in *)
+    (* Code for making the body of the struct *)
+    let _ = L.struct_set_body sName ltypes false in
+
+    (* Just testing to print everything *)
+    let test_func = L.function_type (L.void_type context) [| sName |] in
+    let _ = L.declare_function "test_func" test_func the_module in ()
+  in
+
+  let _ = List.iter makeStruct struct_decls
+  in
+
 
   (* Declare each global variable; remember its value in a map *)
   let global_vars : L.llvalue StringMap.t =
@@ -62,7 +81,7 @@ let translate (_, globals, stmts) =
   let putchar_func = L.declare_function "putchar" putchar_t the_module in
 
   (* Defines a struct with a function pointer which takes and returns an i32 *)
-  let function_struct_name = ((ltype_name (A.Arrow([], [A.Int], A.Void))) ^ "_struct") in 
+  let function_struct_name = ((ltype_name (A.Arrow([A.Int], A.Void))) ^ "_struct") in 
   let f_i32_i32_struct = L.named_struct_type context function_struct_name in
   let f_i32_i32 = (L.function_type i32_t [| (L.pointer_type f_i32_i32_struct); i32_t |]) in
   L.struct_set_body f_i32_i32_struct [| (L.pointer_type f_i32_i32) |] false;
@@ -74,7 +93,7 @@ let translate (_, globals, stmts) =
 
   let builder_temp = L.builder_at_end context (L.entry_block putchar_with_closure) in
   let (_, param) = (L.param putchar_with_closure 0, L.param putchar_with_closure 1) in
-  let _ = L.build_call putchar_func [| param |] "we need to put something here" builder_temp in
+  let _ = L.build_call putchar_func [| param |] "we will change" builder_temp in
 
 
   let _ = L.build_ret (L.const_int i32_t 0) builder_temp in
@@ -124,7 +143,7 @@ let translate (_, globals, stmts) =
       let formals = List.fold_left2 add_formal StringMap.empty fdecl.sf
           (Array.to_list (L.params the_function)) in
       (* SHould probably append putChar to the right in code below *)    
-      List.fold_left add_local formals ((A.Arrow([], [A.Int], A.Void), "putChar")::fdecl.sl)
+      List.fold_left add_local formals ((A.Arrow([A.Int], A.Void), "putChar")::fdecl.sl)
     in
 
     (* Return the value for a variable or formal argument. First check
@@ -143,7 +162,7 @@ let translate (_, globals, stmts) =
       | SFliteral l -> L.const_float_of_string float_t l
       | SNoexpr -> L.const_int i32_t 0
       | SId s -> (match typ with 
-          A.Arrow(_, _, _) -> (lookup s)
+          A.Arrow(_, _) -> (lookup s)
         | _                -> L.build_load (lookup s) s builder)
       | SAssign((_, le), rse) -> 
           (match le with 

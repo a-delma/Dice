@@ -32,6 +32,9 @@ comp_file: toplevel.native
 	llc -relocation-model=pic $(TARGET).ll > $(TARGET).s
 	cc -o $(TARGET).exe $(TARGET).s
 
+simple_test: toplevel.native
+	./toplevel.native simpleTest.roll > simpleTest.ll
+	cat simpleTest.ll
 
 #################################
 
@@ -42,7 +45,8 @@ clean :
 	rm -f parser.ml
 	rm -f parser.output
 	rm -rf _build
-	rm -f hello.ll
-	rm -f hello.s
-	rm -f hello.exe
+	rm -f *.ll
+	rm -f *.s
+	rm -f *.exe
 	rm -f testall.log
+

@@ -5,13 +5,12 @@ open Ast
 type sLambda = {
     st       : typ;         (* Return type *)
     sid      : string;      (* A unique ID *)
-    stps     : string list; (* Type parameters *)
     sformals : bind list;   (* Parameters  *)
     slocals  : bind list; 
     sclosure : bind list;
     sbody    : sstmt list;
 }
-  
+
 and sexpr = typ * sx
 and sx =
     SLiteral of int
@@ -34,6 +33,11 @@ and sstmt =
   | SIf of sexpr * sstmt * sstmt
   | SFor of sexpr * sexpr * sexpr * sstmt
   | SWhile of sexpr * sstmt
+
+type styp = SInt | SBool | SFloat | SVoid
+                 | SArrow of styp list * styp
+                 | STypVar of string
+                 | SStruct of string * styp list
 
 (* TODO: this type has to be removed *)
 type sfunc_decl = {
@@ -64,7 +68,7 @@ let rec string_of_sexpr(sexpression) = match (snd sexpression) with
       string_of_sexpr e1 ^ "(" ^ String.concat ", " (List.map string_of_sexpr e2) ^ ")"
   | SRecordAccess(e, s) -> string_of_sexpr e ^ "." ^ s
   | SLambda l->
-      "lambda " ^ string_of_typ_list l.stps "<" ">" ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair l.sformals) ^
+      "lambda " ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair l.sformals) ^
       ") -> " ^ string_of_typ l.st ^ " " ^ "{\n" ^
       String.concat "" (List.map string_of_vdecl l.slocals) ^
       String.concat "" (List.map string_of_sstmt l.sbody) ^

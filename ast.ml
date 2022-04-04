@@ -6,15 +6,15 @@ type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
 type uop = Neg | Not
 
 type typ = Int | Bool | Float | Void 
-               | Arrow of string list * typ list * typ
+               | Arrow of typ list * typ
                | TypVar of string 
-               | PolyTyp of string * typ list
+               (* | Struct of string * typ list *)
+
   
 type bind = typ * string
 
 type lambda = {
     t       : typ;         (* Return type *)
-    tps     : string list; (* Type parameters *)
     formals : bind list;   (* Parameters  *)
     locals  : bind list; 
     body    : stmt list;
@@ -43,7 +43,7 @@ and stmt =
   | While of expr * stmt
   (* | Struct of expr *)
 
-type struct_decl = string list * string * bind list
+type struct_decl = string * bind list
 
 type program = struct_decl list * bind list * stmt list
 
@@ -72,13 +72,12 @@ let rec string_of_typ = function
   | Bool              -> "Bool"
   | Float             -> "Float"
   | Void              -> "Void"
-  | Arrow  (ty_params, fst, snd) ->
-    string_of_typ_list ty_params "<" ">" ^
+  | Arrow  (fst, snd) ->
     "[" ^ String.concat ", " (List.map string_of_typ fst) ^ "]" ^
     " -> " ^ string_of_typ snd
   | TypVar tv         -> tv
-  | PolyTyp (s, l)    ->
-    s ^ string_of_typ_list (List.map string_of_typ l) "<" ">"
+  (* | Struct (s, l)    ->
+    "Struct " ^ s ^ string_of_typ_list (List.map string_of_typ l) "{" "}" *)
 and string_of_typ_list ls open_brac close_brac = 
   match ls with
    [] -> ""
@@ -108,7 +107,7 @@ let rec string_of_expr = function
       string_of_expr e1 ^ "(" ^ String.concat ", " (List.map string_of_expr e2) ^ ")"
   | RecordAccess(e, s) -> string_of_expr e ^ "." ^ s
   | Lambda l ->
-      "lambda " ^ string_of_typ_list l.tps "<" ">" ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair l.formals) ^
+      "lambda " ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair l.formals) ^
       ") -> " ^ string_of_typ l.t ^ " " ^ "{\n" ^
       String.concat "" (List.map string_of_vdecl l.locals) ^
       String.concat "" (List.map string_of_stmt l.body) ^
@@ -131,10 +130,9 @@ and string_of_stmt = function
 
 and string_of_field_assign (id, e) = id ^ ": " ^ string_of_expr e
 
-let string_of_sdecl (types, name, vdecls) = "struct" ^ string_of_typ_list types "<" ">" ^ " " ^ name ^ " {\n" ^
-    String.concat "" (List.map string_of_vdecl vdecls) ^
-    "};\n"
-
+let string_of_sdecl (name, vdecls) = "struct" ^ 
+    name ^ " {\n" ^
+    String.concat "" (List.map string_of_vdecl vdecls) ^ "};\n"
 
 let string_of_program (structs, vars, stmts) =
   String.concat "" ((List.map string_of_sdecl structs) @
