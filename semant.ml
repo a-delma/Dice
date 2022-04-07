@@ -1,5 +1,6 @@
 open Sast
 open Ast
+open Closure
 
 module StringMap = Map.Make(String)
 
@@ -140,7 +141,7 @@ let check (struct_decls, globals, stmts) =
                     sid="TODO"; 
                     sformals=l.formals; 
                     slocals=l.locals; 
-                    sclosure=[]; (* TODO: Compute closure! *)
+                    sclosure=closure_stmt (local_env::envs) (SBlock (body)); (* TODO: Compute closure! *)
                     sbody=body})
     | Noexpr         -> (Void, SNoexpr)
 

@@ -12,7 +12,7 @@ all : toplevel.native
 verbose : toplevel.ml ast.ml parser.mly scanner.mll
 	ocamlyacc -v parser.mly
 
-toplevel.native : parser.mly scanner.mll codegen.ml semant.ml
+toplevel.native : parser.mly scanner.mll codegen.ml semant.ml closure.ml
 	opam config exec -- \
 	ocamlbuild -use-ocamlfind toplevel.native
 
