@@ -137,18 +137,18 @@ let check (struct_decls, globals, stmts) =
       let body      = (match (check_stmt (local_env::envs) (Block l.body)) with
           SBlock(sl) -> sl
         | _          -> raise (Failure "Block didn't become a block?")) (* TODO: Why does microc has this? *)  
-      in func_type, SLambda({st=l.t; 
+      in (func_type, SLambda({st=l.t; 
                     sid="TODO"; 
                     sformals=l.formals; 
                     slocals=l.locals; 
                     sclosure=closure_stmt (local_env::envs) (SBlock (body)); (* TODO: Compute closure! *)
-                    sbody=body})
+                    sbody=body}))
     | Noexpr         -> (Void, SNoexpr)
 
   and check_bool_expr envs e = 
     let (t', e') = expr envs e
     and err = "Expected Boolean or Float expression in " ^ string_of_expr e
-    in if (t' = Bool) || (t' = Float) (* TODO: use custom equality function? *) 
+    in if not ((t' = Bool) || (t' = Float)) (* TODO: use custom equality function? *) 
       then raise (Failure err) else (t', e') 
 
   (* Return a semantically-checked statement i.e. containing sexprs *)
@@ -160,7 +160,10 @@ let check (struct_decls, globals, stmts) =
     | While(p, s) -> SWhile(check_bool_expr envs p, check_stmt envs s)
     | Return e -> 
       let (t, e')   = expr envs e in
-      let func_type = type_of_identifier "self" envs in
+      let func_type = match (type_of_identifier "self" envs) with
+        Arrow(_, return_type) -> return_type
+      | _ -> raise (Failure "Return in nonfunction-type")
+      in
       if t = func_type then SReturn (t, e') 
       else raise (Failure ("Return yields type " ^ string_of_typ t ^ " while " ^
                           string_of_typ func_type ^ " expected in " ^ string_of_expr e))

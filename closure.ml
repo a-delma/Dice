@@ -13,6 +13,9 @@ and union l1 l2 = (match l1 with
                        union tail (head::l2)
   | []           -> l2)
 
+and collect_closure_expr envs es = match es with
+  (_, e)::es' -> union (closure_expr envs e) (collect_closure_expr envs es')
+| [] -> []
 and closure_stmt envs statement = match statement with
     SBlock(sl)  -> let closure_with_env = fun s -> closure_stmt envs s in 
                    List.fold_left union [] (List.map closure_with_env sl)
@@ -21,27 +24,46 @@ and closure_stmt envs statement = match statement with
   | SIf((_, e), s1, s2) -> (union (union (closure_stmt envs s1) 
                                          (closure_stmt envs s2)) 
                                   (closure_expr envs e)) 
-  | SFor(_)    -> raise (Failure "Not implemented10")
-  | SWhile(_)  -> raise (Failure "Not implemented11")
+  | SFor(e1, e2, e3, s) -> union (collect_closure_expr envs [e1; e2; e3]) (closure_stmt envs s)
+  | SWhile((_, p), s)  -> union (closure_expr envs p) (closure_stmt envs s)
 
+(* Returns a tuple with the first element indicating if it is a global/local or not, and 
+   second element indicating the type no matter where it is.
+   Errors if not found *)
+and location_and_type envs s = (match envs with 
+  local :: prev_and_global -> if StringMap.mem s local
+                              then (true, StringMap.find s local)
+                              else let rec inclusion envlist = match envlist with
+                                    global :: [] -> if StringMap.mem s global
+                                      then (true, StringMap.find s global)
+                                      else raise (Failure "Unbound Identifier")
+                                  | prev :: rest -> if StringMap.mem s prev
+                                                                then (false, StringMap.find s prev)
+                                                                else inclusion rest
+                                  
+                                  | _ -> raise (Failure "Wrong sized environments")
+                                  in inclusion prev_and_global
+  | _ -> raise (Failure "Wrong sized environments"))
 and closure_expr envs expression = match expression with
     SLiteral(_)      -> []
   | SFliteral(_)     -> []
   | SBoolLit(_)      -> []
-  | SId(s)           -> (match envs with 
-    local :: _ -> if StringMap.mem s local || StringMap.mem s global
-                            then []
-                            else let typ = (try StringMap.find s
-                                            with Not_found -> raise (Failure ("Unbound identifier " ^ s))) 
-                                          in [(typ, s)]
-    |       global :: [] -> 
-    | raise (Failure "Wrong sized environments"))
-  
+  | SId(s)           -> let (loc, typ) = location_and_type envs s in
+                        if loc
+                        then []
+                        else [(typ, s)]
   | SBinop((_, e1), _, (_, e2))   -> (union (closure_expr envs e1) (closure_expr envs e2))
   | SUnop(_, (_, e))         -> (closure_expr envs e)
-  | SAssign(_)       -> raise (Failure "Not implemented4")
+  | SAssign(e1, e2)       -> (match e1 with
+    (_, SId(s)) -> let (loc, _) = location_and_type envs s in
+                   if loc
+                   then collect_closure_expr envs (e1::[e2])
+                   else raise (Failure ("Attempt to reassign to \"" ^ s ^ "\" from closure"))
+    | _ -> collect_closure_expr envs (e1::[e2]))
   | SAssignList(_)   -> raise (Failure "Not implemented5")
-  | SCall(_)         -> raise (Failure "Not implemented6")
+  | SCall(e, args) -> collect_closure_expr envs (e::args)
+                       (* For each argument, compute closure for expression.  Then, combine the closures with union *)
+                       (* Cannot currently test against ID calls other than putChar *)
   | SRecordAccess(_) -> raise (Failure "Not implemented7")
-  | SLambda(_)       -> raise (Failure "Not implemented8")
+  | SLambda(_) -> (* This would be a nested lambda, it's closure should not impact this lambdas closure? *) []
   | SNoexpr          -> []
