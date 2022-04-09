@@ -71,7 +71,8 @@ let rec string_of_sexpr(sexpression) = match (snd sexpression) with
       "lambda " ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair l.sformals) ^
       ") -> " ^ string_of_typ l.st ^ " " ^ "{\n" ^
       String.concat "" (List.map string_of_vdecl l.slocals) ^
-      String.concat "" (List.map string_of_sstmt l.sbody) ^
+      String.concat "" (List.map string_of_sstmt l.sbody) ^ "Closure: " ^
+      String.concat "" (List.map string_of_vdecl l.sclosure) ^
       "}"
   | SNoexpr -> ""
 

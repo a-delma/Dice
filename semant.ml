@@ -133,7 +133,7 @@ let check (struct_decls, globals, stmts) =
       let local_env = List.fold_left 
                       (fun m (ty, name) -> StringMap.add name ty m)
                       (StringMap.add "self" func_type StringMap.empty)
-                      (formals' @ locals') in 
+                      (formals' @ locals') in (* Does this concatenation mean we can't check for shadowing? *)
       let body      = (match (check_stmt (local_env::envs) (Block l.body)) with
           SBlock(sl) -> sl
         | _          -> raise (Failure "Block didn't become a block?")) (* TODO: Why does microc has this? *)  
