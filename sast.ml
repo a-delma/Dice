@@ -2,13 +2,15 @@
 
 open Ast
 
-type sLambdaBody = {
-    styp : typ; (* Function type *)
-    spolytype : bind list; (* Type Variables *)
-    sformals : bind list; (* Parameters *)
-    sbody : sstmt list;
-  }
-  
+type sLambda = {
+    st       : typ;         (* Return type *)
+    sid      : string;      (* A unique ID *)
+    sformals : bind list;   (* Parameters  *)
+    slocals  : bind list; 
+    sclosure : bind list;
+    sbody    : sstmt list;
+}
+
 and sexpr = typ * sx
 and sx =
     SLiteral of int
@@ -21,7 +23,7 @@ and sx =
   | SAssignList of (string * sexpr) list
   | SCall of sexpr * sexpr list
   | SRecordAccess of sexpr * string
-  | SLambda of string list * typ * bind list * bind list * sstmt list
+  | SLambda of sLambda
   | SNoexpr
 
 and sstmt =
@@ -31,14 +33,19 @@ and sstmt =
   | SIf of sexpr * sstmt * sstmt
   | SFor of sexpr * sexpr * sexpr * sstmt
   | SWhile of sexpr * sstmt
-  (* | SStruct of sexpr *)
 
+type styp = SInt | SBool | SFloat | SVoid
+                 | SArrow of styp list * styp
+                 | STypVar of string
+                 | SStruct of string * styp list
+
+(* TODO: this type has to be removed *)
 type sfunc_decl = {
   styp : typ;
   sfname : string;
-  sformals : bind list;
-  slocals : bind list;
-  sbody : sstmt list;
+  sf : bind list;
+  sl : bind list;
+  sb : sstmt list;
 }
 
 type sprogram = struct_decl list * bind list * sstmt list
@@ -60,11 +67,11 @@ let rec string_of_sexpr(sexpression) = match (snd sexpression) with
   | SCall(e1, e2) ->
       string_of_sexpr e1 ^ "(" ^ String.concat ", " (List.map string_of_sexpr e2) ^ ")"
   | SRecordAccess(e, s) -> string_of_sexpr e ^ "." ^ s
-  | SLambda(tps, t, f, v, s) ->
-      "lambda " ^ string_of_typ_list tps "<" ">" ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair f) ^
-      ") -> " ^ string_of_typ t ^ " " ^ "{\n" ^
-      String.concat "" (List.map string_of_vdecl v) ^
-      String.concat "" (List.map string_of_sstmt s) ^
+  | SLambda l->
+      "lambda " ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair l.sformals) ^
+      ") -> " ^ string_of_typ l.st ^ " " ^ "{\n" ^
+      String.concat "" (List.map string_of_vdecl l.slocals) ^
+      String.concat "" (List.map string_of_sstmt l.sbody) ^
       "}"
   | SNoexpr -> ""
 
