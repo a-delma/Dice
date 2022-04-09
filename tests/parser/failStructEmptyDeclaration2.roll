@@ -1,6 +1,0 @@
-/*
-Fail to parse a struct with no fields.
-XFAIL: *
-RUN: %parser "%s" > "%t"
-*/
-struct T {};

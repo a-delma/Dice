@@ -15,10 +15,9 @@ rule token = parse
 | '}'      { RBRACE }
 | '['      { LSQURE }
 | ']'      { RSQURE }
-| '<'      { LARROW }
-| '>'      { RARROW }
 | '.'      { DOT }
 | ';'      { SEMI }
+| ':'      { COLON }
 | ','      { COMMA }
 | '+'      { PLUS }
 | '-'      { MINUS }
@@ -56,9 +55,11 @@ rule token = parse
 | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
 
 and comment = parse
-  ['\r' '\n']{ token lexbuf }
-| _    { comment lexbuf }
+  ['\r' '\n'] { token lexbuf }
+| eof         { EOF }
+| _           { comment lexbuf }
 
 and multiComment = parse
   "*/" { token lexbuf }
+| eof  {  raise (Failure("Multiline comment not closed")) }
 | _    { multiComment lexbuf }
