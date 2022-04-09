@@ -1,6 +1,8 @@
 open Sast
 open Ast
 
+module StringMap = Map.Make(String)
+
 let rec contains element list = match list with
     (head::tail) -> (head = element) || (contains element tail)
   | []           -> false
@@ -19,19 +21,27 @@ and closure_stmt envs statement = match statement with
   | SIf((_, e), s1, s2) -> (union (union (closure_stmt envs s1) 
                                          (closure_stmt envs s2)) 
                                   (closure_expr envs e)) 
-  | SFor(_)    -> raise (Failure "Not implemented")
-  | SWhile(_)  -> raise (Failure "Not implemented")
+  | SFor(_)    -> raise (Failure "Not implemented10")
+  | SWhile(_)  -> raise (Failure "Not implemented11")
 
 and closure_expr envs expression = match expression with
     SLiteral(_)      -> []
   | SFliteral(_)     -> []
   | SBoolLit(_)      -> []
-  | SId(_)           -> raise (Failure "Not implemented")
-  | SBinop(_)        -> raise (Failure "Not implemented")
-  | SUnop(_)         -> raise (Failure "Not implemented")
-  | SAssign(_)       -> raise (Failure "Not implemented")
-  | SAssignList(_)   -> raise (Failure "Not implemented")
-  | SCall(_)         -> raise (Failure "Not implemented")
-  | SRecordAccess(_) -> raise (Failure "Not implemented")
-  | SLambda(_)       -> raise (Failure "Not implemented")
+  | SId(s)           -> (match envs with 
+    local :: _ -> if StringMap.mem s local || StringMap.mem s global
+                            then []
+                            else let typ = (try StringMap.find s
+                                            with Not_found -> raise (Failure ("Unbound identifier " ^ s))) 
+                                          in [(typ, s)]
+    |       global :: [] -> 
+    | raise (Failure "Wrong sized environments"))
+  
+  | SBinop((_, e1), _, (_, e2))   -> (union (closure_expr envs e1) (closure_expr envs e2))
+  | SUnop(_, (_, e))         -> (closure_expr envs e)
+  | SAssign(_)       -> raise (Failure "Not implemented4")
+  | SAssignList(_)   -> raise (Failure "Not implemented5")
+  | SCall(_)         -> raise (Failure "Not implemented6")
+  | SRecordAccess(_) -> raise (Failure "Not implemented7")
+  | SLambda(_)       -> raise (Failure "Not implemented8")
   | SNoexpr          -> []
