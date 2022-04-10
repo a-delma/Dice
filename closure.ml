@@ -16,6 +16,7 @@ and union l1 l2 = (match l1 with
 and collect_closure_expr envs es = match es with
   (_, e)::es' -> union (closure_expr envs e) (collect_closure_expr envs es')
 | [] -> []
+
 and closure_stmt envs statement = match statement with
     SBlock(sl)  -> let closure_with_env = fun s -> closure_stmt envs s in 
                    List.fold_left union [] (List.map closure_with_env sl)
@@ -36,7 +37,7 @@ and location_and_type envs s = (match envs with
                               else let rec inclusion envlist = match envlist with
                                     global :: [] -> if StringMap.mem s global
                                       then (true, StringMap.find s global)
-                                      else raise (Failure "Unbound Identifier")
+                                      else raise (Failure ("Unbound Identifier " ^ s))
                                   | prev :: rest -> if StringMap.mem s prev
                                                                 then (false, StringMap.find s prev)
                                                                 else inclusion rest
@@ -65,5 +66,13 @@ and closure_expr envs expression = match expression with
                        (* For each argument, compute closure for expression.  Then, combine the closures with union *)
                        (* Cannot currently test against ID calls other than putChar *)
   | SRecordAccess(_) -> raise (Failure "Not implemented7")
-  | SLambda(_) -> (* This would be a nested lambda, it's closure should not impact this lambdas closure? *) []
+  | SLambda(l) -> let (locals::_) = envs in 
+  (*Returns the list l_super minus any elements that are in the StringMap m_sub*)
+                  let rec diff l_super m_sub = (match l_super with
+                      ((t, s)::tail) -> (try if t = StringMap.find s m_sub
+                                             then diff tail m_sub
+                                             else (t, s)::(diff tail m_sub) 
+                                         with Not_found -> (t, s)::(diff tail m_sub))
+                      | _     -> [])
+                  in diff l.sclosure locals
   | SNoexpr          -> []
