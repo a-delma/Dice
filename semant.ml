@@ -1,6 +1,7 @@
 open Sast
 open Ast
 open Closure
+open Lambda
 
 module StringMap = Map.Make(String)
 
@@ -125,7 +126,7 @@ let check (struct_decls, globals, stmts) =
         | _ -> raise (Failure ("Type " ^ string_of_typ func_type ^ " is not a function type"))
       )  
     | RecordAccess(_)  -> raise (Failure "NotImplemented")  
-    | Lambda l         ->
+    | Lambda l         -> 
       let func_type = Arrow(List.map fst l.formals, l.t) in
       let locals'   = check_binds l.locals in
       let formals'  = check_binds l.formals in
@@ -180,5 +181,5 @@ let check (struct_decls, globals, stmts) =
         in SBlock(check_stmt_list sl)
       in
       (* Body of check *)
-  (struct_decls, globals', List.map (fun stmt -> check_stmt [global_env] stmt)
-                                    stmts)
+  let sstmts = List.map (fun stmt -> check_stmt [global_env] stmt) stmts in
+  (struct_decls, globals', sstmts, lambda_from_stmt (SBlock sstmts))
