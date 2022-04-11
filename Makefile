@@ -2,12 +2,15 @@
 # This Makefile is inspired by one provided by Stephen Edwards for his Compilers
 # course at Columbia University.
 
-all : toplevel.native
+all : toplevel.native cimport.o
 
 #############################
 # 
 # Scanning and Parsing Step
 #
+
+cimport : cimport.c
+	cc -o cimport -DBUILD_TEST cimport.c
 
 verbose : toplevel.ml ast.ml parser.mly scanner.mll
 	ocamlyacc -v parser.mly
