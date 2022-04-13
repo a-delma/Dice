@@ -30,12 +30,12 @@ struct Node_* append_to_list(struct Node_* list, char* val) {
   return list;
 }
 
-struct Node_* get_node(struct Node_* list, int id) {
+char* get_node(struct Node_* list, int id) {
   while (id != 0) {
     list = list->next;
     id = id - 1;
   }
-  return list;
+  return list -> val;
 }
 
 // Functions:

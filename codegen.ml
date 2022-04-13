@@ -16,16 +16,22 @@ let translate (struct_decls, globals, (main::lambdas)) =
                      sf = [];
                      sl = [];
                      sb = stmts}] in
-  let context    = L.global_context () in
+  let context    = L.global_context ()
   (* Add types to the context so we can use them in our LLVM code *)
-  let i32_t      = L.i32_type    context
-  (* and i8_t       = L.i8_type     context *)
-  and i1_t       = L.i1_type     context
-  and float_t    = L.double_type context
-  and void_t     = L.void_type   context 
-  (* Create an LLVM module -- this is a "container" into which we'll 
-     generate actual code *)
-  and the_module = L.create_module context "MicroC" in
+  in let     i32_t      = L.i32_type    context
+  in let     i1_t       = L.i1_type     context
+  in let     float_t    = L.double_type context
+  in let     void_t     = L.void_type   context 
+  in let     void_ptr_t = L.pointer_type (L.i8_type context)
+  in let     func_ptr_t = L.function_type void_t [| |]
+  in let     node_struct = L.named_struct_type context "Node_"
+  in let     func_struct = L.named_struct_type context "Function_"  
+  in let     node_struct_ptr = L.pointer_type node_struct
+  in let     func_struct_ptr = L.pointer_type func_struct in
+  let _ = L.struct_set_body node_struct [| (void_ptr_t); (L.pointer_type node_struct) |] false in
+  let _ = L.struct_set_body func_struct [| (func_ptr_t); (L.pointer_type func_struct) |] false
+
+  in let the_module = L.create_module context "MicroC" in
 
   let rec ltype_name = function
     | A.Int                 -> "int"
@@ -78,26 +84,39 @@ let translate (struct_decls, globals, (main::lambdas)) =
       in StringMap.add n (L.define_global n init the_module) m in
     List.fold_left global_var StringMap.empty globals in
   
-  let putchar_t = L.function_type i32_t [| i32_t |] in
-  let putchar_func = L.declare_function "putchar" putchar_t the_module in
 
-  (* Defines a struct with a function pointer which takes and returns an i32 *)
-  let function_struct_name = ((ltype_name (A.Arrow([A.Int], A.Void))) ^ "_struct") in 
-  let f_i32_i32_struct = L.named_struct_type context function_struct_name in
-  let f_i32_i32 = (L.function_type i32_t [| (L.pointer_type f_i32_i32_struct); i32_t |]) in
-  L.struct_set_body f_i32_i32_struct [| (L.pointer_type f_i32_i32) |] false;
+  let getnode_func = L.declare_function 
+                     "get_node" 
+                     (L.function_type void_ptr_t [| node_struct_ptr ; i32_t |]) the_module in
+
+  let append_func = L.declare_function 
+                     "append_to_list" 
+                     (L.function_type node_struct_ptr [| node_struct_ptr ; void_ptr_t |]) the_module in
+
+  let getnull_func = L.declare_function 
+                     "get_null_list" 
+                     (L.function_type node_struct_ptr [| |]) the_module in
+
+  let malloc_func  = L.declare_function 
+                     "malloc_" 
+                     (L.function_type void_ptr_t [| i32_t |]) the_module in
+
   
-  (* Creation of the with closure function *)
+  (* Built-ins *)
   (* let func = L.declare_function "putchar_with_closure" f_i32_i32 the_module in *)
-  let putchar_with_closure = L.define_function "putchar_with_closure" f_i32_i32 the_module in
+  let putchar_helper = L.declare_function 
+                       "putchar_helper_" 
+                       (L.function_type i32_t [| func_struct_ptr; i32_t |]) the_module in
+  
+  let _ = L.set_externally_initialized true 
+          (L.define_global "putchar_" (L.const_int i32_t 0) the_module) in
 
-
-  let builder_temp = L.builder_at_end context (L.entry_block putchar_with_closure) in
+  (*let builder_temp = L.builder_at_end context (L.entry_block putchar_with_closure) in
   let (_, param) = (L.param putchar_with_closure 0, L.param putchar_with_closure 1) in
   let _ = L.build_call putchar_func [| param |] "we will change" builder_temp in
 
 
-  let _ = L.build_ret (L.const_int i32_t 0) builder_temp in
+  let _ = L.build_ret (L.const_int i32_t 0) builder_temp in*)
 
 
   (* creation of the c call *)
@@ -109,7 +128,7 @@ let translate (struct_decls, globals, (main::lambdas)) =
     let function_decl m fdecl =
       let name = fdecl.sfname
       and formal_types = 
-	Array.of_list (List.map (fun (t,_) -> ltype_of_typ t) fdecl.sf)
+        Array.of_list (List.map (fun (t,_) -> ltype_of_typ t) fdecl.sf)
       in let ftype = L.function_type (ltype_of_typ fdecl.styp) formal_types in
       StringMap.add name (L.define_function name ftype the_module, fdecl) m in
     List.fold_left function_decl StringMap.empty functions in
@@ -129,16 +148,16 @@ let translate (struct_decls, globals, (main::lambdas)) =
     let local_vars =
       let add_formal m (t, n) p = 
         let () = L.set_value_name n p in
-	let local = L.build_alloca (ltype_of_typ t) n builder in
+	      let local = L.build_alloca (ltype_of_typ t) n builder in
         let _  = L.build_store p local builder in
-	StringMap.add n local m 
+	      StringMap.add n local m 
       in
 
       (* Allocate space for any locally declared variables and add the
        * resulting registers to our map *)
       let add_local m (t, n) =
-	let local_var = L.build_alloca (ltype_of_typ t) n builder
-	in StringMap.add n local_var m 
+	    let local_var = L.build_alloca (ltype_of_typ t) n builder
+	      in StringMap.add n local_var m 
       in
 
       let formals = List.fold_left2 add_formal StringMap.empty fdecl.sf
@@ -153,8 +172,8 @@ let translate (struct_decls, globals, (main::lambdas)) =
                    with Not_found -> StringMap.find n global_vars
     in
 
-    let ptr = L.build_gep (lookup "putChar") [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in
-    let _ =   L.build_store putchar_with_closure ptr builder in
+    (*let ptr = L.build_gep (lookup "putChar") [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in
+    let _ =   L.build_store putchar_with_closure ptr builder in*)
 
     (* Construct code for an expression; return its value *)
     let rec expr builder ((typ, e) : sexpr) = match e with
@@ -196,7 +215,7 @@ let translate (struct_decls, globals, (main::lambdas)) =
         | A.Add     -> L.build_add
         | A.Sub     -> L.build_sub
         | A.Mult    -> L.build_mul
-              | A.Div     -> L.build_sdiv
+        | A.Div     -> L.build_sdiv
         | A.And     -> L.build_and
         | A.Or      -> L.build_or
         | A.Equal   -> L.build_icmp L.Icmp.Eq

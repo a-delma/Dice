@@ -73,7 +73,7 @@ let check (struct_decls, globals, stmts) =
     | Fliteral l -> (Float, SFliteral l)
     | BoolLit l  -> (Bool, SBoolLit l)
     | Id name       -> 
-      let sname = if (name = "main") then "_main" else name in 
+      let sname = if (name = "main") then "main_" else name in 
       (type_of_identifier sname envs, SId sname)
     | Unop(op, e) as ex -> 
       let (t, e') = expr envs e in
@@ -144,7 +144,7 @@ let check (struct_decls, globals, stmts) =
         | _          -> raise (Failure "Block didn't become a block?")) (* TODO: Why does microc has this? *)  
       in (func_type, SLambda({st=l.t; 
                     sid="TODO"; 
-                    sformals=l.formals; 
+                    sformals=l.formals; (* TODO: rename main here? *)
                     slocals=l.locals; 
                     sclosure=closure_stmt (local_env::envs) (SBlock (body)); 
                     sbody=body}))

@@ -17,13 +17,12 @@
     %Node_*      ; closure
 }
 
-declare %Node_* @get_node(%Node_*, i32)
+declare i8* @get_node(%Node_*, i32)
 declare %Node_* @append_to_list(%Node_*, i8*)
 declare %Node_* @get_null_list()
-declare i8*    @malloc_(i32)
-
+declare i8*     @malloc_(i32)
 declare i32 @putchar_helper(%Function_*, i32)
-declare i32 @printf(i8*, ...)
+
 @putchar_ = external externally_initialized global %Function_
 
 define i32 @main() {
@@ -98,9 +97,7 @@ define i32 @inner_lambda(%Function_* %self) {
     %closure        = load %Node_*, %Node_** %closure_ptr
 
     ; load relevant argument from closure
-    %node           = call %Node_* @get_node(%Node_* %closure, i32 0)
-    %arg_field      = getelementptr inbounds %Node_, %Node_* %node, i32 0, i32 0
-    %opaque_arg_ptr = load i8*, i8** %arg_field
+    %opaque_arg_ptr = call i8* @get_node(%Node_* %closure, i32 0)
     %arg_ptr        = bitcast i8* %opaque_arg_ptr to i32*
     %arg            = load i32, i32* %arg_ptr
 
