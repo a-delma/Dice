@@ -23,9 +23,11 @@ let check (struct_decls, globals, stmts) =
                     (* No duplicate bindings *)
                       ((_, n2) :: _) when n1 = n2 -> raise (Failure dup_err)
                     | _ -> binding :: checked
-
+    in let rec rename_main bindings = match bindings with
+        ((t, "main") :: tail) -> (t, "main_") :: rename_main tail
+      | list                  -> list
     in let _ = List.fold_left check_it [] (List.sort name_compare to_check) 
-        in to_check
+        in rename_main to_check
   in 
   
   let rec conv_type env = function 
@@ -70,7 +72,9 @@ let check (struct_decls, globals, stmts) =
       Literal  l -> (Int, SLiteral l)
     | Fliteral l -> (Float, SFliteral l)
     | BoolLit l  -> (Bool, SBoolLit l)
-    | Id s       -> (type_of_identifier s envs, SId s)
+    | Id name       -> 
+      let sname = if (name = "main") then "_main" else name in 
+      (type_of_identifier sname envs, SId sname)
     | Unop(op, e) as ex -> 
       let (t, e') = expr envs e in
       let ty = match op with
@@ -128,13 +132,13 @@ let check (struct_decls, globals, stmts) =
     | RecordAccess(_)  -> raise (Failure "NotImplemented")  
     | Lambda l         -> 
       let func_type = Arrow(List.map fst l.formals, l.t) in
-      let locals'   = check_binds l.locals in
-      let formals'  = check_binds l.formals in
+      let locals'   = check_binds l.locals @ l.formals in
       (* TODO: Add "self" to locals BEFORE constructing local_env and check it is not in formals *)
       let local_env = List.fold_left 
                       (fun m (ty, name) -> StringMap.add name ty m)
                       (StringMap.add "self" func_type StringMap.empty)
-                      (formals' @ locals') in (* TODO: Does this concatenation mean we can't check for shadowing? *)
+                      locals' in (* TODO: Does this concatenation mean we can't check for shadowing? *)
+                                 (* TODO: It does. I think we should change LRM to reflect that. *)
       let body      = (match (check_stmt (local_env::envs) (Block l.body)) with
           SBlock(sl) -> sl
         | _          -> raise (Failure "Block didn't become a block?")) (* TODO: Why does microc has this? *)  
@@ -142,7 +146,7 @@ let check (struct_decls, globals, stmts) =
                     sid="TODO"; 
                     sformals=l.formals; 
                     slocals=l.locals; 
-                    sclosure=closure_stmt (local_env::envs) (SBlock (body)); (* TODO: Compute closure! *)
+                    sclosure=closure_stmt (local_env::envs) (SBlock (body)); 
                     sbody=body}))
     | Noexpr         -> (Void, SNoexpr)
 
@@ -180,4 +184,10 @@ let check (struct_decls, globals, stmts) =
       in
       (* Body of check *)
   let sstmts = List.map (fun stmt -> check_stmt [global_env] stmt) stmts in
-  (struct_decls, globals', sstmts, lambda_from_stmt (SBlock sstmts))
+  let main   = {st=Int; 
+                sid="TODO"; 
+                sformals=[]; 
+                slocals=[]; 
+                sclosure=[];
+                sbody=sstmts}
+  in (struct_decls, globals', sstmts, lambda_from_stmt (SBlock sstmts))

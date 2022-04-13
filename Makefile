@@ -52,4 +52,5 @@ clean :
 	rm -f *.s
 	rm -f *.exe
 	rm -f testall.log
+	rm -f cimport.o
 
