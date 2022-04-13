@@ -134,7 +134,7 @@ let check (struct_decls, globals, stmts) =
       let local_env = List.fold_left 
                       (fun m (ty, name) -> StringMap.add name ty m)
                       (StringMap.add "self" func_type StringMap.empty)
-                      (formals' @ locals') in (* Does this concatenation mean we can't check for shadowing? *)
+                      (formals' @ locals') in (* TODO: Does this concatenation mean we can't check for shadowing? *)
       let body      = (match (check_stmt (local_env::envs) (Block l.body)) with
           SBlock(sl) -> sl
         | _          -> raise (Failure "Block didn't become a block?")) (* TODO: Why does microc has this? *)  
@@ -168,8 +168,6 @@ let check (struct_decls, globals, stmts) =
       if t = func_type then SReturn (t, e') 
       else raise (Failure ("Return yields type " ^ string_of_typ t ^ " while " ^
                           string_of_typ func_type ^ " expected in " ^ string_of_expr e))
-    (* A block is correct if each statement is correct and nothing
-        follows any Return statement.  Nested blocks are flattened. *)
     | Block sl -> 
         let rec check_stmt_list = function
             [Return _ as s] -> [check_stmt envs s]
