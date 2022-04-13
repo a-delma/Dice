@@ -9,7 +9,7 @@ module StringMap = Map.Make(String)
 
 (* Code Generation from the SAST. Returns an LLVM module if successful,
    throws an exception if something is wrong. *)
-let translate (struct_decls, globals, stmts) =
+let translate (struct_decls, globals, stmts, lambdas) =
   let functions = [{ styp = A.Int; 
                      sfname = "main";
                      sf = [];

@@ -1,6 +1,7 @@
 open Sast
 open Ast
 open Closure
+open Lambda
 
 module StringMap = Map.Make(String)
 
@@ -125,7 +126,7 @@ let check (struct_decls, globals, stmts) =
         | _ -> raise (Failure ("Type " ^ string_of_typ func_type ^ " is not a function type"))
       )  
     | RecordAccess(_)  -> raise (Failure "NotImplemented")  
-    | Lambda l         ->
+    | Lambda l         -> 
       let func_type = Arrow(List.map fst l.formals, l.t) in
       let locals'   = check_binds l.locals in
       let formals'  = check_binds l.formals in
@@ -133,22 +134,22 @@ let check (struct_decls, globals, stmts) =
       let local_env = List.fold_left 
                       (fun m (ty, name) -> StringMap.add name ty m)
                       (StringMap.add "self" func_type StringMap.empty)
-                      (formals' @ locals') in 
+                      (formals' @ locals') in (* Does this concatenation mean we can't check for shadowing? *)
       let body      = (match (check_stmt (local_env::envs) (Block l.body)) with
           SBlock(sl) -> sl
         | _          -> raise (Failure "Block didn't become a block?")) (* TODO: Why does microc has this? *)  
-      in func_type, SLambda({st=l.t; 
+      in (func_type, SLambda({st=l.t; 
                     sid="TODO"; 
                     sformals=l.formals; 
                     slocals=l.locals; 
                     sclosure=closure_stmt (local_env::envs) (SBlock (body)); (* TODO: Compute closure! *)
-                    sbody=body})
+                    sbody=body}))
     | Noexpr         -> (Void, SNoexpr)
 
   and check_bool_expr envs e = 
     let (t', e') = expr envs e
     and err = "Expected Boolean or Float expression in " ^ string_of_expr e
-    in if (t' = Bool) || (t' = Float) (* TODO: use custom equality function? *) 
+    in if not ((t' = Bool) || (t' = Float)) (* TODO: use custom equality function? *) 
       then raise (Failure err) else (t', e') 
 
   (* Return a semantically-checked statement i.e. containing sexprs *)
@@ -160,7 +161,10 @@ let check (struct_decls, globals, stmts) =
     | While(p, s) -> SWhile(check_bool_expr envs p, check_stmt envs s)
     | Return e -> 
       let (t, e')   = expr envs e in
-      let func_type = type_of_identifier "self" envs in
+      let func_type = match (type_of_identifier "self" envs) with
+        Arrow(_, return_type) -> return_type
+      | _ -> raise (Failure "Return in nonfunction-type")
+      in
       if t = func_type then SReturn (t, e') 
       else raise (Failure ("Return yields type " ^ string_of_typ t ^ " while " ^
                           string_of_typ func_type ^ " expected in " ^ string_of_expr e))
@@ -177,5 +181,5 @@ let check (struct_decls, globals, stmts) =
         in SBlock(check_stmt_list sl)
       in
       (* Body of check *)
-  (struct_decls, globals', List.map (fun stmt -> check_stmt [global_env] stmt)
-                                    stmts)
+  let sstmts = List.map (fun stmt -> check_stmt [global_env] stmt) stmts in
+  (struct_decls, globals', sstmts, lambda_from_stmt (SBlock sstmts))
