@@ -71,7 +71,7 @@ and closure_expr envs expression = match expression with
                   let rec diff l_super m_sub = (match l_super with
                       ((t, s)::tail) -> (try if t = StringMap.find s m_sub (* TODO: simplify this condition?*)
                                              then diff tail m_sub
-                                             else (t, s)::(diff tail m_sub) 
+                                             else raise (Failure "Shadowing variable with different type, not expected") 
                                          with Not_found -> (t, s)::(diff tail m_sub))
                       | _     -> [])
                   in diff l.sclosure locals
