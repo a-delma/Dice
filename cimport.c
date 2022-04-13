@@ -14,10 +14,6 @@ struct Node_* get_null_list() {
   return NULL;
 }
 
-struct Node_* allocateNode() {
-  return (struct Node_*) malloc(sizeof(struct Node_));
-}
-
 struct Node_* append_to_list(struct Node_* list, char* val) {
   struct Node_* next = NULL;
   next = (struct Node_*) malloc(sizeof(struct Node_));
@@ -50,8 +46,8 @@ struct Function_ {
   struct Node_* closure;
 };
 
-struct Function_* allocateFunction() {
-  return (struct Function_*) malloc(sizeof(struct Function_));
+char* malloc_(int size) {
+  return (char*) malloc(size);
 }
 
 // Built-in:
@@ -61,9 +57,3 @@ int putchar_helper(struct Function_* closure, int c) {
   return 0;
 }
 struct Function_* putchar_;
-
-// Malloc calls:
-
-int* allocateInt() {
-  return (int*) malloc(sizeof(int));
-}
