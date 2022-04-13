@@ -190,4 +190,4 @@ let check (struct_decls, globals, stmts) =
                 slocals=[]; 
                 sclosure=[];
                 sbody=sstmts}
-  in (struct_decls, globals', sstmts, lambda_from_stmt (SBlock sstmts))
+  in (struct_decls, globals', main::lambda_from_stmt (SBlock sstmts))

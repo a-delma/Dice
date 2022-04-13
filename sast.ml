@@ -48,7 +48,6 @@ type sfunc_decl = {
   sb : sstmt list;
 }
 
-type sprogram = struct_decl list * bind list * sstmt list
 
 (* Pretty-printing functions *)
 
@@ -97,8 +96,8 @@ and string_of_slambda sl =
       ", type: " ^ string_of_typ sl.st
       
 
-let string_of_sprogram (structs, vars, stmts, lambdas) =
+let string_of_sprogram (structs, vars, (main::lambdas)) =
   String.concat "" ((List.map string_of_sdecl structs) @
                     (List.map string_of_vdecl vars) @
-                    (List.map string_of_sstmt stmts) @
+                    (List.map string_of_sstmt main.sbody) @
                     ["\nLambdas: \n"; String.concat "\n" (List.map string_of_slambda lambdas); "\n"])
