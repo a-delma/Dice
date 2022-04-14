@@ -108,16 +108,22 @@ let translate (struct_decls, globals, (main::lambdas)) =
                        "putchar_helper_" 
                        (L.function_type i32_t [| func_struct_ptr; i32_t |]) the_module in
   
-  let _ = L.set_externally_initialized true 
-          (L.define_global "putchar_" (L.const_int i32_t 0) the_module) in
+  let putchar_struct = (L.define_global "putchar_" (L.const_null func_struct_ptr) the_module) in
+  let _ = L.set_externally_initialized true putchar_struct in
 
-  (*let builder_temp = L.builder_at_end context (L.entry_block putchar_with_closure) in
-  let (_, param) = (L.param putchar_with_closure 0, L.param putchar_with_closure 1) in
-  let _ = L.build_call putchar_func [| param |] "we will change" builder_temp in
+  
+  let init_func = L.define_function
+                  "initialize"
+                  (L.function_type i32_t [||]) the_module in
+  let builder_temp = L.builder_at_end context (L.entry_block init_func) in
+  let opaque_func  = L.build_pointercast  putchar_helper func_ptr_t "opaque_func" builder_temp in
+  (* let field_ptr    = L.build_struct_gep putchar_struct 0 "func_field_ptr" builder_temp in *)
+  
+  let _ = L.build_ret (L.const_int i32_t 0) builder_temp in
+  (* let _ = L.dump_module the_module in *)
 
 
-  let _ = L.build_ret (L.const_int i32_t 0) builder_temp in*)
-
+  (* ptr = L.build_gep (lookup "putChar") [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder *)
 
   (* creation of the c call *)
   
