@@ -56,4 +56,10 @@ int putchar_helper(struct Function_* closure, int c) {
   printf("%c", c);
   return 0;
 }
-struct Function_* putchar_;
+struct Function_ putchar_;
+
+int initialize(){
+  putchar_.closure = NULL;
+  putchar_.ptr = (void*) putchar_helper;
+  return 0;
+}

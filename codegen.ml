@@ -31,7 +31,7 @@ let translate (struct_decls, globals, (main::lambdas)) =
   let _ = L.struct_set_body node_struct [| (void_ptr_t); (L.pointer_type node_struct) |] false in
   let _ = L.struct_set_body func_struct [| (func_ptr_t); (L.pointer_type func_struct) |] false
 
-  in let the_module = L.create_module context "MicroC" in
+  in let the_module = L.create_module context "DICE" in
 
   let rec ltype_name = function
     | A.Int                 -> "int"
@@ -104,23 +104,27 @@ let translate (struct_decls, globals, (main::lambdas)) =
   
   (* Built-ins *)
   (* let func = L.declare_function "putchar_with_closure" f_i32_i32 the_module in *)
-  let putchar_helper = L.declare_function 
+  (* let putchar_helper = L.declare_function 
                        "putchar_helper_" 
-                       (L.function_type i32_t [| func_struct_ptr; i32_t |]) the_module in
+                       (L.function_type i32_t [| func_struct_ptr; i32_t |]) the_module in *)
   
   let putchar_struct = (L.define_global "putchar_" (L.const_null func_struct_ptr) the_module) in
   let _ = L.set_externally_initialized true putchar_struct in
 
   
-  let init_func = L.define_function
+  (* let init_func = L.define_function
                   "initialize"
                   (L.function_type i32_t [||]) the_module in
   let builder_temp = L.builder_at_end context (L.entry_block init_func) in
-  let opaque_func  = L.build_pointercast  putchar_helper func_ptr_t "opaque_func" builder_temp in
-  (* let field_ptr    = L.build_struct_gep putchar_struct 0 "func_field_ptr" builder_temp in *)
+  let random_instruction = L.build_add (L.const_int i32_t 0) (L.const_int i32_t 1) "ay" builder_temp in 
   
-  let _ = L.build_ret (L.const_int i32_t 0) builder_temp in
-  (* let _ = L.dump_module the_module in *)
+  let opaque_func  = L.build_pointercast  putchar_helper func_ptr_t "opaque_func" builder_temp in
+  let putchar_struct = L.build_alloca func_struct "putchar__" builder_temp in
+  let putchar_loaded = L.build_load putchar_struct "putter" builder_temp in
+  let field_ptr    = L.build_gep putchar_loaded [| (L.const_int i32_t 0); (L.const_int i32_t 0) |] "func_field_ptr" builder_temp in
+  
+  let _ = L.build_ret random_instruction builder_temp in
+  let _ = L.dump_module the_module in  *)
 
 
   (* ptr = L.build_gep (lookup "putChar") [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder *)
