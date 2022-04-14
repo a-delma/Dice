@@ -17,15 +17,12 @@
     %Node_*      ; closure
 }
 
-declare %Node_* @get_node(%Node_*, i32)
+declare i8* @get_node(%Node_*, i32)
 declare %Node_* @append_to_list(%Node_*, i8*)
 declare %Node_* @get_null_list()
-declare %Node_*     @allocateNode()
-declare %Function_* @allocateFunction()
-declare i32*        @allocateInt()
+declare i8*     @malloc_(i32)
+declare i32     @initialize()
 
-declare i32 @putchar_helper(%Function_*, i32)
-declare i32 @printf(i8*, ...)
 @putchar_ = external externally_initialized global %Function_
 
 define i32 @main() {
@@ -34,7 +31,11 @@ define i32 @main() {
     call i32 @initialize()
     
     ; set up empty closure for outer lambda
-    %outer_lambda      = call %Function_* @allocateFunction()
+    %size_    = getelementptr %Function_*, %Function_** null, i32 1
+    %size_int = ptrtoint %Function_** %size_ to i32
+    %outer_lambda_opaque  = call i8* @malloc_(i32 %size_int)
+    %outer_lambda         = bitcast i8* %outer_lambda_opaque to %Function_*
+
     %opaque_func       = bitcast %Function_* (%Function_*, i32)* @outer_lambda to void(...)*
     %func_field_ptr    = getelementptr inbounds %Function_, %Function_* %outer_lambda, i32 0, i32 0
                          store void(...)* %opaque_func, void(...)** %func_field_ptr
@@ -54,24 +55,24 @@ define i32 @main() {
     ret i32 0
 }
 
-define i32 @initialize() {
-  ; will have to add casting functions here
-  %opaque_func     = bitcast i32 (%Function_*, i32)* @putchar_helper to void(...)*
-  %func_field_ptr  = getelementptr inbounds %Function_, %Function_* @putchar_, i32 0, i32 0
-                     store void(...)* %opaque_func, void(...)** %func_field_ptr
-  ret i32 0;
-}
-
 define %Function_* @outer_lambda(%Function_* %self, i32 %arg) {
   entry:
-    %func = call %Function_* @allocateFunction()
+    %size_    = getelementptr %Function_*, %Function_** null, i32 1
+    %size_int = ptrtoint %Function_** %size_ to i32
+    %func_opaque  = call i8* @malloc_(i32 %size_int)
+    %func         = bitcast i8* %func_opaque to %Function_*
 
     %opaque_func     = bitcast i32 (%Function_*)* @inner_lambda to void(...)*
     %func_field_ptr  = getelementptr inbounds %Function_, %Function_* %func, i32 0, i32 0
                        store void(...)* %opaque_func, void(...)** %func_field_ptr
 
     %closure            = call %Node_* @get_null_list()
-    %arg_ptr            = call i32* @allocateInt()
+
+    %size_1             = getelementptr i32*, i32** null, i32 1
+    %size_int1          = ptrtoint i32** %size_1 to i32
+    %arg_opaque         = call i8* @malloc_(i32 %size_int1)
+    %arg_ptr            = bitcast i8* %arg_opaque to i32*
+
                           store i32 %arg, i32* %arg_ptr 
     %opaque_arg_ptr     = bitcast i32* %arg_ptr to i8*
     %closure1           = call %Node_* @append_to_list(%Node_* %closure, i8* %opaque_arg_ptr)
@@ -88,9 +89,7 @@ define i32 @inner_lambda(%Function_* %self) {
     %closure        = load %Node_*, %Node_** %closure_ptr
 
     ; load relevant argument from closure
-    %node           = call %Node_* @get_node(%Node_* %closure, i32 0)
-    %arg_field      = getelementptr inbounds %Node_, %Node_* %node, i32 0, i32 0
-    %opaque_arg_ptr = load i8*, i8** %arg_field
+    %opaque_arg_ptr = call i8* @get_node(%Node_* %closure, i32 0)
     %arg_ptr        = bitcast i8* %opaque_arg_ptr to i32*
     %arg            = load i32, i32* %arg_ptr
 

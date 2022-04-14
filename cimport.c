@@ -14,10 +14,6 @@ struct Node_* get_null_list() {
   return NULL;
 }
 
-struct Node_* allocateNode() {
-  return (struct Node_*) malloc(sizeof(struct Node_));
-}
-
 struct Node_* append_to_list(struct Node_* list, char* val) {
   struct Node_* next = NULL;
   next = (struct Node_*) malloc(sizeof(struct Node_));
@@ -34,12 +30,12 @@ struct Node_* append_to_list(struct Node_* list, char* val) {
   return list;
 }
 
-struct Node_* get_node(struct Node_* list, int id) {
+char* get_node(struct Node_* list, int id) {
   while (id != 0) {
     list = list->next;
     id = id - 1;
   }
-  return list;
+  return list -> val;
 }
 
 // Functions:
@@ -50,8 +46,8 @@ struct Function_ {
   struct Node_* closure;
 };
 
-struct Function_* allocateFunction() {
-  return (struct Function_*) malloc(sizeof(struct Function_));
+char* malloc_(int size) {
+  return (char*) malloc(size);
 }
 
 // Built-in:
@@ -60,10 +56,10 @@ int putchar_helper(struct Function_* closure, int c) {
   printf("%c", c);
   return 0;
 }
-struct Function_* putchar_;
+struct Function_ putchar_;
 
-// Malloc calls:
-
-int* allocateInt() {
-  return (int*) malloc(sizeof(int));
+int initialize(){
+  putchar_.closure = NULL;
+  putchar_.ptr = (void*) putchar_helper;
+  return 0;
 }

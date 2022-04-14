@@ -2,7 +2,7 @@
 # This Makefile is inspired by one provided by Stephen Edwards for his Compilers
 # course at Columbia University.
 
-all : toplevel.native cimport.o
+all : toplevel.native
 
 #############################
 # 
@@ -10,12 +10,12 @@ all : toplevel.native cimport.o
 #
 
 cimport : cimport.c
-	cc -o cimport -DBUILD_TEST cimport.c
+	cc -c cimport -DBUILD_TEST cimport.c
 
 verbose : toplevel.ml ast.ml parser.mly scanner.mll
 	ocamlyacc -v parser.mly
 
-toplevel.native : parser.mly scanner.mll codegen.ml semant.ml closure.ml
+toplevel.native : parser.mly scanner.mll codegen.ml semant.ml closure.ml cimport.o toplevel.ml
 	opam config exec -- \
 	ocamlbuild -use-ocamlfind toplevel.native
 
@@ -36,7 +36,7 @@ comp_file: toplevel.native
 	cc -o $(TARGET).exe $(TARGET).s
 
 simple_test: toplevel.native
-	./toplevel.native simpleTest.roll > simpleTest.ll
+	./toplevel.native -l simpleTest.roll > simpleTest.ll
 	cat simpleTest.ll
 
 #################################
@@ -52,4 +52,5 @@ clean :
 	rm -f *.s
 	rm -f *.exe
 	rm -f testall.log
+	rm -f cimport.o
 
