@@ -21,11 +21,9 @@ declare i8* @get_node(%Node_*, i32)
 declare %Node_* @append_to_list(%Node_*, i8*)
 declare %Node_* @get_null_list()
 declare i8*     @malloc_(i32)
-declare i32     @initialize()
-; declare i32     @putchar(i32)
-; declare i32 @putchar_helper(%Function_*, i32)
+declare i32 @putchar_helper(%Function_*, i32)
 
-@putchar_ = external externally_initialized global %Function_
+@putchar_ = externally_initialized global %Function_
 
 define i32 @main() {
   entry:
@@ -57,13 +55,13 @@ define i32 @main() {
     ret i32 0
 }
 
-; define i32 @initialize() {
-;   ; will have to add casting functions here
-;   %opaque_func     = bitcast i32 (%Function_*, i32)* @putchar_helper to void(...)*
-;   %func_field_ptr  = getelementptr inbounds %Function_, %Function_* @putchar_, i32 0, i32 0
-;                      store void(...)* %opaque_func, void(...)** %func_field_ptr
-;   ret i32 0;
-; }
+define i32 @initialize() {
+  ; will have to add casting functions here
+  %opaque_func     = bitcast i32 (%Function_*, i32)* @putchar_helper to void(...)*
+  %func_field_ptr  = getelementptr inbounds %Function_, %Function_* @putchar_, i32 0, i32 0
+                     store void(...)* %opaque_func, void(...)** %func_field_ptr
+  ret i32 0;
+}
 
 define %Function_* @outer_lambda(%Function_* %self, i32 %arg) {
   entry:
@@ -107,6 +105,6 @@ define i32 @inner_lambda(%Function_* %self) {
     %func_field_ptr1   = getelementptr inbounds %Function_, %Function_* @putchar_, i32 0, i32 0
     %opaque_func1      = load void(...)*, void(...)** %func_field_ptr1
     %callable          = bitcast void(...)* %opaque_func1 to i32 (%Function_*, i32)*
-    %call1             = call i32 %callable(%Function_* @putchar_, i32 %arg)
+    %call1 = call i32 %callable(%Function_* @putchar_, i32 %arg)
     ret i32 0
 }
