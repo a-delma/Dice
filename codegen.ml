@@ -23,13 +23,13 @@ let translate (struct_decls, globals, (main::lambdas)) =
   in let     float_t    = L.double_type context
   in let     void_t     = L.void_type   context 
   in let     void_ptr_t = L.pointer_type (L.i8_type context)
-  in let     func_ptr_t = L.function_type void_t [| |]
+  in let     func_ptr_t = L.pointer_type (L.var_arg_function_type void_t [| |])
   in let     node_struct = L.named_struct_type context "Node_"
   in let     func_struct = L.named_struct_type context "Function_"  
   in let     node_struct_ptr = L.pointer_type node_struct
   in let     func_struct_ptr = L.pointer_type func_struct in
-  let _ = L.struct_set_body node_struct [| (void_ptr_t); (L.pointer_type node_struct) |] false in
-  let _ = L.struct_set_body func_struct [| (func_ptr_t); (L.pointer_type func_struct) |] false
+  let _ = L.struct_set_body func_struct [| (func_ptr_t); (L.pointer_type node_struct) |] false in
+  let _ = L.struct_set_body node_struct [| (void_ptr_t); (L.pointer_type node_struct) |] false 
 
   in let the_module = L.create_module context "DICE" in
 
@@ -99,7 +99,7 @@ let translate (struct_decls, globals, (main::lambdas)) =
                        "putchar_helper_" 
                        (L.function_type i32_t [| func_struct_ptr; i32_t |]) the_module in *)
   
-  let putchar_struct = (L.define_global "putchar_" (L.const_named_struct func_struct [||]) the_module) in
+  let putchar_struct = (L.declare_global func_struct "putchar_" the_module) in
   let _ = L.set_externally_initialized true putchar_struct in
 
   
@@ -253,9 +253,11 @@ let translate (struct_decls, globals, (main::lambdas)) =
     | SAssignList _ -> raise (Failure "NotImplemented")
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in
+      (* The build_store instruction is just to print the type, does nothing and should be removed *)
+      let _ = L.build_store function_struct function_struct builder  in
       let _ = L.dump_module the_module in
-      let ptr = L.build_gep function_struct  [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] 
-                                             "ptr" builder in
+      let ptr = L.build_struct_gep function_struct 0 (* [|(L.const_int i32_t 0); (L.const_int i32_t 0)|]*) 
+                  "ptr" builder in
       let func_opq = L.build_load ptr "func_opq" builder in
       let func =  L.build_pointercast func_opq (ltype_of_typ ty) "func" builder in
       L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder 
