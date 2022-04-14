@@ -44,15 +44,16 @@ let translate (struct_decls, globals, (main::lambdas)) =
   in
 
   (* Convert MicroC types to LLVM types *)
-  let ltype_of_typ = function
+  let rec ltype_of_typ = function
       A.Int   -> i32_t 
     | A.Bool  -> i1_t
     | A.Float -> float_t
     | A.Void  -> void_t
-    | A.Arrow(_, _) as arrow -> 
-      (match L.type_by_name the_module ((ltype_name arrow) ^ "_struct") with 
+    | A.Arrow(args, ret) as arrow -> L.function_type (ltype_of_typ ret) 
+                                        (Array.of_list (List.map ltype_of_typ args))
+      (* (match L.type_by_name the_module ((ltype_name arrow) ^ "_struct") with 
         Some(t) -> t (* Hard-coding for now *)
-      | None    -> raise (Failure "Type not found"))  
+      | None    -> raise (Failure "Type not found"))   *)
     | _ -> raise (Failure "We need to implement more complex types (for instance [Int] -> Void)")
   in
 
@@ -80,7 +81,9 @@ let translate (struct_decls, globals, (main::lambdas)) =
     let global_var m (t, n) = 
       let init = match t with
           A.Float -> L.const_float (ltype_of_typ t) 0.0
+        | A.Arrow(_,_) -> L.const_named_struct func_struct_ptr [||]
         | _ -> L.const_int (ltype_of_typ t) 0
+        (* TODO fill out pattern matching here *)
       in StringMap.add n (L.define_global n init the_module) m in
     List.fold_left global_var StringMap.empty globals in
   
@@ -112,9 +115,9 @@ let translate (struct_decls, globals, (main::lambdas)) =
   let _ = L.set_externally_initialized true putchar_struct in
 
   
-  (* let init_func = L.define_function
+  let init_func = L.declare_function
                   "initialize"
-                  (L.function_type i32_t [||]) the_module in
+                  (L.function_type i32_t [||]) the_module in (* 
   let builder_temp = L.builder_at_end context (L.entry_block init_func) in
   let random_instruction = L.build_add (L.const_int i32_t 0) (L.const_int i32_t 1) "ay" builder_temp in 
   
@@ -149,9 +152,9 @@ let translate (struct_decls, globals, (main::lambdas)) =
     let (the_function, _) = StringMap.find fdecl.sfname function_decls in
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
-    let _ = L.build_global_stringptr "%d\n" "fmt" builder
-    and _ = L.build_global_stringptr "%g\n" "fmt" builder in
-
+    let _ = if fdecl.sfname = "main"
+      then ignore(L.build_call init_func [||] "generatedByUsPossiblyChangeInit" builder)
+      in
     (* Construct the function's "locals": formal arguments and locally
        declared variables.  Allocate each on the stack, initialize their
        value, if appropriate, and remember their values in the "locals" map *)
@@ -173,7 +176,7 @@ let translate (struct_decls, globals, (main::lambdas)) =
       let formals = List.fold_left2 add_formal StringMap.empty fdecl.sf
           (Array.to_list (L.params the_function)) in
       (* SHould probably append putChar to the right in code below *)    
-      List.fold_left add_local formals ((A.Arrow([A.Int], A.Void), "putChar")::fdecl.sl)
+      List.fold_left add_local formals fdecl.sl
     in
 
     (* Return the value for a variable or formal argument. First check
@@ -244,11 +247,13 @@ let translate (struct_decls, globals, (main::lambdas)) =
         | A.Not                  -> L.build_not) e' "tmp" builder
     (* | SAssignList ((_, _)::_) -> raise (Failure "NotImplemented") *)
     | SAssignList _ -> raise (Failure "NotImplemented")
-    | SCall (callable, args) -> 
-      let closure = expr builder callable in
-      let ptr = L.build_gep closure [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in 
-      let fnc = L.build_load ptr "fnc" builder in
-      L.build_call fnc (Array.of_list (closure::(List.map (expr builder) args))) "result" builder
+    | SCall ((ty, callable), args) -> 
+      let function_struct = expr builder (ty, callable) in
+      let ptr = L.build_gep function_struct  [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] 
+                                             "ptr" builder in 
+      let func_opq = L.build_load ptr "func_opq" builder in
+      let func =  L.build_pointercast func_opq (ltype_of_typ ty) "func" builder in
+      L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder 
     | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
     | SLambda (_) -> raise (Failure "NotImplemented")
     in
