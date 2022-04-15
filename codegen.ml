@@ -17,13 +17,13 @@ let translate (struct_decls, globals, lambdas) =
   in let     float_t    = L.double_type context
   in let     void_t     = L.void_type   context 
   in let     void_ptr_t = L.pointer_type (L.i8_type context)
-  in let     func_ptr_t = L.function_type void_t [| |]
+  in let     func_ptr_t = L.pointer_type (L.var_arg_function_type void_t [| |])
   in let     node_struct = L.named_struct_type context "Node_"
   in let     func_struct = L.named_struct_type context "Function_"  
   in let     node_struct_ptr = L.pointer_type node_struct
   in let     func_struct_ptr = L.pointer_type func_struct in
-  let _ = L.struct_set_body node_struct [| (void_ptr_t); (L.pointer_type node_struct) |] false in
-  let _ = L.struct_set_body func_struct [| (func_ptr_t); (L.pointer_type func_struct) |] false
+  let _ = L.struct_set_body func_struct [| (func_ptr_t); (L.pointer_type node_struct) |] false in
+  let _ = L.struct_set_body node_struct [| (void_ptr_t); (L.pointer_type node_struct) |] false 
 
   in let the_module = L.create_module context "DICE" in
 
@@ -43,8 +43,8 @@ let translate (struct_decls, globals, lambdas) =
     | A.Bool  -> i1_t
     | A.Float -> float_t
     | A.Void  -> void_t
-    | A.Arrow(args, ret) as arrow -> L.function_type (ltype_of_typ ret) 
-                                        (Array.of_list (List.map ltype_of_typ args))
+    | A.Arrow(args, ret) as arrow -> L.pointer_type(L.function_type (ltype_of_typ ret) 
+                                        (Array.of_list (func_struct_ptr::(List.map ltype_of_typ args))))
       (* (match L.type_by_name the_module ((ltype_name arrow) ^ "_struct") with 
         Some(t) -> t (* Hard-coding for now *)
       | None    -> raise (Failure "Type not found"))   *)
@@ -86,7 +86,7 @@ let translate (struct_decls, globals, lambdas) =
                      "malloc_" 
                      (L.function_type void_ptr_t [| i32_t |]) the_module in
   
-  let putchar_struct = (L.define_global "putchar_" (L.const_named_struct func_struct [||]) the_module) in
+  let putchar_struct = (L.declare_global func_struct "putchar_" the_module) in
   let _ = L.set_externally_initialized true putchar_struct in
 
   
@@ -163,7 +163,7 @@ let translate (struct_decls, globals, lambdas) =
 
     (* Construct code for an expression; return its value *)
     let rec expr builder ((typ, e) : sexpr) = match e with
-	      SLiteral i -> L.const_int i32_t i
+        SLiteral i -> L.const_int i32_t i
       | SBoolLit b -> L.const_int i1_t (if b then 1 else 0)
       | SFliteral l -> L.const_float_of_string float_t l
       | SNoexpr -> L.const_int i32_t 0
@@ -222,12 +222,11 @@ let translate (struct_decls, globals, lambdas) =
     | SAssignList _ -> raise (Failure "NotImplemented")
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in
-      let _ = L.dump_module the_module in
-      let ptr = L.build_gep function_struct  [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] 
-                                             "ptr" builder in
+      let ptr = L.build_struct_gep function_struct 0 (* [|(L.const_int i32_t 0); (L.const_int i32_t 0)|]*) 
+                  "ptr" builder in
       let func_opq = L.build_load ptr "func_opq" builder in
       let func =  L.build_pointercast func_opq (ltype_of_typ ty) "func" builder in
-      L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder 
+      L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder
     | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
     | SLambda (_) -> raise (Failure "NotImplemented")
     in

@@ -30,10 +30,10 @@ test: toplevel.native
 	./test.sh $(TARGET).roll
 	
 
-comp_file: toplevel.native
+comp_file: toplevel.native cimport.o
 	./toplevel.native $(TARGET).roll > $(TARGET).ll
 	llc -relocation-model=pic $(TARGET).ll > $(TARGET).s
-	cc -o $(TARGET).exe $(TARGET).s
+	cc -o $(TARGET).exe $(TARGET).s cimport.o
 
 simple_test: toplevel.native
 	./toplevel.native -l simpleTest.roll > simpleTest.ll
