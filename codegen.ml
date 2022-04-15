@@ -257,7 +257,6 @@ let translate (struct_decls, globals, (main::lambdas)) =
                   "ptr" builder in
       let func_opq = L.build_load ptr "func_opq" builder in
       let func =  L.build_pointercast func_opq (ltype_of_typ ty) "func" builder in
-      let _ = L.dump_module the_module in
       L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder
     | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
     | SLambda (_) -> raise (Failure "NotImplemented")
