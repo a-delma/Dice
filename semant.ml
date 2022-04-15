@@ -55,7 +55,7 @@ let check (struct_decls, globals, stmts) =
   (**** Checking Global Variables ****)
   
   let globals' = check_binds globals in (* TODO: Add putChar and self to globals BEFORE building global_env *)
-  let global_env = StringMap.add "putChar" (Arrow([Int], Void)) 
+  let global_env = StringMap.add "putChar" (Arrow([Int], Int)) 
                   (StringMap.add "self"    Void 
                   (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
                                   StringMap.empty 
