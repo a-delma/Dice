@@ -69,9 +69,9 @@ and closure_expr envs expression = match expression with
   | SLambda(l) -> let (locals::_) = envs in 
   (*Returns the list l_super minus any elements that are in the StringMap m_sub*)
                   let rec diff l_super m_sub = (match l_super with
-                      ((t, s)::tail) -> (try if t = StringMap.find s m_sub (* TODO: simplify this condition?*)
+                      ((t, s)::tail) -> (try if t = StringMap.find s m_sub
                                              then diff tail m_sub
-                                             else (t, s)::(diff tail m_sub) 
+                                             else raise (Failure "Shadowing variable with different type, not expected") 
                                          with Not_found -> (t, s)::(diff tail m_sub))
                       | _     -> [])
                   in diff l.sclosure locals
