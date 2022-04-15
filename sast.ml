@@ -39,15 +39,6 @@ type styp = SInt | SBool | SFloat | SVoid
                  | STypVar of string
                  | SStruct of string * styp list
 
-(* TODO: this type has to be removed *)
-type sfunc_decl = {
-  styp : typ;
-  sfname : string;
-  sf : bind list;
-  sl : bind list;
-  sb : sstmt list;
-}
-
 
 (* Pretty-printing functions *)
 

@@ -9,13 +9,7 @@ module StringMap = Map.Make(String)
 
 (* Code Generation from the SAST. Returns an LLVM module if successful,
    throws an exception if something is wrong. *)
-let translate (struct_decls, globals, (main::lambdas)) =
-  let stmts = main.sbody in 
-  let functions = [{ styp = A.Int; 
-                     sfname = "main";
-                     sf = [];
-                     sl = [];
-                     sb = stmts}] in
+let translate (struct_decls, globals, lambdas) =
   let context    = L.global_context ()
   (* Add types to the context so we can use them in our LLVM code *)
   in let     i32_t      = L.i32_type    context
@@ -91,13 +85,6 @@ let translate (struct_decls, globals, (main::lambdas)) =
   let malloc_func  = L.declare_function 
                      "malloc_" 
                      (L.function_type void_ptr_t [| i32_t |]) the_module in
-
-  
-  (* Built-ins *)
-  (* let func = L.declare_function "putchar_with_closure" f_i32_i32 the_module in *)
-  (* let putchar_helper = L.declare_function 
-                       "putchar_helper_" 
-                       (L.function_type i32_t [| func_struct_ptr; i32_t |]) the_module in *)
   
   let putchar_struct = (L.declare_global func_struct "putchar_" the_module) in
   let _ = L.set_externally_initialized true putchar_struct in
@@ -119,42 +106,28 @@ let translate (struct_decls, globals, (main::lambdas)) =
     List.fold_left global_var StringMap.empty globals in
   let global_vars = StringMap.add "putChar" putchar_struct global_vars in
   
-  (* 
-  let builder_temp = L.builder_at_end context (L.entry_block init_func) in
-  let random_instruction = L.build_add (L.const_int i32_t 0) (L.const_int i32_t 1) "ay" builder_temp in 
-  
-  let opaque_func  = L.build_pointercast  putchar_helper func_ptr_t "opaque_func" builder_temp in
-  let putchar_struct = L.build_alloca func_struct "putchar__" builder_temp in
-  let putchar_loaded = L.build_load putchar_struct "putter" builder_temp in
-  let field_ptr    = L.build_gep putchar_loaded [| (L.const_int i32_t 0); (L.const_int i32_t 0) |] "func_field_ptr" builder_temp in
-  
-  let _ = L.build_ret random_instruction builder_temp in
-  let _ = L.dump_module the_module in  *)
-
-
-  (* ptr = L.build_gep (lookup "putChar") [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder *)
-
-  (* creation of the c call *)
-  
 
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
-   let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
-    let function_decl m fdecl =
-      let name = fdecl.sfname
-      and formal_types = 
-        Array.of_list (List.map (fun (t,_) -> ltype_of_typ t) fdecl.sf)
-      in let ftype = L.function_type (ltype_of_typ fdecl.styp) formal_types in
-      StringMap.add name (L.define_function name ftype the_module, fdecl) m in
-    List.fold_left function_decl StringMap.empty functions in
+   let function_decls =
+    let function_decl m lambda =
+      let name = lambda.sid in
+      let formals_list = 
+        (List.map (fun (t,_) -> ltype_of_typ t) lambda.sformals) in
+      let formals_types = if name = "main" 
+                        then (Array.of_list formals_list)
+                        else (Array.of_list (func_struct_ptr::formals_list))
+      in let ftype = L.function_type (ltype_of_typ lambda.st) formals_types in
+      StringMap.add name (L.define_function name ftype the_module, lambda) m in
+    List.fold_left function_decl StringMap.empty lambdas in
 
   (* Fill in the body of the given function *)
-  let build_function_body fdecl =
+  let build_function_body lambda =
 
-    let (the_function, _) = StringMap.find fdecl.sfname function_decls in
+    let (the_function, _) = StringMap.find lambda.sid function_decls in
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
-    let _ = if fdecl.sfname = "main"
+    let _ = if lambda.sid = "main"
       then ignore(L.build_call init_func [||] "generatedByUsPossiblyChangeInit" builder)
       in
     (* Construct the function's "locals": formal arguments and locally
@@ -175,10 +148,9 @@ let translate (struct_decls, globals, (main::lambdas)) =
 	      in StringMap.add n local_var m 
       in
 
-      let formals = List.fold_left2 add_formal StringMap.empty fdecl.sf
-          (Array.to_list (L.params the_function)) in
-      (* SHould probably append putChar to the right in code below *)    
-      List.fold_left add_local formals fdecl.sl
+      let formals = List.fold_left2 add_formal StringMap.empty lambda.sformals
+          (Array.to_list (L.params the_function)) in  
+      List.fold_left add_local formals lambda.slocals
     in
 
     (* Return the value for a variable or formal argument. First check
@@ -188,9 +160,6 @@ let translate (struct_decls, globals, (main::lambdas)) =
                      (try StringMap.find n global_vars
                      with Not_found -> raise (Failure ("Cannot find variable " ^ n)))
     in
-
-    (*let ptr = L.build_gep (lookup "putChar") [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in
-    let _ =   L.build_store putchar_with_closure ptr builder in*)
 
     (* Construct code for an expression; return its value *)
     let rec expr builder ((typ, e) : sexpr) = match e with
@@ -283,7 +252,7 @@ let translate (struct_decls, globals, (main::lambdas)) =
         (* Generate code for this expression, return resulting builder *)
       | SExpr e -> let _ = expr builder e in builder 
       | SReturn e -> 
-        let _ = match fdecl.styp with
+        let _ = match lambda.st with
                               (* Special "return nothing" instr *)
                               A.Void -> L.build_ret_void builder 
                               (* Build return statement *)
@@ -350,14 +319,14 @@ let translate (struct_decls, globals, (main::lambdas)) =
     in
 
     (* Build the code for each statement in the function *)
-    let builder = stmt builder (SBlock fdecl.sb) in
+    let builder = stmt builder (SBlock lambda.sbody) in
 
     (* Add a return if the last block falls off the end *)
-    add_terminal builder (match fdecl.styp with
+    add_terminal builder (match lambda.st with
         A.Void -> L.build_ret_void
       | A.Float -> L.build_ret (L.const_float float_t 0.0)
       | t -> L.build_ret (L.const_int (ltype_of_typ t) 0))
   in
 
-  List.iter build_function_body functions;
+  List.iter build_function_body lambdas;
   the_module

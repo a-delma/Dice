@@ -29,6 +29,8 @@ let check (struct_decls, globals, stmts) =
     in let _ = List.fold_left check_it [] (List.sort name_compare to_check) 
         in rename_main to_check
   in 
+
+  let lambdaId = ref 0 in
   
   let rec conv_type env = function 
       | Int -> SInt
@@ -142,8 +144,10 @@ let check (struct_decls, globals, stmts) =
       let body      = (match (check_stmt (local_env::envs) (Block l.body)) with
           SBlock(sl) -> sl
         | _          -> raise (Failure "Block didn't become a block?")) (* TODO: Why does microc has this? *)  
+      in let newId = !lambdaId
+      in let _ = lambdaId := newId + 1 
       in (func_type, SLambda({st=l.t; 
-                    sid="TODO"; 
+                    sid="lambda" ^ (string_of_int newId); 
                     sformals=l.formals; (* TODO: rename main here? *)
                     slocals=l.locals; 
                     sclosure=closure_stmt (local_env::envs) (SBlock (body)); 
@@ -185,7 +189,7 @@ let check (struct_decls, globals, stmts) =
       (* Body of check *)
   let sstmts = List.map (fun stmt -> check_stmt [global_env] stmt) stmts in
   let main   = {st=Int; 
-                sid="TODO"; 
+                sid="main"; 
                 sformals=[]; 
                 slocals=[]; 
                 sclosure=[];
