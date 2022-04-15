@@ -1,0 +1,2 @@
+make small
+./small.native

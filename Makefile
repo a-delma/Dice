@@ -19,6 +19,9 @@ toplevel.native : parser.mly scanner.mll codegen.ml semant.ml closure.ml cimport
 	opam config exec -- \
 	ocamlbuild -use-ocamlfind toplevel.native
 
+small : small.ml
+	ocamlbuild -use-ocamlfind small.native
+
 ############################
 #
 # Testing
