@@ -49,8 +49,8 @@ let translate (struct_decls, globals, (main::lambdas)) =
     | A.Bool  -> i1_t
     | A.Float -> float_t
     | A.Void  -> void_t
-    | A.Arrow(args, ret) as arrow -> L.function_type (ltype_of_typ ret) 
-                                        (Array.of_list (List.map ltype_of_typ args))
+    | A.Arrow(args, ret) as arrow -> L.pointer_type(L.function_type (ltype_of_typ ret) 
+                                        (Array.of_list (func_struct_ptr::(List.map ltype_of_typ args))))
       (* (match L.type_by_name the_module ((ltype_name arrow) ^ "_struct") with 
         Some(t) -> t (* Hard-coding for now *)
       | None    -> raise (Failure "Type not found"))   *)
@@ -194,7 +194,7 @@ let translate (struct_decls, globals, (main::lambdas)) =
 
     (* Construct code for an expression; return its value *)
     let rec expr builder ((typ, e) : sexpr) = match e with
-	      SLiteral i -> L.const_int i32_t i
+        SLiteral i -> L.const_int i32_t i
       | SBoolLit b -> L.const_int i1_t (if b then 1 else 0)
       | SFliteral l -> L.const_float_of_string float_t l
       | SNoexpr -> L.const_int i32_t 0
@@ -253,14 +253,12 @@ let translate (struct_decls, globals, (main::lambdas)) =
     | SAssignList _ -> raise (Failure "NotImplemented")
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in
-      (* The build_store instruction is just to print the type, does nothing and should be removed *)
-      let _ = L.build_store function_struct function_struct builder  in
-      let _ = L.dump_module the_module in
       let ptr = L.build_struct_gep function_struct 0 (* [|(L.const_int i32_t 0); (L.const_int i32_t 0)|]*) 
                   "ptr" builder in
       let func_opq = L.build_load ptr "func_opq" builder in
       let func =  L.build_pointercast func_opq (ltype_of_typ ty) "func" builder in
-      L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder 
+      let _ = L.dump_module the_module in
+      L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder
     | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
     | SLambda (_) -> raise (Failure "NotImplemented")
     in
