@@ -222,11 +222,13 @@ let translate (struct_decls, globals, lambdas) =
     | SAssignList _ -> raise (Failure "NotImplemented")
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in
-      let ptr = L.build_struct_gep function_struct 0 (* [|(L.const_int i32_t 0); (L.const_int i32_t 0)|]*) 
-                  "ptr" builder in
+      let ptr = L.build_struct_gep function_struct 0 "ptr" builder in
       let func_opq = L.build_load ptr "func_opq" builder in
       let func =  L.build_pointercast func_opq (ltype_of_typ ty) "func" builder in
-      L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder
+      (* If the function returns null, we can't set it to anything (hence name is an empty string) *)
+      (match ty with 
+        Arrow(_, Void) -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "" builder
+      | _              -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder)
     | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
     | SLambda (_) -> raise (Failure "NotImplemented")
     in
