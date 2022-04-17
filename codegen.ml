@@ -222,7 +222,8 @@ let translate (struct_decls, globals, lambdas) =
           A.Neg when t = A.Float -> L.build_fneg 
         | A.Neg                  -> L.build_neg
         | A.Not                  -> L.build_not) e' "tmp" builder
-    | SAssignList _ -> raise (Failure "NotImplemented1")
+    | SAssignList binds -> 
+      let _ = 1 in raise Failure
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in
       (* Extremely worth reading if you're confused about gep https://www.llvm.org/docs/GetElementPtr.html *)

@@ -23,12 +23,13 @@ and lambda_from_expr expression = match expression with
     SLiteral(_)      -> []
   | SFliteral(_)     -> []
   | SBoolLit(_)      -> []
-  | SId(s)           -> []
+  | SId(_)           -> []
   | SBinop(e1, _, e2)   -> collect_lambda_expr [e1; e2]
   | SUnop(_, (_, e))         ->  (lambda_from_expr e)
   | SAssign(e1, e2)       -> collect_lambda_expr [e1; e2]
-  | SAssignList(_)   -> raise (Failure "Not implemented5 lambda pass")
+  (* To be tested *)
+  | SAssignList(ses)   -> collect_lambda_expr (snd (List.split ses))
   | SCall(e, args) -> collect_lambda_expr (e::args)
-  | SRecordAccess(_) -> raise (Failure "Not implemented7 lambda pass")
+  | SRecordAccess((_, e), _) -> lambda_from_expr e
   | SLambda(l) -> [l] @ lambda_from_stmt (SBlock l.sbody)
   | SNoexpr    -> []
