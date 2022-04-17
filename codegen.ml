@@ -37,6 +37,12 @@ let translate (struct_decls, globals, lambdas) =
     | _                     -> raise (Failure "Not implemented")  
   in
 
+  let struct_dict = 
+    let make_empty name _ = L.named_struct_type context name in
+    StringMap.mapi make_empty struct_decls
+  in
+
+
   (* Convert Dice types to LLVM types *)
   let rec ltype_of_typ = function
       A.Int   -> i32_t 
@@ -45,26 +51,20 @@ let translate (struct_decls, globals, lambdas) =
     | A.Void  -> void_t
     | A.Arrow(args, ret) as arrow -> L.pointer_type(L.function_type (ltype_of_typ ret) 
                                         (Array.of_list (func_struct_ptr::(List.map ltype_of_typ args))))
-    | _ -> raise (Failure "We need to implement more complex types (for instance [Int] -> Void)")
+    | A.TypVar (name) -> try StringMap.find name struct_dict
+      with _ -> raise (Failure (name ^ " is not a valid struct type"))
   in
 
-  (* A function that takes an sdecl and creates the associated LLVM stype *)
-  let makeStruct (name, binds) = 
-    (* Creates the named struct type *)
-    let sName = L.named_struct_type context name in
-    (* Converts all the types to their LLVM type *)
-    let ltypes = Array.of_list (List.map ltype_of_typ (List.map fst binds)) in
-    (* let _ = prerr_endline ("making struct: " ^ name) in *)
-    (* Code for making the body of the struct *)
-    let _ = L.struct_set_body sName ltypes false in
-
-    (* Just testing to print everything *)
-    let test_func = L.function_type (L.void_type context) [| sName |] in
-    let _ = L.declare_function "test_func" test_func the_module in ()
+  let make_struct_body name type_dict =
+    let (_, types) = List.split (StringMap.bindings type_dict) in
+    let ltypes_list = List.map ltype_of_typ types in
+    let ltypes = Array.of_list ltypes_list in
+    L.struct_set_body (StringMap.find name struct_dict) ltypes false in
+    (* let test_func = L.function_type (L.void_type context) [| (StringMap.find name struct_dict) |] in
+    let _ = L.declare_function "test_func" test_func the_module in () *)
   in
 
-  let _ = List.iter makeStruct struct_decls
-  in
+  let _ = StringMap.mapi make_struct_body struct_decls in
   
 
   let getnode_func = L.declare_function 

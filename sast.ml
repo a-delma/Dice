@@ -2,6 +2,9 @@
 
 open Ast
 
+module StringMap = Map.Make(String)
+
+
 type sLambda = {
     st       : typ;         (* Return type *)
     sid      : string;      (* A unique ID *)
@@ -82,13 +85,19 @@ and string_of_sstmt = function
 
 and string_of_sfield_assign (id, e) = id ^ ": " ^ string_of_sexpr e
 
+and string_of_bind (name, typ) = (string_of_typ typ) ^ " " ^ name ^ ";\n" 
+
+and string_of_senv (name, bind) = "struct " ^ name ^ "{\n" 
+    ^ "};\n"
+
+
 and string_of_slambda sl = 
       "id: " ^ sl.sid ^
       ", type: " ^ string_of_typ sl.st
       
 
 let string_of_sprogram (structs, vars, (main::lambdas)) =
-  String.concat "" ((List.map string_of_sdecl structs) @
+  String.concat "" ((List.map string_of_senv (StringMap.bindings structs)) @
                     (List.map string_of_vdecl vars) @
                     (List.map string_of_sstmt main.sbody) @
                     ["\nLambdas: \n"; String.concat "\n" (List.map string_of_slambda lambdas); "\n"])

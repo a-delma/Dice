@@ -1,5 +1,11 @@
+struct Test1 {
+    Test2 test;
+    Int inner;
+};
 
+struct Test2 {
+    Test1 the;
+    Test2 man;
+};
 
-Int hello;
-
-1 + 1;
+Test1 hmm;

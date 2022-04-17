@@ -32,27 +32,31 @@ let check (struct_decls, globals, stmts) =
 
   let lambdaId = ref 0 in
   
-  let rec conv_type env = function 
-      | Int -> SInt
-      | Bool -> SBool
-      | Float -> SFloat
-      | Void -> SVoid
-      | Arrow (param_types, ret_type) -> 
-          let sparams = 
-            List.map (fun (ty) -> conv_type env ty) param_types in
-          let ret_stype = conv_type env ret_type in
-            SArrow(sparams, ret_stype)
-      | TypVar (name) -> try SStruct(name, StringMap.find name env) 
-          with _ -> raise (Failure (name ^ " is not a defined type."))
-  in
-    let create_struct env (sname, binds) = 
-      match StringMap.find_opt sname env with
-      | None -> let sbinds = List.map (fun (typ) -> conv_type env typ) (List.map fst binds) 
-        in StringMap.add sname sbinds env
-      | Some _ -> raise (Failure ("Struct: " ^ sname ^ " is already defined"))
+  let rec check_type env ty = match ty with 
+    | Arrow (param_types, ret_type) -> 
+        let _ = List.map (check_type env) param_types in
+        let _ = check_type env ret_type in ty
+    (* Tries to find the struct in the env *)
+    | TypVar (name) -> (try StringMap.find name env; ty
+        with _ -> raise (Failure (name ^ " is not a defined type.")))
+    | Int | Bool | Float | Void -> ty
+    
     in
-    let struct_env = List.fold_left create_struct StringMap.empty struct_decls in
-    let _ = List.map (fun ((ty, _)) -> conv_type struct_env ty) globals in 
+    (* Function to take an sdecl and adds the struct to the environment *)
+    let create_struct env (sname, binds) = 
+      match StringMap.is_empty (StringMap.find sname env) with
+      | true ->  
+          let bind_name env' (ty, name) = StringMap.add name (check_type env ty) env' in
+          let types = List.fold_left bind_name StringMap.empty binds in
+        StringMap.add sname types env
+      | _ -> raise (Failure ("Struct: " ^ sname ^ " is already defined"))
+    in
+    (* Adding the struct names first so they can refer to each other *)
+    let empty_structs = List.fold_left 
+      (fun env (sname, _) -> StringMap.add sname StringMap.empty env) 
+      StringMap.empty struct_decls
+    in
+    let struct_env = List.fold_left create_struct empty_structs struct_decls in
 
   (**** Checking Global Variables ****)
   
@@ -194,4 +198,4 @@ let check (struct_decls, globals, stmts) =
                 slocals=[]; 
                 sclosure=[];
                 sbody=sstmts}
-  in (struct_decls, globals', main::lambda_from_stmt (SBlock sstmts))
+  in (struct_env, globals', main::lambda_from_stmt (SBlock sstmts))
