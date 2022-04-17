@@ -113,7 +113,7 @@ let check (struct_decls, globals, stmts) =
                   else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
         | RecordAccess(_, _) -> raise (Failure "NotImplementedStructStuff")
         | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
-    | AssignList(_) -> raise (Failure "NotImplemented")  
+    | AssignList(_) -> raise (Failure "NotImplemented4")  
     | Call(callable, args) as call -> 
       let (func_type, callable') = expr envs callable in
       let check_arg param_type arg = 
@@ -131,7 +131,7 @@ let check (struct_decls, globals, stmts) =
           else raise (Failure ("Expecting " ^ string_of_int param_count ^ " arguments in " ^ string_of_expr call))
         | _ -> raise (Failure ("Type " ^ string_of_typ func_type ^ " is not a function type"))
       )  
-    | RecordAccess(_)  -> raise (Failure "NotImplemented")  
+    | RecordAccess(_)  -> raise (Failure "NotImplemented5")  
     | Lambda l         -> 
       let func_type = Arrow(List.map fst l.formals, l.t) in
       let locals'   = check_binds l.locals @ l.formals in

@@ -37,7 +37,7 @@ let translate (struct_decls, globals, lambdas) =
     | _                     -> raise (Failure "Not implemented")  
   in
 
-  (* Convert MicroC types to LLVM types *)
+  (* Convert Dice types to LLVM types *)
   let rec ltype_of_typ = function
       A.Int   -> i32_t 
     | A.Bool  -> i1_t
@@ -45,9 +45,6 @@ let translate (struct_decls, globals, lambdas) =
     | A.Void  -> void_t
     | A.Arrow(args, ret) as arrow -> L.pointer_type(L.function_type (ltype_of_typ ret) 
                                         (Array.of_list (func_struct_ptr::(List.map ltype_of_typ args))))
-      (* (match L.type_by_name the_module ((ltype_name arrow) ^ "_struct") with 
-        Some(t) -> t (* Hard-coding for now *)
-      | None    -> raise (Failure "Type not found"))   *)
     | _ -> raise (Failure "We need to implement more complex types (for instance [Int] -> Void)")
   in
 
@@ -87,21 +84,19 @@ let translate (struct_decls, globals, lambdas) =
                      (L.function_type void_ptr_t [| i32_t |]) the_module in
   
   let putchar_struct = (L.declare_global func_struct "putchar_" the_module) in
-  let _ = L.set_externally_initialized true putchar_struct in
-
+               let _ = L.set_externally_initialized true putchar_struct     in
   
   let init_func = L.declare_function
                   "initialize"
-                  (L.function_type i32_t [||]) the_module in 
+                  (L.function_type void_t [||]) the_module in 
                   
   (* Declare each global variable; remember its value in a map *)
   let global_vars : L.llvalue StringMap.t =
     let global_var m (t, n) = 
       let init = match t with
           A.Float -> L.const_float (ltype_of_typ t) 0.0
-        | A.Arrow(_,_) -> L.const_named_struct func_struct_ptr [||]
+        | A.Arrow(_,_) -> L.const_named_struct func_struct [||]
         | _ -> L.const_int (ltype_of_typ t) 0
-        (* TODO fill out pattern matching here *)
       in StringMap.add n (L.define_global n init the_module) m in
     List.fold_left global_var StringMap.empty globals in
   let global_vars = StringMap.add "putChar" putchar_struct global_vars in
@@ -109,7 +104,7 @@ let translate (struct_decls, globals, lambdas) =
 
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
-   let function_decls =
+  let function_decls =
     let function_decl m lambda =
       let name = lambda.sid in
       let formals_list = 
@@ -119,7 +114,7 @@ let translate (struct_decls, globals, lambdas) =
                         else (Array.of_list (func_struct_ptr::formals_list))
       in let ftype = L.function_type (ltype_of_typ lambda.st) formals_types in
       StringMap.add name (L.define_function name ftype the_module, lambda) m in
-    List.fold_left function_decl StringMap.empty lambdas in
+      List.fold_left function_decl StringMap.empty lambdas in
 
   (* Fill in the body of the given function *)
   let build_function_body lambda =
@@ -128,7 +123,8 @@ let translate (struct_decls, globals, lambdas) =
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
     let _ = if lambda.sid = "main"
-      then ignore(L.build_call init_func [||] "generatedByUsPossiblyChangeInit" builder)
+            then ignore(L.build_call init_func [||] "" builder)
+          (* TODO possibly add another case if lambdas require it *)
       in
     (* Construct the function's "locals": formal arguments and locally
        declared variables.  Allocate each on the stack, initialize their
@@ -155,10 +151,10 @@ let translate (struct_decls, globals, lambdas) =
 
     (* Return the value for a variable or formal argument. First check
      * locals, then globals *)
-    let lookup n = try StringMap.find n local_vars
-                   with Not_found -> 
-                     (try StringMap.find n global_vars
-                     with Not_found -> raise (Failure ("Cannot find variable " ^ n)))
+    let lookup n  = try StringMap.find n local_vars
+                    with Not_found -> 
+                      (try StringMap.find n global_vars
+                      with Not_found -> raise (Failure ("Cannot find variable " ^ n)))
     in
 
     (* Construct code for an expression; return its value *)
@@ -169,11 +165,19 @@ let translate (struct_decls, globals, lambdas) =
       | SNoexpr -> L.const_int i32_t 0
       | SId s -> (match typ with (* TODO: should depend on whether it is local, global, or in closure*)
           A.Arrow(_, _) -> (lookup s)
-        | _                -> L.build_load (lookup s) s builder)
-      | SAssign((_, le), rse) -> 
+        | _             -> L.build_load (lookup s) s builder)
+      | SAssign((t, le), rse) -> 
           (match le with 
-          SId(s)-> let e' = expr builder rse in
-                   let _  = L.build_store e' (lookup s) builder in e'
+          SId(s)-> 
+            (* If the right side is a global function, it must be loaded *)
+                  let rse' = 
+                    (match t with 
+                      Arrow(_,_) -> L.build_load (expr builder rse) "tmp" builder 
+                    | _          -> expr builder rse) in
+                  let le'  = (lookup s) in
+                  (* Returns the evaluation of the left side, a bit weird but it
+                      has the least edge cases I think (Ezra) *)
+                  let _ = L.build_store rse' le' builder in expr builder (t, le)
           (* TODO to implement record access where a function can 
              return a record and then get it's field we'll need to 
              incorperate expr builder le somehow as well *)
@@ -218,25 +222,21 @@ let translate (struct_decls, globals, lambdas) =
           A.Neg when t = A.Float -> L.build_fneg 
         | A.Neg                  -> L.build_neg
         | A.Not                  -> L.build_not) e' "tmp" builder
-    (* | SAssignList ((_, _)::_) -> raise (Failure "NotImplemented") *)
-    | SAssignList _ -> raise (Failure "NotImplemented")
+    | SAssignList _ -> raise (Failure "NotImplemented1")
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in
+      (* Extremely worth reading if you're confused about gep https://www.llvm.org/docs/GetElementPtr.html *)
       let ptr = L.build_struct_gep function_struct 0 "ptr" builder in
       let func_opq = L.build_load ptr "func_opq" builder in
       let func =  L.build_pointercast func_opq (ltype_of_typ ty) "func" builder in
-      (* If the function returns null, we can't set it to anything (hence name is an empty string) *)
+      (* If the func has a null return type, we can't set it to anything (hence the empty string) *)
       (match ty with 
         Arrow(_, Void) -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "" builder
       | _              -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder)
-    | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
-    | SLambda (_) -> raise (Failure "NotImplemented")
+    | SRecordAccess(_, _) -> raise (Failure "NotImplemented2")
+    | SLambda (_) -> raise (Failure "NotImplemented3")
     in
     
-    (* Each basic block in a program ends with a "terminator" instruction i.e.
-    one that ends the basic block. By definition, these instructions must
-    indicate which basic block comes next -- they typically yield "void" value
-    and produce control flow, not values *)
     (* Invoke "instr builder" if the current block doesn't already
        have a terminator (e.g., a branch). *)
     let add_terminal builder instr =

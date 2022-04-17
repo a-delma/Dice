@@ -58,8 +58,7 @@ int putchar_helper(struct Function_* closure, int c) {
 }
 struct Function_ putchar_;
 
-int initialize(){
+void initialize(){
   putchar_.closure = NULL;
   putchar_.ptr = (void*) putchar_helper;
-  return 0;
 }
