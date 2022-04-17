@@ -1,6 +1,6 @@
 
 Int a;
 Int b;
-a = b = 72;
+b = a = a = b = 72;
 putChar(a);
 putChar(b);

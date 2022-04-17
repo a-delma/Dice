@@ -1,0 +1,6 @@
+
+Int a;
+[Int]->Void p;
+a = 72;
+p = putChar;
+p(a);
