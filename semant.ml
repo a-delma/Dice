@@ -31,7 +31,7 @@ let check (struct_decls, globals, stmts) =
   in 
 
   let lambdaId = ref 0 in
-  
+
   let rec check_type env ty = match ty with 
     | Arrow (param_types, ret_type) -> 
         let _ = List.map (check_type env) param_types in
@@ -57,6 +57,26 @@ let check (struct_decls, globals, stmts) =
       StringMap.empty struct_decls
     in
     let struct_env = List.fold_left create_struct empty_structs struct_decls in
+
+
+    (* Takes in a list of type (string * type) and returns the first struct
+       with the matching (string -> type) bindings *)
+    let struct_from_list binds =
+      (* converts the assignment list into a stringmap *)
+      let bind_map = List.fold_left 
+        (fun env (name, typ) -> StringMap.add name typ env)  StringMap.empty binds in
+      (* Function to compare each struct with the given struct *)
+      let comp _ types = StringMap.equal (=) bind_map types in
+      let filtered_structs = StringMap.filter comp struct_env in
+        (* If there were no structs that matched, it will fail *)
+        if StringMap.cardinal filtered_structs = 0
+          then
+            let string_of_bind (name, typ) = (string_of_typ typ) ^ " " ^ name ^ "" in
+            let msg = String.concat ", " (List.map string_of_bind binds)in
+            raise (Failure ("No struct with types: " ^ msg))
+        else 
+      TypVar (fst (StringMap.find_first (fun _ -> true) filtered_structs))
+  in
 
   (**** Checking Global Variables ****)
   
@@ -115,9 +135,19 @@ let check (struct_decls, globals, stmts) =
                 if lt = rt (* TODO: use custom equality function? *) 
                   then (rt, SAssign((lt ,SId(s)), (rt, sx)))
                   else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
-        | RecordAccess(_, _) -> raise (Failure "NotImplementedStructStuff")
+        | RecordAccess (_, _) -> 
+          let (lt, lsexper) = expr envs le in
+          let (rt, sx) = expr envs re in
+          if lt = rt (* TODO: use custom equality function? *) 
+            then (rt, SAssign((lt ,lsexper), (rt, sx)))
+            else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
+          (* (ltyp, SAssign((ltyp, lsexper), (ltyp, lsexper))) *)
         | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
-    | AssignList(_) -> raise (Failure "NotImplemented4")  
+    | AssignList(assigns) -> 
+      let names, exprs = List.split assigns in
+      let sexpers = List.map (expr envs) exprs in
+      let typ = struct_from_list (List.combine names (List.map fst sexpers)) in
+      (typ, SAssignList(List.combine names sexpers))  
     | Call(callable, args) as call -> 
       let (func_type, callable') = expr envs callable in
       let check_arg param_type arg = 
@@ -135,7 +165,17 @@ let check (struct_decls, globals, stmts) =
           else raise (Failure ("Expecting " ^ string_of_int param_count ^ " arguments in " ^ string_of_expr call))
         | _ -> raise (Failure ("Type " ^ string_of_typ func_type ^ " is not a function type"))
       )  
-    | RecordAccess(_)  -> raise (Failure "NotImplemented5")  
+    | RecordAccess(struct_expr, field)  -> 
+      let (ev_expr_ty, ev_expr_sx) = expr envs struct_expr in
+      let field_ty = (match ev_expr_ty with
+        TypVar name -> 
+          let this_stuct = try StringMap.find name struct_env 
+                           with _ -> raise (Failure (name ^ " is not a valid struct type.")) in
+          let this_ty    = try StringMap.find field this_stuct 
+                          with _ -> raise (Failure (field ^ " is not a field of type " ^ name)) in
+            this_ty
+        | _ -> raise (Failure ("Invalid struct access on type " ^ (string_of_typ ev_expr_ty))))
+      in (field_ty, SRecordAccess ((ev_expr_ty, ev_expr_sx), field))
     | Lambda l         -> 
       let func_type = Arrow(List.map fst l.formals, l.t) in
       let locals'   = check_binds l.locals @ l.formals in
