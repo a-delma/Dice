@@ -59,7 +59,7 @@ let translate (struct_decls, globals, lambdas) =
     let (_, types) = List.split (StringMap.bindings type_dict) in
     let ltypes_list = List.map ltype_of_typ types in
     let ltypes = Array.of_list ltypes_list in
-    L.struct_set_body (StringMap.find name struct_dict) ltypes false in
+    L.struct_set_body (StringMap.find name struct_dict) ltypes false
     (* let test_func = L.function_type (L.void_type context) [| (StringMap.find name struct_dict) |] in
     let _ = L.declare_function "test_func" test_func the_module in () *)
   in

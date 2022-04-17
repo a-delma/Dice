@@ -3,13 +3,9 @@ source_filename = "DICE"
 
 %Function_ = type { void (...)*, %Node_* }
 %Node_ = type { i8*, %Node_* }
-%Test1 = type { i32, %Test2 }
-%Test2 = type { %Test2, %Test1 }
 
 @putchar_ = external externally_initialized global %Function_
 @hmm = global i1 false
-
-declare void @test_func(%Test1)
 
 declare i8* @get_node(%Node_*, i32)
 
