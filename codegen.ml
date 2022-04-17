@@ -89,7 +89,13 @@ let translate (struct_decls, globals, lambdas) =
   let init_func = L.declare_function
                   "initialize"
                   (L.function_type void_t [||]) the_module in 
-                  
+
+(* Returns the size of the type t cast to an i32 (it would be i64 otherwise) *)
+  let size (t : L.lltype) = (L.const_bitcast (L.size_of t) i32_t) in
+(* Returns a pointer to a new heap allocated variable of type t *)
+  let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
+      L.build_call malloc_func [|(size t)|] "heap_ptr" malloc_b in
+  
   (* Declare each global variable; remember its value in a map *)
   let global_vars : L.llvalue StringMap.t =
     let global_var m (t, n) = 
