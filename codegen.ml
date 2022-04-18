@@ -109,7 +109,7 @@ let translate (struct_decls, globals, lambdas) =
     List.fold_left global_var StringMap.empty globals in
   let global_vars = StringMap.add "putChar" putchar_struct global_vars in
   
-
+  (* let mapsize m = StringMap.fold (fun _ _ acc -> acc+1) m 0 in *)
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
   let function_decls =
@@ -121,6 +121,7 @@ let translate (struct_decls, globals, lambdas) =
                         then (Array.of_list formals_list)
                         else (Array.of_list (func_struct_ptr::formals_list))
       in let ftype = L.function_type (ltype_of_typ lambda.st) formals_types in
+      (* let _ = prerr_endline (name ^ (string_of_int (mapsize m))) in *)
       StringMap.add name (L.define_function name ftype the_module, lambda) m in
       List.fold_left function_decl StringMap.empty lambdas in
 
@@ -255,9 +256,27 @@ let translate (struct_decls, globals, lambdas) =
       let _ = (L.dump_value llstruct)
       (* We need to return an llvalue *)
       in raise (Failure "NotImplemented2")
-    | SLambda (_) -> raise (Failure "NotImplemented3")
+    | SLambda (l) -> 
+    (* Pseudocode:
+        populate the closure
+          for each element in the closure (get from slambda in lambdas)
+            look it up, first in locals, then formals, then globals
+            create that element and add it to the list with append_to_list
+        put closure and function pointer (from the StringMap) into Function_ struct
+        return Function_ struct *)
+                (* Currently we disallow two variables with the same name but different types, may need to change later *)
+                (* let check_name n (_, name) = n = name in  *)
+                let lookup_with_formals n = try  StringMap.find n l.slocals 
+                                            with Not_found -> 
+                                            (try StringMap.find n l.sformals
+                                            with Not_found -> 
+                                            (try StringMap.find n global_vars
+                                            with Not_found -> raise (Failure "Element " ^ n ^ "in closure of " ^ l.sid ^ " not found."))) in
+                let binding_to_node (_, s) (node : L.llvalue) = L.build_call append_func [|(lookup_with_formals s)|] "tmp_closure_node" builder in
+                let empty_closure = L.build_call getnull_func [||] "empty" builder in
+                closure_list = List.fold_left binding_to_node getnull_func l.sclosure
+
     in
-    
     (* Invoke "instr builder" if the current block doesn't already
        have a terminator (e.g., a branch). *)
     let add_terminal builder instr =

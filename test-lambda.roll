@@ -1,8 +1,11 @@
+Int b;
+
 
 lambda (Int arg)->Void{
-    putChar(arg);
-}(72);
-
+    Int a;
+    
+}; 
+    
 
 
 /*lambda (Int arg) -> [Int -> Void] {
