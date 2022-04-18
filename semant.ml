@@ -147,7 +147,7 @@ let check (struct_decls, globals, stmts) =
       let names, exprs = List.split assigns in
       let sexpers = List.map (expr envs) exprs in
       let typ = struct_from_list (List.combine names (List.map fst sexpers)) in
-      (typ, SAssignList(List.combine names sexpers))  
+      (typ, SAssignList(typ, (List.combine names sexpers)))  
     | Call(callable, args) as call -> 
       let (func_type, callable') = expr envs callable in
       let check_arg param_type arg = 

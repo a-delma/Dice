@@ -16,4 +16,5 @@ struct Test2 {
 Test1 hmm;
 Bool hello;
 
-{test: true, inner: 1};
+hmm = {test: true, inner: 1};
+hmm.inner;

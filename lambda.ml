@@ -28,7 +28,7 @@ and lambda_from_expr expression = match expression with
   | SUnop(_, (_, e))         ->  (lambda_from_expr e)
   | SAssign(e1, e2)       -> collect_lambda_expr [e1; e2]
   (* To be tested *)
-  | SAssignList(ses)   -> collect_lambda_expr (snd (List.split ses))
+  | SAssignList(_, ses)   -> collect_lambda_expr (snd (List.split ses))
   | SCall(e, args) -> collect_lambda_expr (e::args)
   | SRecordAccess((_, e), _) -> lambda_from_expr e
   | SLambda(l) -> [l] @ lambda_from_stmt (SBlock l.sbody)

@@ -23,7 +23,7 @@ and sx =
   | SBinop of sexpr * op * sexpr
   | SUnop of uop * sexpr
   | SAssign of sexpr * sexpr
-  | SAssignList of (string * sexpr) list
+  | SAssignList of typ * (string * sexpr) list
   | SCall of sexpr * sexpr list
   | SRecordAccess of sexpr * string
   | SLambda of sLambda
@@ -55,7 +55,7 @@ let rec string_of_sexpr(sexpression) = match (snd sexpression) with
       string_of_sexpr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_sexpr e2
   | SUnop(o, e) -> string_of_uop o ^ string_of_sexpr e
   | SAssign(e1, e2) -> string_of_sexpr e1 ^ " = " ^ string_of_sexpr e2
-  | SAssignList(l) -> "{" ^
+  | SAssignList(_, l) -> "{" ^
       String.concat ", " (List.map string_of_sfield_assign l) ^ "}"
   | SCall(e1, e2) ->
       string_of_sexpr e1 ^ "(" ^ String.concat ", " (List.map string_of_sexpr e2) ^ ")"

@@ -34,7 +34,7 @@ let translate (struct_decls, globals, lambdas) =
     | A.Void                -> "void"
     | A.Arrow(args, ret) -> 
       "map_" ^ (String.concat "_and_" (List.map ltype_name args)) ^ "_to_" ^ ltype_name ret
-    | _                     -> raise (Failure "Not implemented")  
+    | A.TypVar(name)                     -> name  
   in
 
   let struct_dict = 
@@ -94,14 +94,16 @@ let translate (struct_decls, globals, lambdas) =
   let size (t : L.lltype) = (L.const_bitcast (L.size_of t) i32_t) in
 (* Returns a pointer to a new heap allocated variable of type t *)
   let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
-      L.build_call malloc_func [|(size t)|] "heap_ptr" malloc_b in
-  
+      let malloc_void = L.build_call malloc_func [|(size t)|] "void_heap_ptr" malloc_b 
+      in L.build_pointercast malloc_void (L.pointer_type t) "heap_ptr" malloc_b in
+
   (* Declare each global variable; remember its value in a map *)
   let global_vars : L.llvalue StringMap.t =
     let global_var m (t, n) = 
       let init = match t with
           A.Float -> L.const_float (ltype_of_typ t) 0.0
         | A.Arrow(_,_) -> L.const_named_struct func_struct [||]
+        | A.TypVar(name) -> L.const_named_struct (ltype_of_typ (A.TypVar name)) [||]
         | _ -> L.const_int (ltype_of_typ t) 0
       in StringMap.add n (L.define_global n init the_module) m in
     List.fold_left global_var StringMap.empty globals in
@@ -127,6 +129,8 @@ let translate (struct_decls, globals, lambdas) =
 
     let (the_function, _) = StringMap.find lambda.sid function_decls in
     let builder = L.builder_at_end context (L.entry_block the_function) in
+
+    (* let _ = malloc i32_t builder in *)
 
     let _ = if lambda.sid = "main"
             then ignore(L.build_call init_func [||] "" builder)
@@ -228,8 +232,14 @@ let translate (struct_decls, globals, lambdas) =
           A.Neg when t = A.Float -> L.build_fneg 
         | A.Neg                  -> L.build_neg
         | A.Not                  -> L.build_not) e' "tmp" builder
-    | SAssignList binds -> 
-      let _ = 1 in raise Failure
+    | SAssignList (ty, binds) ->
+      let lty = ltype_of_typ ty in
+      (* let struct_ptr = malloc lty builder in *)
+      let llvalues = List.map (expr builder) (snd (List.split binds)) in
+      let array_of_llvales = Array.of_list llvalues in
+      let lstruct = L.const_named_struct lty array_of_llvales
+      (* let _ = prerr_endline (L.string_of_lltype (L.type_of lstruct)) *)
+      in lstruct
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in
       (* Extremely worth reading if you're confused about gep https://www.llvm.org/docs/GetElementPtr.html *)
@@ -240,7 +250,11 @@ let translate (struct_decls, globals, lambdas) =
       (match ty with 
         Arrow(_, Void) -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "" builder
       | _              -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder)
-    | SRecordAccess(_, _) -> raise (Failure "NotImplemented2")
+    | SRecordAccess(exp, field) -> 
+      let llstruct = expr builder exp in
+      let _ = (L.dump_value llstruct)
+      (* We need to return an llvalue *)
+      in raise (Failure "NotImplemented2")
     | SLambda (_) -> raise (Failure "NotImplemented3")
     in
     
