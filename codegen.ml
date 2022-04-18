@@ -278,13 +278,13 @@ let translate (struct_decls, globals, lambdas) =
                   in L.build_pointercast malloc_void (L.pointer_type t) "heap_ptr" malloc_b in
                 (* Currently we disallow two variables with the same name but different types, may need to change later *)
                 (* let check_name n (_, name) = n = name in  *)
-                let lookup_closure_elem n = (try StringMap.find n local_vars (* need to union with closure stringmap as well *)
+                (* let lookup_closure_elem n = (try StringMap.find n local_vars (* need to union with closure stringmap as well *)
                                             with Not_found -> raise (Failure ("Element " ^ n ^ " in closure of " ^ l.sid ^ " not found."))) in
-                let binding_to_node (ty, s) (node : L.llvalue) = L.build_call append_func [| node; (* arg_ptr *) )|] "tmp_closure_node" builder in
+                let binding_to_node (ty, s) (node : L.llvalue) = L.build_call append_func [| node; arg_ptr|] "tmp_closure_node" builder in
                 let opaque ty = malloc ty builder in
-                let deOpague elem = L.build_bitcast void_ptr_t (opaque elem) L.pointer_type (ltype_of_typ) in
+                let deOpague elem = L.build_bitcast void_ptr_t (opaque elem) L.pointer_type (ltype_of_typ) in *)
                 let empty_closure = L.build_call getnull_func [||] "empty" builder in
-                List.fold_right binding_to_node l.sclosure empty_closure
+                (*List.fold_right binding_to_node l.sclosure*) empty_closure
 
     in
     (* Invoke "instr builder" if the current block doesn't already
