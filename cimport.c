@@ -10,10 +10,6 @@ struct Node_
   struct Node_* next;
 };
 
-struct Node_* get_null_list() {
-  return NULL;
-}
-
 struct Node_* append_to_list(struct Node_* list, char* val) {
   struct Node_* next = NULL;
   next = (struct Node_*) malloc(sizeof(struct Node_));

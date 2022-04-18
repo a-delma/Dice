@@ -93,7 +93,7 @@ and string_of_senv (name, bind) = "struct " ^ name ^ "{\n"
 
 and string_of_slambda sl = 
       "id: " ^ sl.sid ^
-      ", type: " ^ string_of_typ sl.st
+      ", return type: " ^ string_of_typ sl.st (* TODO: Different printings? *)
       
 
 let string_of_sprogram (structs, vars, (main::lambdas)) =

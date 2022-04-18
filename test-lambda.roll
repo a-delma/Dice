@@ -1,18 +1,11 @@
-Int b;
-
-
-lambda (Int arg)->Void{
-  lambda () -> Void { /* Closure should contain arg */
+lambda (Int arg)->[]-> Void{
+  return lambda () -> Void {
     putChar(arg);
   };
-}(96);
-    
-
-
-/* lambda (Int arg) -> [Int -> Void] {
-  lambda () -> Void {
-    putChar(arg);
-  }
-}(68)(); */
-
-
+};
+/*lambda ()->[]-> Void{
+  return lambda () -> Void {
+    putChar(68);
+  };
+}()();
+*/

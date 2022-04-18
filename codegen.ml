@@ -49,15 +49,18 @@ let translate (struct_decls, globals, lambdas) =
     | A.Bool  -> i1_t
     | A.Float -> float_t
     | A.Void  -> void_t
-    | A.Arrow(args, ret) as arrow -> L.pointer_type(L.function_type (ltype_of_typ ret) 
-                                        (Array.of_list (func_struct_ptr::(List.map ltype_of_typ args))))
+    | A.Arrow(_) -> func_struct_ptr
     | A.TypVar (name) -> try StringMap.find name struct_dict
       with _ -> raise (Failure (name ^ " is not a valid struct type"))
+  in let rec ltype_of_func_type = function
+      A.Arrow(args, ret) -> L.pointer_type(L.function_type (ltype_of_typ ret) 
+                            (Array.of_list (func_struct_ptr::(List.map ltype_of_typ args))))
+    | _                  -> raise (Failure "Invalid function cast")                 
   in
 
   let make_struct_body name type_dict =
     let (_, types) = List.split (StringMap.bindings type_dict) in
-    let ltypes_list = List.map ltype_of_typ types in
+    let ltypes_list = List.map ltype_of_typ types in (* TODO: might need to call a different type convertion fucntion*)
     let ltypes = Array.of_list ltypes_list in
     L.struct_set_body (StringMap.find name struct_dict) ltypes false
     (* let test_func = L.function_type (L.void_type context) [| (StringMap.find name struct_dict) |] in
@@ -75,9 +78,9 @@ let translate (struct_decls, globals, lambdas) =
                      "append_to_list" 
                      (L.function_type node_struct_ptr [| node_struct_ptr ; void_ptr_t |]) the_module in
 
-  let getnull_func = L.declare_function 
+  (* let getnull_func = L.declare_function 
                      "get_null_list" 
-                     (L.function_type node_struct_ptr [| |]) the_module in
+                     (L.function_type node_struct_ptr [| |]) the_module in *)
 
   let malloc_func  = L.declare_function 
                      "malloc_" 
@@ -251,7 +254,7 @@ let translate (struct_decls, globals, lambdas) =
       (* Extremely worth reading if you're confused about gep https://www.llvm.org/docs/GetElementPtr.html *)
       let ptr = L.build_struct_gep function_struct 0 "ptr" builder in
       let func_opq = L.build_load ptr "func_opq" builder in
-      let func =  L.build_pointercast func_opq (ltype_of_typ ty) "func" builder in
+      let func =  L.build_pointercast func_opq (ltype_of_func_type ty) "func" builder in
       (* If the func has a null return type, we can't set it to anything (hence the empty string) *)
       (match ty with 
         Arrow(_, Void) -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "" builder
@@ -271,11 +274,16 @@ let translate (struct_decls, globals, lambdas) =
         return Function_ struct *)
 
         (* Returns the size of the type t cast to an i32 (it would be i64 otherwise) *)
-                let size (t : L.lltype) = (L.const_bitcast (L.size_of t) i32_t) in
                 (* Returns a pointer to a new heap allocated variable of type t *)
                 let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
-                  let malloc_void = L.build_call malloc_func [|(size t)|] "void_heap_ptr" malloc_b 
-                  in L.build_pointercast malloc_void (L.pointer_type t) "heap_ptr" malloc_b in
+                  let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
+                  in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b
+                  in let opaque_value = L.build_call malloc_func [|size|] "opaque_value" malloc_b
+                  in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
+                  (* let size (t : L.lltype) = (L.const_bitcast (L.size_of t) i32_t) in  *)
+                  (* let malloc_void = L.build_call malloc_func [|(size t)|] "void_heap_ptr" malloc_b  *)
+                  (* in L.build_pointercast malloc_void (L.pointer_type t) "heap_ptr" malloc_b in *)
+                  (* in L.build_alloca t "dsfd" malloc_b *)
                 (* Currently we disallow two variables with the same name but different types, may need to change later *)
                 (* let check_name n (_, name) = n = name in  *)
                 (* let lookup_closure_elem n = (try StringMap.find n local_vars (* need to union with closure stringmap as well *)
@@ -283,8 +291,25 @@ let translate (struct_decls, globals, lambdas) =
                 let binding_to_node (ty, s) (node : L.llvalue) = L.build_call append_func [| node; arg_ptr|] "tmp_closure_node" builder in
                 let opaque ty = malloc ty builder in
                 let deOpague elem = L.build_bitcast void_ptr_t (opaque elem) L.pointer_type (ltype_of_typ) in *)
-                let empty_closure = L.build_call getnull_func [||] "empty" builder in
-                (*List.fold_right binding_to_node l.sclosure*) empty_closure
+                (* let empty_closure = L.build_call getnull_func [||] "empty" builder in *)
+                (* List.fold_right binding_to_node l.sclosure empty_closure *)
+                (* in let _ = L.dump_module the_module *)
+                in let add_argument closure (ty, id) = 
+                  let llvalue = expr builder (ty, SId id)
+                  in let malloc_arg = malloc (ltype_of_typ ty) builder
+                  in let _ = L.build_store llvalue malloc_arg builder
+                  in let opaque_arg = L.build_pointercast malloc_arg void_ptr_t "ptr_" builder
+                  in L.build_call append_func [|closure; opaque_arg|] "new_closure" builder
+                in let function_struct = malloc func_struct builder 
+                in let closure_struct = L.const_null node_struct_ptr
+                in let full_closure = List.fold_left add_argument closure_struct l.sclosure
+                in let closure_ptr = L.build_struct_gep function_struct 1 "ptr_" builder 
+                in let _ = L.build_store closure_struct closure_ptr builder
+                in let func_ptr = L.build_struct_gep function_struct 0 "ptr_" builder 
+                in let func_opaque = L.build_pointercast (fst (StringMap.find l.sid function_decls) )
+                                                         func_ptr_t "func_opaque" builder
+                in let _ = L.build_store func_opaque func_ptr builder
+                in function_struct
 
     in
     (* Invoke "instr builder" if the current block doesn't already
