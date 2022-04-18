@@ -1,5 +1,10 @@
 struct Test1 {
-    Test2 test;
+    Bool test;
+    Int inner;
+};
+
+struct Test4 {
+    Bool test;
     Int inner;
 };
 
@@ -9,3 +14,7 @@ struct Test2 {
 };
 
 Test1 hmm;
+Bool hello;
+
+hmm = {test: true, inner: 1};
+hmm.inner;
