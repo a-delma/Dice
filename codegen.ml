@@ -94,8 +94,8 @@ let translate (struct_decls, globals, lambdas) =
   let size (t : L.lltype) = (L.const_bitcast (L.size_of t) i32_t) in
 (* Returns a pointer to a new heap allocated variable of type t *)
   let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
-      let malloc_void = L.build_call malloc_func [|(size t)|] "void_heap_ptr" malloc_b 
-      in L.build_pointercast malloc_void (L.pointer_type t) "heap_ptr" malloc_b in
+    let malloc_void = L.build_call malloc_func [|(size t)|] "void_heap_ptr" malloc_b 
+    in L.build_pointercast malloc_void (L.pointer_type t) "heap_ptr" malloc_b in
 
   (* Declare each global variable; remember its value in a map *)
   let global_vars : L.llvalue StringMap.t =
