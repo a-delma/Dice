@@ -90,12 +90,7 @@ let translate (struct_decls, globals, lambdas) =
                   "initialize"
                   (L.function_type void_t [||]) the_module in 
 
-(* Returns the size of the type t cast to an i32 (it would be i64 otherwise) *)
-  let size (t : L.lltype) = (L.const_bitcast (L.size_of t) i32_t) in
-(* Returns a pointer to a new heap allocated variable of type t *)
-  let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
-    let malloc_void = L.build_call malloc_func [|(size t)|] "void_heap_ptr" malloc_b 
-    in L.build_pointercast malloc_void (L.pointer_type t) "heap_ptr" malloc_b in
+
 
   (* Declare each global variable; remember its value in a map *)
   let global_vars : L.llvalue StringMap.t =
@@ -109,7 +104,7 @@ let translate (struct_decls, globals, lambdas) =
     List.fold_left global_var StringMap.empty globals in
   let global_vars = StringMap.add "putChar" putchar_struct global_vars in
   
-
+  (* let mapsize m = StringMap.fold (fun _ _ acc -> acc+1) m 0 in *)
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
   let function_decls =
@@ -117,10 +112,11 @@ let translate (struct_decls, globals, lambdas) =
       let name = lambda.sid in
       let formals_list = 
         (List.map (fun (t,_) -> ltype_of_typ t) lambda.sformals) in
-      let formals_types = if name = "main" 
+      let formals_types = (* if name = "main" 
                         then (Array.of_list formals_list)
-                        else (Array.of_list (func_struct_ptr::formals_list))
+                        else *) (Array.of_list (func_struct_ptr::formals_list))
       in let ftype = L.function_type (ltype_of_typ lambda.st) formals_types in
+      (* let _ = prerr_endline (name ^ (string_of_int (mapsize m))) in *)
       StringMap.add name (L.define_function name ftype the_module, lambda) m in
       List.fold_left function_decl StringMap.empty lambdas in
 
@@ -154,17 +150,27 @@ let translate (struct_decls, globals, lambdas) =
 	      in StringMap.add n local_var m 
       in
 
-      let formals = List.fold_left2 add_formal StringMap.empty lambda.sformals
-          (Array.to_list (L.params the_function)) in  
+      let formals = (* if lambda.sid = "main"
+                    then List.fold_left2 add_formal StringMap.empty lambda.sformals 
+                         (Array.to_list (L.params the_function))   
+                    else *) List.fold_left2 add_formal StringMap.empty lambda.sformals 
+                         (List.tl (Array.to_list (L.params the_function))) in  
       List.fold_left add_local formals lambda.slocals
     in
-
+    
+    let closure = 
+      let add_closure m (t, n) = 
+      let closure_elem = L.build_alloca (ltype_of_typ t) n builder
+      in StringMap.add n closure_elem m
+    in
+      List.fold_left add_closure StringMap.empty lambda.sclosure
+    in
     (* Return the value for a variable or formal argument. First check
      * locals, then globals *)
     let lookup n  = try StringMap.find n local_vars
-                    with Not_found -> 
-                      (try StringMap.find n global_vars
-                      with Not_found -> raise (Failure ("Cannot find variable " ^ n)))
+                    with Not_found -> (try StringMap.find n closure
+                                      with Not_found -> (try StringMap.find n global_vars
+                                                         with Not_found -> raise (Failure ("Cannot find variable " ^ n))))          
     in
 
     (* Construct code for an expression; return its value *)
@@ -255,9 +261,32 @@ let translate (struct_decls, globals, lambdas) =
       let _ = (L.dump_value llstruct)
       (* We need to return an llvalue *)
       in raise (Failure "NotImplemented2")
-    | SLambda (_) -> raise (Failure "NotImplemented3")
+    | SLambda (l) -> 
+    (* Pseudocode:
+        populate the closure
+          for each element in the closure (get from slambda in lambdas)
+            look it up, first in locals, then formals, then globals
+            create that element and add it to the list with append_to_list
+        put closure and function pointer (from the StringMap) into Function_ struct
+        return Function_ struct *)
+
+        (* Returns the size of the type t cast to an i32 (it would be i64 otherwise) *)
+                let size (t : L.lltype) = (L.const_bitcast (L.size_of t) i32_t) in
+                (* Returns a pointer to a new heap allocated variable of type t *)
+                let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
+                  let malloc_void = L.build_call malloc_func [|(size t)|] "void_heap_ptr" malloc_b 
+                  in L.build_pointercast malloc_void (L.pointer_type t) "heap_ptr" malloc_b in
+                (* Currently we disallow two variables with the same name but different types, may need to change later *)
+                (* let check_name n (_, name) = n = name in  *)
+                (* let lookup_closure_elem n = (try StringMap.find n local_vars (* need to union with closure stringmap as well *)
+                                            with Not_found -> raise (Failure ("Element " ^ n ^ " in closure of " ^ l.sid ^ " not found."))) in
+                let binding_to_node (ty, s) (node : L.llvalue) = L.build_call append_func [| node; arg_ptr|] "tmp_closure_node" builder in
+                let opaque ty = malloc ty builder in
+                let deOpague elem = L.build_bitcast void_ptr_t (opaque elem) L.pointer_type (ltype_of_typ) in *)
+                let empty_closure = L.build_call getnull_func [||] "empty" builder in
+                (*List.fold_right binding_to_node l.sclosure*) empty_closure
+
     in
-    
     (* Invoke "instr builder" if the current block doesn't already
        have a terminator (e.g., a branch). *)
     let add_terminal builder instr =
