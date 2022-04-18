@@ -160,19 +160,27 @@ let translate (struct_decls, globals, lambdas) =
                          (List.tl (Array.to_list (L.params the_function))) in  
       List.fold_left add_local formals lambda.slocals
     in
-    
     let closure = 
-      let add_closure m (t, n) = 
-      let closure_elem = L.build_alloca (ltype_of_typ t) n builder
-      in StringMap.add n closure_elem m
+      if lambda.sid = "main"
+      then StringMap.empty else
+      let function_ptr = (Array.get (L.params the_function) 0) in
+      (* let function_val = L.build_load function_ptr "function" builder in *)
+      let closure_ptr  = L.build_struct_gep function_ptr 1 "closure_ptr" builder in
+      let add_closure (m,i) (t, n) =
+        let void_ptr = L.build_call getnode_func [|closure_ptr; L.const_int i32_t i|] "node_" builder in
+        let arg_ptr = L.build_pointercast void_ptr (ltype_of_typ t) "arg_ptr" builder in
+        let value = L.build_load arg_ptr "arg" builder in
+      (* let closure_elem = L.build_alloca (ltype_of_typ t) n builder *)
+        (StringMap.add n value m, i + 1)
     in
-      List.fold_left add_closure StringMap.empty lambda.sclosure
+      fst (List.fold_left add_closure (StringMap.empty, 0) lambda.sclosure)
     in
+      let _ = L.dump_module in
     (* Return the value for a variable or formal argument. First check
      * locals, then globals *)
-    let lookup n  = try StringMap.find n local_vars
-                    with Not_found -> (try StringMap.find n closure
-                                      with Not_found -> (try StringMap.find n global_vars
+    let lookup n  = try (StringMap.find n local_vars, true)
+                    with Not_found -> (try (StringMap.find n closure, false)
+                                      with Not_found -> (try (StringMap.find n global_vars, true)
                                                          with Not_found -> raise (Failure ("Cannot find variable " ^ n))))          
     in
 
@@ -182,9 +190,14 @@ let translate (struct_decls, globals, lambdas) =
       | SBoolLit b -> L.const_int i1_t (if b then 1 else 0)
       | SFliteral l -> L.const_float_of_string float_t l
       | SNoexpr -> L.const_int i32_t 0
-      | SId s -> (match typ with (* TODO: should depend on whether it is local, global, or in closure*)
+      | SId s -> (match (lookup s) with
+        | (v, true) -> v
+        (* | (v, true) -> L.build_load v s builder *)
+        | (v, false) -> v)
+      (* (match typ with 
+      (* TODO: should depend on whether it is local, global, or in closure*)
           A.Arrow(_, _) -> (lookup s)
-        | _             -> L.build_load (lookup s) s builder)
+        | _             -> L.build_load (lookup s) s builder) *)
       | SAssign((t, le), rse) -> 
           (match le with 
           SId(s)-> 
@@ -193,7 +206,7 @@ let translate (struct_decls, globals, lambdas) =
                     (match t with 
                       Arrow(_,_) -> L.build_load (expr builder rse) "tmp" builder 
                     | _          -> expr builder rse) in
-                  let le'  = (lookup s) in
+                  let le', _  = (lookup s) in
                   (* Returns the evaluation of the left side, a bit weird but it
                       has the least edge cases I think (Ezra) *)
                   let _ = L.build_store rse' le' builder in expr builder (t, le)
@@ -265,51 +278,27 @@ let translate (struct_decls, globals, lambdas) =
       (* We need to return an llvalue *)
       in raise (Failure "NotImplemented2")
     | SLambda (l) -> 
-    (* Pseudocode:
-        populate the closure
-          for each element in the closure (get from slambda in lambdas)
-            look it up, first in locals, then formals, then globals
-            create that element and add it to the list with append_to_list
-        put closure and function pointer (from the StringMap) into Function_ struct
-        return Function_ struct *)
-
-        (* Returns the size of the type t cast to an i32 (it would be i64 otherwise) *)
-                (* Returns a pointer to a new heap allocated variable of type t *)
-                let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
-                  let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
-                  in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b
-                  in let opaque_value = L.build_call malloc_func [|size|] "opaque_value" malloc_b
-                  in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
-                  (* let size (t : L.lltype) = (L.const_bitcast (L.size_of t) i32_t) in  *)
-                  (* let malloc_void = L.build_call malloc_func [|(size t)|] "void_heap_ptr" malloc_b  *)
-                  (* in L.build_pointercast malloc_void (L.pointer_type t) "heap_ptr" malloc_b in *)
-                  (* in L.build_alloca t "dsfd" malloc_b *)
-                (* Currently we disallow two variables with the same name but different types, may need to change later *)
-                (* let check_name n (_, name) = n = name in  *)
-                (* let lookup_closure_elem n = (try StringMap.find n local_vars (* need to union with closure stringmap as well *)
-                                            with Not_found -> raise (Failure ("Element " ^ n ^ " in closure of " ^ l.sid ^ " not found."))) in
-                let binding_to_node (ty, s) (node : L.llvalue) = L.build_call append_func [| node; arg_ptr|] "tmp_closure_node" builder in
-                let opaque ty = malloc ty builder in
-                let deOpague elem = L.build_bitcast void_ptr_t (opaque elem) L.pointer_type (ltype_of_typ) in *)
-                (* let empty_closure = L.build_call getnull_func [||] "empty" builder in *)
-                (* List.fold_right binding_to_node l.sclosure empty_closure *)
-                (* in let _ = L.dump_module the_module *)
-                in let add_argument closure (ty, id) = 
-                  let llvalue = expr builder (ty, SId id)
-                  in let malloc_arg = malloc (ltype_of_typ ty) builder
-                  in let _ = L.build_store llvalue malloc_arg builder
-                  in let opaque_arg = L.build_pointercast malloc_arg void_ptr_t "ptr_" builder
-                  in L.build_call append_func [|closure; opaque_arg|] "new_closure" builder
-                in let function_struct = malloc func_struct builder 
-                in let closure_struct = L.const_null node_struct_ptr
-                in let full_closure = List.fold_left add_argument closure_struct l.sclosure
-                in let closure_ptr = L.build_struct_gep function_struct 1 "ptr_" builder 
-                in let _ = L.build_store closure_struct closure_ptr builder
-                in let func_ptr = L.build_struct_gep function_struct 0 "ptr_" builder 
-                in let func_opaque = L.build_pointercast (fst (StringMap.find l.sid function_decls) )
-                                                         func_ptr_t "func_opaque" builder
-                in let _ = L.build_store func_opaque func_ptr builder
-                in function_struct
+      let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
+        let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
+        in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b
+        in let opaque_value = L.build_call malloc_func [|size|] "opaque_value" malloc_b
+        in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
+      in let add_argument closure (ty, id) = 
+        let llvalue = expr builder (ty, SId id)
+        in let malloc_arg = malloc (ltype_of_typ ty) builder
+        in let _ = L.build_store llvalue malloc_arg builder
+        in let opaque_arg = L.build_pointercast malloc_arg void_ptr_t "ptr_" builder
+        in L.build_call append_func [|closure; opaque_arg|] "new_closure" builder
+      in let function_struct = malloc func_struct builder 
+      in let closure_struct = L.const_null node_struct_ptr
+      in let full_closure = List.fold_left add_argument closure_struct l.sclosure
+      in let closure_ptr = L.build_struct_gep function_struct 1 "ptr_" builder 
+      in let _ = L.build_store closure_struct closure_ptr builder
+      in let func_ptr = L.build_struct_gep function_struct 0 "ptr_" builder 
+      in let func_opaque = L.build_pointercast (fst (StringMap.find l.sid function_decls) )
+                                                func_ptr_t "func_opaque" builder
+      in let _ = L.build_store func_opaque func_ptr builder
+      in function_struct
 
     in
     (* Invoke "instr builder" if the current block doesn't already
