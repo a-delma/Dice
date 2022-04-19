@@ -19,7 +19,7 @@
 
 declare i8* @get_node(%Node_*, i32)
 declare %Node_* @append_to_list(%Node_*, i8*)
-declare %Node_* @get_null_list()
+; declare %Node_* @get_null_list()
 declare i8*     @malloc_(i32)
 declare i32     @initialize()
 
@@ -66,7 +66,7 @@ define %Function_* @outer_lambda(%Function_* %self, i32 %arg) {
     %func_field_ptr  = getelementptr inbounds %Function_, %Function_* %func, i32 0, i32 0
                        store void(...)* %opaque_func, void(...)** %func_field_ptr
 
-    %closure            = call %Node_* @get_null_list()
+    ; %closure            = call %Node_* @get_null_list()
 
     %size_1             = getelementptr i32*, i32** null, i32 1
     %size_int1          = ptrtoint i32** %size_1 to i32
@@ -75,7 +75,7 @@ define %Function_* @outer_lambda(%Function_* %self, i32 %arg) {
 
                           store i32 %arg, i32* %arg_ptr 
     %opaque_arg_ptr     = bitcast i32* %arg_ptr to i8*
-    %closure1           = call %Node_* @append_to_list(%Node_* %closure, i8* %opaque_arg_ptr)
+    %closure1           = call %Node_* @append_to_list(%Node_* null, i8* %opaque_arg_ptr)
     %closure_field_ptr  = getelementptr inbounds %Function_, %Function_* %func, i32 0, i32 1
                           store %Node_* %closure1, %Node_** %closure_field_ptr
     ret %Function_* %func

@@ -2,7 +2,7 @@ lambda (Int arg)->[]-> Void{
   return lambda () -> Void {
     putChar(arg);
   };
-};
+}(72)();
 /*lambda ()->[]-> Void{
   return lambda () -> Void {
     putChar(68);

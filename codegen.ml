@@ -166,9 +166,10 @@ let translate (struct_decls, globals, lambdas) =
       let function_ptr = (Array.get (L.params the_function) 0) in
       (* let function_val = L.build_load function_ptr "function" builder in *)
       let closure_ptr  = L.build_struct_gep function_ptr 1 "closure_ptr" builder in
+      let loaded_closure_ptr = L.build_load closure_ptr "loaded_closure_ptr" builder in
       let add_closure (m,i) (t, n) =
-        let void_ptr = L.build_call getnode_func [|closure_ptr; L.const_int i32_t i|] "node_" builder in
-        let arg_ptr = L.build_pointercast void_ptr (ltype_of_typ t) "arg_ptr" builder in
+        let void_ptr = L.build_call getnode_func [|loaded_closure_ptr; L.const_int i32_t i|] "node_" builder in
+        let arg_ptr = L.build_pointercast void_ptr (L.pointer_type (ltype_of_typ t)) "arg_ptr" builder in
         let value = L.build_load arg_ptr "arg" builder in
       (* let closure_elem = L.build_alloca (ltype_of_typ t) n builder *)
         (StringMap.add n value m, i + 1)
@@ -191,7 +192,9 @@ let translate (struct_decls, globals, lambdas) =
       | SFliteral l -> L.const_float_of_string float_t l
       | SNoexpr -> L.const_int i32_t 0
       | SId s -> (match (lookup s) with
-        | (v, true) -> v
+        | (v, true) -> (match typ with 
+            A.Arrow(_, _) -> v
+            | _           -> L.build_load v s builder)
         (* | (v, true) -> L.build_load v s builder *)
         | (v, false) -> v)
       (* (match typ with 
@@ -290,10 +293,11 @@ let translate (struct_decls, globals, lambdas) =
         in let opaque_arg = L.build_pointercast malloc_arg void_ptr_t "ptr_" builder
         in L.build_call append_func [|closure; opaque_arg|] "new_closure" builder
       in let function_struct = malloc func_struct builder 
+      (* in let _ = L.dump_module the_module  *)
       in let closure_struct = L.const_null node_struct_ptr
       in let full_closure = List.fold_left add_argument closure_struct l.sclosure
       in let closure_ptr = L.build_struct_gep function_struct 1 "ptr_" builder 
-      in let _ = L.build_store closure_struct closure_ptr builder
+      in let _ = L.build_store full_closure closure_ptr builder
       in let func_ptr = L.build_struct_gep function_struct 0 "ptr_" builder 
       in let func_opaque = L.build_pointercast (fst (StringMap.find l.sid function_decls) )
                                                 func_ptr_t "func_opaque" builder
