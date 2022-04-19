@@ -141,15 +141,21 @@ let translate (struct_decls, globals, lambdas) =
     let local_vars =
       let add_formal m (t, n) p = 
         let () = L.set_value_name n p in
-	      let local = L.build_alloca (ltype_of_typ t) n builder in
-        let _  = L.build_store p local builder in
-	      StringMap.add n local m 
+        (match t with 
+            A.Arrow(_) -> StringMap.add n p m
+          | ty         -> 
+                let local = L.build_alloca (ltype_of_typ ty) n builder in
+                let _  = L.build_store p local builder in
+	              StringMap.add n local m )
       in
 
       (* Allocate space for any locally declared variables and add the
        * resulting registers to our map *)
       let add_local m (t, n) =
-	    let local_var = L.build_alloca (ltype_of_typ t) n builder
+      let llt = function 
+          A.Arrow(_) -> func_struct
+        | ty         -> (ltype_of_typ ty) in
+	    let local_var = L.build_alloca (llt t) n builder
 	      in StringMap.add n local_var m 
       in
 

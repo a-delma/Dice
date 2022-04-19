@@ -212,6 +212,7 @@ let check (struct_decls, globals, stmts) =
         SFor(expr envs e1, check_bool_expr envs e2, expr envs e3, check_stmt envs st)
     | While(p, s) -> SWhile(check_bool_expr envs p, check_stmt envs s)
     | Return e -> 
+    (* TODO check for returning nothing (walk the AST and check that something returns the type we expect) *)
       let (t, e')   = expr envs e in
       let func_type = match (type_of_identifier "self" envs) with
         Arrow(_, return_type) -> return_type
