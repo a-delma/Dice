@@ -55,8 +55,6 @@ let translate (struct_decls, globals, lambdas) =
     let ltypes_list = List.map ltype_of_typ types in (* TODO: might need to call a different type convertion fucntion*)
     let ltypes = Array.of_list ltypes_list in
     L.struct_set_body (StringMap.find name struct_dict) ltypes false
-    (* let test_func = L.function_type (L.void_type context) [| (StringMap.find name struct_dict) |] in
-    let _ = L.declare_function "test_func" test_func the_module in () *)
   in
 
   let _ = StringMap.mapi make_struct_body struct_decls in
@@ -95,7 +93,6 @@ let translate (struct_decls, globals, lambdas) =
     List.fold_left global_var StringMap.empty globals in
   let global_vars = StringMap.add "putChar" putchar_struct global_vars in
   
-  (* let mapsize m = StringMap.fold (fun _ _ acc -> acc+1) m 0 in *)
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
   let function_decls =
@@ -103,11 +100,8 @@ let translate (struct_decls, globals, lambdas) =
       let name = lambda.sid in
       let formals_list = 
         (List.map (fun (t,_) -> ltype_of_typ t) lambda.sformals) in
-      let formals_types = (* if name = "main" 
-                        then (Array.of_list formals_list)
-                        else *) (Array.of_list (func_struct_ptr::formals_list))
+      let formals_types = (Array.of_list (func_struct_ptr::formals_list))
       in let ftype = L.function_type (ltype_of_typ lambda.st) formals_types in
-      (* let _ = prerr_endline (name ^ (string_of_int (mapsize m))) in *)
       StringMap.add name (L.define_function name ftype the_module, lambda) m in
       List.fold_left function_decl StringMap.empty lambdas in
 
@@ -116,8 +110,6 @@ let translate (struct_decls, globals, lambdas) =
 
     let (the_function, _) = StringMap.find lambda.sid function_decls in
     let builder = L.builder_at_end context (L.entry_block the_function) in
-
-    (* let _ = malloc i32_t builder in *)
 
     let _ = if lambda.sid = "main"
             then ignore(L.build_call init_func [||] "" builder)
@@ -141,11 +133,8 @@ let translate (struct_decls, globals, lambdas) =
 	      in StringMap.add n local_var m 
       in
 
-      let formals = (* if lambda.sid = "main"
-                    then List.fold_left2 add_formal StringMap.empty lambda.sformals 
-                         (Array.to_list (L.params the_function))   
-                    else *) List.fold_left2 add_formal StringMap.empty lambda.sformals 
-                         (List.tl (Array.to_list (L.params the_function))) in  
+      let formals = List.fold_left2 add_formal StringMap.empty lambda.sformals 
+                                    (List.tl (Array.to_list (L.params the_function))) in  
       List.fold_left add_local formals lambda.slocals
     in
     let closure = 
@@ -180,20 +169,13 @@ let translate (struct_decls, globals, lambdas) =
       | SNoexpr -> L.const_int i32_t 0
       | SId s -> (match (lookup s) with
         | (v, true) -> L.build_load v s builder
-        (* | (v, true) -> L.build_load v s builder *)
         | (v, false) -> v)
-      (* (match typ with 
-      (* TODO: should depend on whether it is local, global, or in closure*)
-          A.Arrow(_, _) -> (lookup s)
-        | _             -> L.build_load (lookup s) s builder) *)
       | SAssign((t, le), rse) -> 
           (match le with 
           SId(s)-> 
-                  let rse' = expr builder rse in
-                  let le', _  = (lookup s) in
-                  (* Returns the evaluation of the left side, a bit weird but it
-                      has the least edge cases I think (Ezra) *)
-                  let _ = L.build_store rse' le' builder in expr builder (t, le)
+            let rse' = expr builder rse in
+            let le', _  = (lookup s) in
+            let _ = L.build_store rse' le' builder in expr builder (t, le)
           (* TODO to implement record access where a function can 
              return a record and then get it's field we'll need to 
              incorperate expr builder le somehow as well *)
@@ -273,9 +255,7 @@ let translate (struct_decls, globals, lambdas) =
         in let _ = L.build_store llvalue malloc_arg builder
         in let opaque_arg = L.build_pointercast malloc_arg void_ptr_t "ptr_" builder
         in L.build_call append_func [|closure; opaque_arg|] "new_closure" builder
-      (* in let function_struct_ptr = malloc func_struct_ptr builder *)
       in let function_struct = malloc func_struct builder 
-      (* in let _ = L.dump_module the_module  *)
       in let closure_struct = L.const_null node_struct_ptr
       in let full_closure = List.fold_left add_argument closure_struct l.sclosure
       in let closure_ptr = L.build_struct_gep function_struct 1 "ptr_" builder 
@@ -284,7 +264,6 @@ let translate (struct_decls, globals, lambdas) =
       in let func_opaque = L.build_pointercast (fst (StringMap.find l.sid function_decls) )
                                                 func_ptr_t "func_opaque" builder
       in let _ = L.build_store func_opaque func_ptr builder
-      (* in let _ = L.build_store function_struct function_struct_ptr builder *)
       in function_struct
 
     in
