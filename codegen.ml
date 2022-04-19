@@ -27,16 +27,6 @@ let translate (struct_decls, globals, lambdas) =
 
   in let the_module = L.create_module context "DICE" in
 
-  let rec ltype_name = function
-    | A.Int                 -> "int"
-    | A.Bool                -> "bool"
-    | A.Float               -> "double"
-    | A.Void                -> "void"
-    | A.Arrow(args, ret) -> 
-      "map_" ^ (String.concat "_and_" (List.map ltype_name args)) ^ "_to_" ^ ltype_name ret
-    | A.TypVar(name)                     -> name  
-  in
-
   let struct_dict = 
     let make_empty name _ = L.named_struct_type context name in
     StringMap.mapi make_empty struct_decls
@@ -52,7 +42,9 @@ let translate (struct_decls, globals, lambdas) =
     | A.Arrow(_) -> func_struct_ptr
     | A.TypVar (name) -> try StringMap.find name struct_dict
       with _ -> raise (Failure (name ^ " is not a valid struct type"))
-  in let rec ltype_of_func_type = function
+    in    
+
+  let rec ltype_of_func_type = function
       A.Arrow(args, ret) -> L.pointer_type(L.function_type (ltype_of_typ ret) 
                             (Array.of_list (func_struct_ptr::(List.map ltype_of_typ args))))
     | _                  -> raise (Failure "Invalid function cast")                 
@@ -78,15 +70,11 @@ let translate (struct_decls, globals, lambdas) =
                      "append_to_list" 
                      (L.function_type node_struct_ptr [| node_struct_ptr ; void_ptr_t |]) the_module in
 
-  (* let getnull_func = L.declare_function 
-                     "get_null_list" 
-                     (L.function_type node_struct_ptr [| |]) the_module in *)
-
   let malloc_func  = L.declare_function 
                      "malloc_" 
                      (L.function_type void_ptr_t [| i32_t |]) the_module in
   
-  let putchar_struct = (L.declare_global func_struct "putchar_" the_module) in
+  let putchar_struct = (L.declare_global func_struct_ptr "putchar_" the_module) in
                let _ = L.set_externally_initialized true putchar_struct     in
   
   let init_func = L.declare_function
@@ -100,7 +88,7 @@ let translate (struct_decls, globals, lambdas) =
     let global_var m (t, n) = 
       let init = match t with
           A.Float -> L.const_float (ltype_of_typ t) 0.0
-        | A.Arrow(_,_) -> L.const_named_struct func_struct [||]
+        | A.Arrow(_,_) -> L.const_null func_struct_ptr
         | A.TypVar(name) -> L.const_named_struct (ltype_of_typ (A.TypVar name)) [||]
         | _ -> L.const_int (ltype_of_typ t) 0
       in StringMap.add n (L.define_global n init the_module) m in
@@ -141,21 +129,15 @@ let translate (struct_decls, globals, lambdas) =
     let local_vars =
       let add_formal m (t, n) p = 
         let () = L.set_value_name n p in
-        (match t with 
-            A.Arrow(_) -> StringMap.add n p m
-          | ty         -> 
-                let local = L.build_alloca (ltype_of_typ ty) n builder in
-                let _  = L.build_store p local builder in
-	              StringMap.add n local m )
+        let local = L.build_alloca (ltype_of_typ t) n builder in
+        let _  = L.build_store p local builder in
+        StringMap.add n local m
       in
 
       (* Allocate space for any locally declared variables and add the
        * resulting registers to our map *)
       let add_local m (t, n) =
-      let llt = function 
-          A.Arrow(_) -> func_struct
-        | ty         -> (ltype_of_typ ty) in
-	    let local_var = L.build_alloca (llt t) n builder
+	    let local_var = L.build_alloca (ltype_of_typ t) n builder
 	      in StringMap.add n local_var m 
       in
 
@@ -182,7 +164,6 @@ let translate (struct_decls, globals, lambdas) =
     in
       fst (List.fold_left add_closure (StringMap.empty, 0) lambda.sclosure)
     in
-      let _ = L.dump_module in
     (* Return the value for a variable or formal argument. First check
      * locals, then globals *)
     let lookup n  = try (StringMap.find n local_vars, true)
@@ -198,9 +179,7 @@ let translate (struct_decls, globals, lambdas) =
       | SFliteral l -> L.const_float_of_string float_t l
       | SNoexpr -> L.const_int i32_t 0
       | SId s -> (match (lookup s) with
-        | (v, true) -> (match typ with 
-            A.Arrow(_, _) -> v
-            | _           -> L.build_load v s builder)
+        | (v, true) -> L.build_load v s builder
         (* | (v, true) -> L.build_load v s builder *)
         | (v, false) -> v)
       (* (match typ with 
@@ -210,11 +189,7 @@ let translate (struct_decls, globals, lambdas) =
       | SAssign((t, le), rse) -> 
           (match le with 
           SId(s)-> 
-            (* If the right side is a global function, it must be loaded *)
-                  let rse' = 
-                    (match t with 
-                      Arrow(_,_) -> L.build_load (expr builder rse) "tmp" builder 
-                    | _          -> expr builder rse) in
+                  let rse' = expr builder rse in
                   let le', _  = (lookup s) in
                   (* Returns the evaluation of the left side, a bit weird but it
                       has the least edge cases I think (Ezra) *)
@@ -298,6 +273,7 @@ let translate (struct_decls, globals, lambdas) =
         in let _ = L.build_store llvalue malloc_arg builder
         in let opaque_arg = L.build_pointercast malloc_arg void_ptr_t "ptr_" builder
         in L.build_call append_func [|closure; opaque_arg|] "new_closure" builder
+      (* in let function_struct_ptr = malloc func_struct_ptr builder *)
       in let function_struct = malloc func_struct builder 
       (* in let _ = L.dump_module the_module  *)
       in let closure_struct = L.const_null node_struct_ptr
@@ -308,6 +284,7 @@ let translate (struct_decls, globals, lambdas) =
       in let func_opaque = L.build_pointercast (fst (StringMap.find l.sid function_decls) )
                                                 func_ptr_t "func_opaque" builder
       in let _ = L.build_store func_opaque func_ptr builder
+      (* in let _ = L.build_store function_struct function_struct_ptr builder *)
       in function_struct
 
     in

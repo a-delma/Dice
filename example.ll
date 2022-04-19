@@ -19,11 +19,10 @@
 
 declare i8* @get_node(%Node_*, i32)
 declare %Node_* @append_to_list(%Node_*, i8*)
-; declare %Node_* @get_null_list()
 declare i8*     @malloc_(i32)
 declare i32     @initialize()
 
-@putchar_ = external externally_initialized global %Function_
+@putchar_ = external externally_initialized global %Function_*
 
 define i32 @main() {
   entry:
@@ -36,33 +35,47 @@ define i32 @main() {
     %outer_lambda_opaque  = call i8* @malloc_(i32 %size_int)
     %outer_lambda         = bitcast i8* %outer_lambda_opaque to %Function_*
 
-    %opaque_func       = bitcast %Function_* (%Function_*, i32)* @outer_lambda to void(...)*
+    %size2_    = getelementptr %Function_**, %Function_*** null, i32 1
+    %size2_int = ptrtoint %Function_*** %size2_ to i32
+    %outer_lambda_opaque_ptr  = call i8* @malloc_(i32 %size2_int)
+    %outer_lambda_ptr         = bitcast i8* %outer_lambda_opaque_ptr to %Function_**
+                                store %Function_* %outer_lambda, %Function_** %outer_lambda_ptr
+
+    %opaque_func       = bitcast %Function_** (%Function_**, i32)* @outer_lambda to void(...)*
     %func_field_ptr    = getelementptr inbounds %Function_, %Function_* %outer_lambda, i32 0, i32 0
                          store void(...)* %opaque_func, void(...)** %func_field_ptr
 
     ; call outer lambda 
     ; this is a bit verbose but I believe that would be how codegen works
-    %func_field_ptr1   = getelementptr inbounds %Function_, %Function_* %outer_lambda, i32 0, i32 0
+    %func_struct       = load %Function_*, %Function_** %outer_lambda_ptr
+    %func_field_ptr1   = getelementptr inbounds %Function_, %Function_* %func_struct, i32 0, i32 0
     %opaque_func1      = load void(...)*, void(...)** %func_field_ptr1
-    %callable          = bitcast void(...)* %opaque_func1 to %Function_* (%Function_*, i32)*
-    %inner_lambda      = call %Function_* %callable(%Function_* %outer_lambda, i32 68)
+    %callable          = bitcast void(...)* %opaque_func1 to %Function_** (%Function_**, i32)*
+    %inner_lambda_ptr      = call %Function_** %callable(%Function_** %outer_lambda_ptr, i32 68)
 
     ; call inner lambda
+    %inner_lambda      = load %Function_*, %Function_** %inner_lambda_ptr
     %func_field_ptr2   = getelementptr inbounds %Function_, %Function_* %inner_lambda, i32 0, i32 0
     %opaque_func2      = load void(...)*, void(...)** %func_field_ptr2
-    %callable1         = bitcast void(...)* %opaque_func2 to i32 (%Function_*)*
-    %call              = call i32 %callable1(%Function_* %inner_lambda)
+    %callable1         = bitcast void(...)* %opaque_func2 to i32 (%Function_**)*
+    %call              = call i32 %callable1(%Function_** %inner_lambda_ptr)
     ret i32 0
 }
 
-define %Function_* @outer_lambda(%Function_* %self, i32 %arg) {
+define %Function_** @outer_lambda(%Function_** %self_ptr, i32 %arg) {
   entry:
     %size_    = getelementptr %Function_*, %Function_** null, i32 1
     %size_int = ptrtoint %Function_** %size_ to i32
     %func_opaque  = call i8* @malloc_(i32 %size_int)
     %func         = bitcast i8* %func_opaque to %Function_*
 
-    %opaque_func     = bitcast i32 (%Function_*)* @inner_lambda to void(...)*
+    %size2_    = getelementptr %Function_**, %Function_*** null, i32 1
+    %size2_int = ptrtoint %Function_*** %size2_ to i32
+    %func_opaque_ptr  = call i8* @malloc_(i32 %size2_int)
+    %func_ptr       = bitcast i8* %func_opaque_ptr to %Function_**
+                      store %Function_* %func, %Function_** %func_ptr
+
+    %opaque_func     = bitcast i32 (%Function_**)* @inner_lambda to void(...)*
     %func_field_ptr  = getelementptr inbounds %Function_, %Function_* %func, i32 0, i32 0
                        store void(...)* %opaque_func, void(...)** %func_field_ptr
 
@@ -78,13 +91,14 @@ define %Function_* @outer_lambda(%Function_* %self, i32 %arg) {
     %closure1           = call %Node_* @append_to_list(%Node_* null, i8* %opaque_arg_ptr)
     %closure_field_ptr  = getelementptr inbounds %Function_, %Function_* %func, i32 0, i32 1
                           store %Node_* %closure1, %Node_** %closure_field_ptr
-    ret %Function_* %func
+    ret %Function_** %func_ptr
 }
 
 
-define i32 @inner_lambda(%Function_* %self) {
+define i32 @inner_lambda(%Function_** %self_ptr) {
   entry:
     ; load closure
+    %self           = load %Function_*, %Function_** %self_ptr
     %closure_ptr    = getelementptr inbounds %Function_, %Function_* %self, i32 0, i32 1
     %closure        = load %Node_*, %Node_** %closure_ptr
 
@@ -94,9 +108,10 @@ define i32 @inner_lambda(%Function_* %self) {
     %arg            = load i32, i32* %arg_ptr
 
     ; now call putchar
-    %func_field_ptr1   = getelementptr inbounds %Function_, %Function_* @putchar_, i32 0, i32 0
+    %putchar           = load %Function_*, %Function_** @putchar_
+    %func_field_ptr1   = getelementptr inbounds %Function_, %Function_* %putchar, i32 0, i32 0
     %opaque_func1      = load void(...)*, void(...)** %func_field_ptr1
-    %callable          = bitcast void(...)* %opaque_func1 to i32 (%Function_*, i32)*
-    %call1 = call i32 %callable(%Function_* @putchar_, i32 %arg)
+    %callable          = bitcast void(...)* %opaque_func1 to i32 (%Function_**, i32)*
+    %call1 = call i32 %callable(%Function_** @putchar_, i32 %arg)
     ret i32 0
 }
