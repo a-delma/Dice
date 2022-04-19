@@ -100,8 +100,8 @@ let translate (struct_decls, globals, lambdas) =
       let name = lambda.sid in
       let formals_list = 
         (List.map (fun (t,_) -> ltype_of_typ t) lambda.sformals) in
-      let formals_types = (Array.of_list (func_struct_ptr::formals_list))
-      in let ftype = L.function_type (ltype_of_typ lambda.st) formals_types in
+      let formals_array = Array.of_list formals_list
+      in let ftype = L.function_type (ltype_of_typ lambda.st) formals_array in
       StringMap.add name (L.define_function name ftype the_module, lambda) m in
       List.fold_left function_decl StringMap.empty lambdas in
 
@@ -112,7 +112,7 @@ let translate (struct_decls, globals, lambdas) =
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
     let _ = if lambda.sid = "main"
-            then ignore(L.build_call init_func [||] "" builder)
+            then ignore(L.build_call init_func [||] "" builder) (* TODO: What is this for? *)
           (* TODO possibly add another case if lambdas require it *)
       in
     (* Construct the function's "locals": formal arguments and locally
@@ -134,7 +134,7 @@ let translate (struct_decls, globals, lambdas) =
       in
 
       let formals = List.fold_left2 add_formal StringMap.empty lambda.sformals 
-                                    (List.tl (Array.to_list (L.params the_function))) in  
+                                    (Array.to_list (L.params the_function)) in  
       List.fold_left add_local formals lambda.slocals
     in
     let closure = 

@@ -192,7 +192,7 @@ let check (struct_decls, globals, stmts) =
       in let _ = lambdaId := newId + 1 
       in (func_type, SLambda({st=l.t; 
                     sid="lambda" ^ (string_of_int newId); 
-                    sformals=l.formals; (* TODO: rename main here? *)
+                    sformals=(func_type, "self")::l.formals; (* TODO: rename main here? *)
                     slocals=l.locals; 
                     sclosure=closure_stmt (local_env::envs) (SBlock (body)); 
                     sbody=body}))
@@ -233,9 +233,9 @@ let check (struct_decls, globals, stmts) =
       in
       (* Body of check *)
   let sstmts = List.map (fun stmt -> check_stmt [global_env] stmt) stmts in
-  let main   = {st=Int; 
+  let main   = {st=Void; 
                 sid="main"; 
-                sformals=[]; 
+                sformals=[(Arrow([], Void), "self")]; 
                 slocals=[]; 
                 sclosure=[];
                 sbody=sstmts}
