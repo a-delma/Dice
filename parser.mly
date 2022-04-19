@@ -133,7 +133,7 @@ expr:
   | LBRACE assign_list RBRACE {AssignList(List.rev $2)}
   | expr DOT ID      { RecordAccess($1, $3)   } 
   | expr LPAREN args_opt RPAREN
-                     { Call($1, $3)           }
+                     { Call($1, List.rev $3)           }
   | LPAREN expr RPAREN { $2                   }
   | LAMBDA LPAREN formals_opt RPAREN ARROW typ LBRACE vdecl_opt stmt_opt RBRACE
                      { Lambda({formals=$3; t=$6; locals=$8; body=$9})     }
