@@ -1,35 +1,23 @@
 open Sast
 open Ast
+open Pass
 
 module StringMap = Map.Make(String)
 
-let rec collect_lambda_expr es = match es with
-  (_, e)::es' -> (lambda_from_expr e) @ (collect_lambda_expr es')
-| [] -> []
+let lambda_from_expr = function
+    SLambda(l) -> [l]
+  | _    -> []
 
-and collect_lambda_stmt stmts = match stmts with
-  stmt::stmts' -> (lambda_from_stmt stmt) @ (collect_lambda_stmt stmts')
-| [] -> []
+let create_lambda_list = fold_tree lambda_from_expr (@) []
 
-and lambda_from_stmt statement = match statement with
-    SBlock(sl)  -> collect_lambda_stmt sl
-  | SExpr((_, e))   -> lambda_from_expr e
-  | SReturn((_, e)) -> lambda_from_expr e
-  | SIf((_, e), s1, s2) -> lambda_from_expr e @ collect_lambda_stmt [s1; s2]
-  | SFor(e1, e2, e3, s) -> (collect_lambda_expr [e1; e2; e3]) @ (lambda_from_stmt s)
-  | SWhile((_, p), s)  -> (lambda_from_expr p) @ (lambda_from_stmt s)
+(* TODO look down if/else, and while cases to make sure every path has a return value*)
+let is_return = function
+    SReturn(_)  -> true
+  | _           -> false 
 
-and lambda_from_expr expression = match expression with
-    SLiteral(_)      -> []
-  | SFliteral(_)     -> []
-  | SBoolLit(_)      -> []
-  | SId(_)           -> []
-  | SBinop(e1, _, e2)   -> collect_lambda_expr [e1; e2]
-  | SUnop(_, (_, e))         ->  (lambda_from_expr e)
-  | SAssign(e1, e2)       -> collect_lambda_expr [e1; e2]
-  (* To be tested *)
-  | SAssignList(_, ses)   -> collect_lambda_expr (snd (List.split ses))
-  | SCall(e, args) -> collect_lambda_expr (e::args)
-  | SRecordAccess((_, e), _) -> lambda_from_expr e
-  | SLambda(l) -> [l] @ lambda_from_stmt (SBlock l.sbody)
-  | SNoexpr    -> []
+let check_for_return (sl : sLambda) = 
+            if fold_tree_with_stmt is_return (fun e -> true) (||) false false (SBlock sl.sbody) 
+            then true
+            else raise (Failure ("Expected return in " ^ sl.sid ^ " but found none."))
+
+let return_pass (sls : sLambda list) = List.fold_right (fun l acc -> (check_for_return l) && acc) sls true

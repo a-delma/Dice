@@ -240,4 +240,6 @@ let check (struct_decls, globals, stmts) =
                 slocals=[]; 
                 sclosure=[];
                 sbody=sstmts}
-  in (struct_env, globals', main::lambda_from_stmt (SBlock sstmts))
+  in let lambdas = create_lambda_list (SBlock sstmts)
+  in let _ = return_pass lambdas
+  in (struct_env, globals', main::lambdas)
