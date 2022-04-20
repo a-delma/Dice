@@ -1,4 +1,4 @@
-#  DICE HELLO WORLD README  
+#  DICE README  
 
 Andrew Delmastro,     
 Ezra Szanton,         
@@ -60,3 +60,5 @@ This is a **positive** test of a feature **not provided by MicroC**.
 
 - `test-hello.roll` - test built-in putChar function and the fact that it is a first-class function.
 This is a **positive** test of a feature **not provided by MicroC**.
+
+We validate all tests using the modified version of the `testall.sh` file from MicroC (which itself uses diff and checks its output against a golden standard).
