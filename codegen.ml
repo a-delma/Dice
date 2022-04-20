@@ -49,6 +49,33 @@ let translate (_, globals, stmts) =
     | _ -> raise (Failure "We need to implement more complex types (for instance [Int] -> Void)")
   in
 
+  let _ = StringMap.mapi make_struct_body struct_decls in
+  
+
+  let getnode_func = L.declare_function 
+                     "get_node" 
+                     (L.function_type void_ptr_t [| node_struct_ptr ; i32_t |]) the_module in
+
+  let append_func = L.declare_function 
+                     "append_to_list" 
+                     (L.function_type node_struct_ptr [| node_struct_ptr ; void_ptr_t |]) the_module in
+
+  let malloc_func  = L.declare_function 
+                     "malloc_" 
+                     (L.function_type void_ptr_t [| i32_t |]) the_module in
+  
+  let putchar_struct = (L.declare_global func_struct_ptr "putchar_" the_module) in
+               let _ = L.set_externally_initialized true putchar_struct     in
+
+  let uni_struct = (L.declare_global func_struct_ptr "uni_" the_module) in
+           let _ = L.set_externally_initialized true uni_struct     in 
+  
+  let init_func = L.declare_function
+                  "initialize"
+                  (L.function_type void_t [||]) the_module in 
+
+
+
   (* Declare each global variable; remember its value in a map *)
   let global_vars : L.llvalue StringMap.t =
     let global_var m (t, n) = 
@@ -57,6 +84,8 @@ let translate (_, globals, stmts) =
         | _ -> L.const_int (ltype_of_typ t) 0
       in StringMap.add n (L.define_global n init the_module) m in
     List.fold_left global_var StringMap.empty globals in
+  let global_vars = StringMap.add "putChar" putchar_struct global_vars in
+  let global_vars = StringMap.add "uni" uni_struct global_vars in
   
   let putchar_t = L.function_type i32_t [| i32_t |] in
   let putchar_func = L.declare_function "putchar" putchar_t the_module in
