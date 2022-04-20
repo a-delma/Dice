@@ -2,7 +2,6 @@ open Sast
 open Ast
 open Closure
 open Lambda
-open Pass
 
 module StringMap = Map.Make(String)
 

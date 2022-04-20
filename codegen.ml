@@ -34,7 +34,7 @@ let translate (struct_decls, globals, lambdas) =
 
 
   (* Convert Dice types to LLVM types *)
-  let rec ltype_of_typ = function
+  let ltype_of_typ = function
       A.Int   -> i32_t 
     | A.Bool  -> i1_t
     | A.Float -> float_t
@@ -44,7 +44,7 @@ let translate (struct_decls, globals, lambdas) =
       with _ -> raise (Failure (name ^ " is not a valid struct type"))
     in    
 
-  let rec ltype_of_func_type = function
+  let ltype_of_func_type = function
       A.Arrow(args, ret) -> L.pointer_type(L.function_type (ltype_of_typ ret) 
                             (Array.of_list (func_struct_ptr::(List.map ltype_of_typ args))))
     | _                  -> raise (Failure "Invalid function cast")                 
@@ -162,7 +162,7 @@ let translate (struct_decls, globals, lambdas) =
     in
 
     (* Construct code for an expression; return its value *)
-    let rec expr builder ((typ, e) : sexpr) = match e with
+    let rec expr builder ((_, e) : sexpr) = match e with
         SLiteral i -> L.const_int i32_t i
       | SBoolLit b -> L.const_int i1_t (if b then 1 else 0)
       | SFliteral l -> L.const_float_of_string float_t l
@@ -236,12 +236,12 @@ let translate (struct_decls, globals, lambdas) =
       let func =  L.build_pointercast func_opq (ltype_of_func_type ty) "func" builder in
       (* If the func has a null return type, we can't set it to anything (hence the empty string) *)
       (match ty with 
-        Arrow(_, Void) -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "" builder
+        A.Arrow(_, A.Void) -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "" builder
       | _              -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder)
-    | SRecordAccess(exp, field) -> 
+    | SRecordAccess(exp, _) -> 
       let llstruct = expr builder exp in
       let _ = (L.dump_value llstruct)
-      (* We need to return an llvalue *)
+      (* TODO: We need to return an llvalue *)
       in raise (Failure "NotImplemented2")
     | SLambda (l) -> 
       let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 

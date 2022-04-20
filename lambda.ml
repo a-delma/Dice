@@ -1,5 +1,4 @@
 open Sast
-open Ast
 open Pass
 
 module StringMap = Map.Make(String)
@@ -16,7 +15,7 @@ let is_return = function
   | _           -> false 
 
 let check_for_return (sl : sLambda) = 
-            if fold_tree_with_stmt is_return (fun e -> true) (||) false false (SBlock sl.sbody) 
+            if fold_tree_with_stmt is_return (fun _ -> true) (||) false false (SBlock sl.sbody) 
             then true
             else raise (Failure ("Expected return in " ^ sl.sid ^ " but found none."))
 
