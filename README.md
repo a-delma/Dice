@@ -13,22 +13,21 @@ All the actions below have to be done from the base directory.
 
 `make`
 
-2) Compile a program named, for example, `filename.roll` with our compiler:
+2) Run all tests:
+
+`./test.sh tests/*`
+
+Note that you can also test a specific file by passing it as argument to `./test.sh`
+The test file should be in the `tests` directory.
+The gold standard file has same name except that its extension is `.out` or `.err`
+depending on whether the program is expected to successfully terminate or raise an error resp.
+
+3) Compile a program named, for example, `filename.roll` with our compiler:
 
 `./compile.sh filename.roll`
 
-3) Test a specific file against the gold standard:
 
-`./test.sh tests/test-hello.roll`
+## Description of each test case
 
-The test file should be in the `tests` directory.
-The gold standard file has same name except that its extension is `.out`
-
-
-## Description of our test case -
-
-The Dice program in `tests/test-hello.roll` repeatedly calls the built-in `putchar` function to print the string `HELLO WORLD!`
-
-We validate that the compiled llvm code prints `HELLO WORLD!` using the modified version of the `testall.sh` file from MicroC (which itself uses diff and checks its output).
-
-While putchar is a built-in function imported from C, we generate code for function calls in a manner that is agnostic to the function being called and supports first-class functions using function pointers and closures. Since we have not implemented code generation of lambda expressions, we can only test function calls on this built-in funciton. 
+- `tests/test-simple-lambda.roll` - test a lambda expression.  
+  This is a **positive** test of a feature **not provided by MicroC**
