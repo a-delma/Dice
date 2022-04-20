@@ -15,7 +15,7 @@ All the actions below have to be done from the base directory.
 
 2) Run all tests:
 
-`./test.sh tests/*`
+`make test`
 
 Note that you can also test a specific file by passing it as argument to `./test.sh`
 The test file should be in the `tests` directory.
@@ -49,5 +49,14 @@ This is a **positive** test.
 - `test-recursion.roll` - tests a recursive lambda (reserved variable `self` can be used to make a recursive call).
 This is a **positive** test of a feature **not provided by MicroC**.
 
+- `test-if.roll` - test an if statement with a boolean predicate.
+This is a **positive** test.
+
 - `test-for.roll` - tests a for loop.
 This is a **positive** test.
+
+- `test-closure.roll` - tests closures by creating a curried sum function (the first argument is being stored in the closure).
+This is a **positive** test of a feature **not provided by MicroC**.
+
+- `test-hello.roll` - test built-in putChar function and the fact that it is a first-class function.
+This is a **positive** test of a feature **not provided by MicroC**.

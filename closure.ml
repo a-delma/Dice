@@ -56,5 +56,5 @@ and eval = function
                       | _     -> [])
                   in diff l.sclosure locals
   | _          -> []
-
-in fold_tree eval union [] root_stmt
+                in let throwaway _ = []
+in fold_tree_with_stmt throwaway eval union [] false root_stmt

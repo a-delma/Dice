@@ -1,8 +1,0 @@
-[Int] -> Void a;
-[Int] -> Void b;
-
-a = lambda (Int x) -> Void {return;};
-b = a;
-a = putChar;
-b(65);
-a(65);

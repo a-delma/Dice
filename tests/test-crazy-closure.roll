@@ -1,7 +1,0 @@
-lambda (Int arg)->[]-> Void{
-  [Int]->Void p;
-  p = putChar;
-  return lambda () -> Void {
-    p(arg);
-  };
-}(72)();
