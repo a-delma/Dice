@@ -54,7 +54,7 @@ int putchar_helper(struct Function_* closure, int c) {
 }
 
 float uni_helper(struct Function_* closure) {
-  
+  return ((float)rand()/(float)(RAND_MAX));
 }
 struct Function_* putchar_;
 struct Function_* uni_;

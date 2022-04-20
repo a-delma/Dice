@@ -88,6 +88,8 @@ let check (struct_decls, globals, stmts) =
                                   StringMap.empty 
                                   globals'))
   in
+  (* TODO: Thoughts on having repeated lines like this for built ins? *)
+  let global_env = StringMap.add "uni" (Arrow([], Float)) global_env in
   (* Return a variable from our symbol table *)
   let rec type_of_identifier s envs = match envs with
       (inner::outer) -> (try StringMap.find s inner
