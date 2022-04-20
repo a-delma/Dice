@@ -234,9 +234,9 @@ let check (struct_decls, globals, stmts) =
       in
       (* Body of check *)
   let sstmts = List.map (fun stmt -> check_stmt [global_env] stmt) stmts in
-  let main   = {st=Void; 
+  let main   = {st=Int; 
                 sid="main"; 
-                sformals=[(Arrow([], Void), "self")]; 
+                sformals=[(Arrow([], Int), "self")]; 
                 slocals=[]; 
                 sclosure=[];
                 sbody=sstmts}
