@@ -22,7 +22,8 @@ The test file should be in the `tests` directory.
 The gold standard file has same name except that its extension is `.out` or `.err`
 depending on whether the program is expected to successfully terminate or raise an error resp.
 
-3) Compile a program named, for example, `filename.roll` with our compiler:
+3) Compile a program named, for example, `filename.roll` with our compiler
+   and creates an executable named, for example, `filename.exe`:
 
 `./compile.sh filename.roll`
 
