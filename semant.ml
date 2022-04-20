@@ -119,10 +119,12 @@ let check (struct_decls, globals, stmts) =
       (* All binary operators require operands of the same type *)
       (* TODO: DO we want to change this? *)
       let same = t1 = t2 in
+      let bothnum = ((t1 = Float) || (t1 = Int)) && ((t2 = Float) || (t2 = Int)) in
       (* Determine expression type based on operator and operand types *)
       let ty = match op with
         Add | Sub | Mult | Div when same && t1 = Int   -> Int
       | Add | Sub | Mult | Div when same && t1 = Float -> Float
+      | Add | Sub | Mult | Div when (not same) && bothnum -> Float
       | Equal | Neq            when same               -> Bool
       | Less | Leq | Greater | Geq
                 when same && (t1 = Int || t1 = Float) -> Bool

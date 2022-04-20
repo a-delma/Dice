@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+//BEGINNING SEED
+
+
 // Basic lists (Node_) to use a closures
 // Plus accompanying functions:
 
@@ -64,7 +67,7 @@ void initialize(){
   putchar_ = (struct Function_*) malloc(sizeof(struct Function_));
   putchar_->closure = NULL;
   putchar_->ptr = (void*) putchar_helper;
-
+  srand(0);
   //uni init
   uni_ = (struct Function_*) malloc(sizeof(struct Function_));
   uni_->closure = NULL;
