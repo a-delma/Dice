@@ -1,6 +1,3 @@
-Int a;
-a = 4;
-
 lambda () -> Void {
     Int a;
     a = 3;

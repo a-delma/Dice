@@ -1,0 +1,5 @@
+putchar(lambda (Int a) -> [Int] -> Int {
+    return lambda (Int b) -> Int {
+        return a + b;
+    }
+}(72)(2));
