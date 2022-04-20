@@ -1,0 +1,23 @@
+Int a;
+a = 4;
+
+lambda () -> Void {
+    Int a;
+    a = 3;
+
+    lambda (Int c) -> Void {
+        Int b;
+        Int e;
+        e = lambda () -> Int {
+            return a;
+        }();
+        b = 3;
+        lambda (Int d) -> Void {
+            putChar(lambda (Int f) -> Int {
+                return e;
+            }(a));
+        }(c + a);
+    };
+
+    putChar(a);
+};

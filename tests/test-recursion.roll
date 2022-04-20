@@ -1,0 +1,7 @@
+lambda (Int start, Int end) -> Void {
+  if (start > end) {
+      return;
+  }
+  putChar(start);
+  self(start+1, end);
+}(65, 67);

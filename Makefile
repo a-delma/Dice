@@ -9,12 +9,18 @@ all : toplevel.native
 # Scanning and Parsing Step
 #
 
+cimport : cimport.c
+	cc -c cimport -DBUILD_TEST cimport.c
+
 verbose : toplevel.ml ast.ml parser.mly scanner.mll
 	ocamlyacc -v parser.mly
 
-toplevel.native : parser.mly scanner.mll codegen.ml semant.ml
+toplevel.native : parser.mly scanner.mll codegen.ml semant.ml closure.ml cimport.o toplevel.ml
 	opam config exec -- \
 	ocamlbuild -use-ocamlfind toplevel.native
+
+small : small.ml
+	ocamlbuild -use-ocamlfind small.native
 
 ############################
 #
@@ -27,11 +33,14 @@ test: toplevel.native
 	./test.sh $(TARGET).roll
 	
 
-comp_file: toplevel.native
+comp_file: toplevel.native cimport.o
 	./toplevel.native $(TARGET).roll > $(TARGET).ll
 	llc -relocation-model=pic $(TARGET).ll > $(TARGET).s
-	cc -o $(TARGET).exe $(TARGET).s
+	cc -o $(TARGET).exe $(TARGET).s cimport.o
 
+simple_test: toplevel.native
+	./toplevel.native -l simpleTest.roll > simpleTest.ll
+	cat simpleTest.ll
 
 #################################
 
@@ -42,7 +51,9 @@ clean :
 	rm -f parser.ml
 	rm -f parser.output
 	rm -rf _build
-	rm -f hello.ll
-	rm -f hello.s
-	rm -f hello.exe
+	rm -f *.ll
+	rm -f *.s
+	rm -f *.exe
 	rm -f testall.log
+	rm -f cimport.o
+
