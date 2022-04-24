@@ -8,7 +8,7 @@ module StringMap = Map.Make(String)
 
 (* The main function that takes in a program data type checks all the features
    and returns the SAST program equivalent. *)
-let check (struct_decls, globals, stmts) =
+let check (_, struct_decls, globals, stmts) =
 (* Check if a certain kind of binding has void type or is a duplicate
     of another, previously checked binding *)
   let check_binds (to_check : bind list) = 

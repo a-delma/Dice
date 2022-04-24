@@ -10,7 +10,8 @@
 %token ARROW STRUCT /* Not sure about precedence or associativity*/
 %token <int> LITERAL
 %token <bool> BLIT
-%token <string> ID FLIT TYPVAR
+%token <string> ID FLIT TYPVAR FILENAME
+%token IMPORT
 %token EOF
 
 
@@ -33,7 +34,15 @@
 
 %%
 program:
-  sdecl_opt vdecl_opt stmt_opt EOF {$1, $2, $3}
+  imports_opt sdecl_opt vdecl_opt stmt_opt EOF {$1, $2, $3, $4}
+
+imports_opt:
+    /* nothing */ { [] }
+  | imports_list  { $1 }
+
+imports_list:
+    IMPORT FILENAME SEMI              { [String.sub $2 1 ((String.length $2) - 2)]     }
+  | imports_list IMPORT FILENAME SEMI { (String.sub $3 1 ((String.length $3) - 2)) :: $1 }
 
 formals_opt:
     /* nothing */ { [] }
@@ -42,14 +51,6 @@ formals_opt:
 formal_list:
     typ ID                   { [($1,$2)]     }
   | formal_list COMMA typ ID { ($3,$4) :: $1 }
-
-// typaram_list_opt:
-//     /* nothing */ { [] }
-//   |  LT typaram_list GT  { $2 }
-
-// typaram_list:
-//     TYPVAR                    { [$1]     }
-//   | typaram_list COMMA TYPVAR { $3 :: $1 }
 
 typ_list:
     /* nothing */      { []       }
