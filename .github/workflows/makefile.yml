@@ -3,10 +3,10 @@ name: Makefile CI
 on:
   push:
     branches:
-      - Submission
+      - main
   pull_request:
     branches:
-      - Submission
+      - main
 
 jobs:
   build:
