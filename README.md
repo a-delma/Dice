@@ -1,4 +1,4 @@
-#  DICE HELLO WORLD README  
+#  DICE README  
 
 Andrew Delmastro,     
 Ezra Szanton,         
@@ -13,22 +13,52 @@ All the actions below have to be done from the base directory.
 
 `make`
 
-2) Compile a program named, for example, `filename.roll` with our compiler:
+2) Run all tests:
+
+`make test`
+
+Note that you can also test a specific file by passing it as argument to `./test.sh`
+The test file should be in the `tests` directory.
+The gold standard file has same name except that its extension is `.out` or `.err`
+depending on whether the program is expected to successfully terminate or raise an error resp.
+
+3) Compile a program named, for example, `filename.roll` with our compiler
+   and create an executable named, for example, `filename.exe`:
 
 `./compile.sh filename.roll`
 
-3) Test a specific file against the gold standard:
-
-`./test.sh tests/test-hello.roll`
-
-The test file should be in the `tests` directory.
-The gold standard file has same name except that its extension is `.out`
 
 
-## Description of our test case -
+## Description of each test case
 
-The Dice program in `tests/test-hello.roll` repeatedly calls the built-in `putchar` function to print the string `HELLO WORLD!`
+- `fail-reassign-closure-id.roll` - detect attempted reassignment of a variable in closure. 
+This is a **negative** test of a feature **not provided by MicroC**.
 
-We validate that the compiled llvm code prints `HELLO WORLD!` using the modified version of the `testall.sh` file from MicroC (which itself uses diff and checks its output).
+- `fail-not-in-scope.roll` - detect attempted access a variable that not in its scope. 
+This is a **negative** test.
 
-While putchar is a built-in function imported from C, we generate code for function calls in a manner that is agnostic to the function being called and supports first-class functions using function pointers and closures. Since we have not implemented code generation of lambda expressions, we can only test function calls on this built-in funciton. 
+- `fail-no-return.roll` - detect that a lambda with a non-Void return type does not return anything. 
+This is a **negative** test of a feature **not provided by MicroC**.
+
+- `test-simple-lambda.roll` - tests compilation of a lambda expression.  
+This is a **positive** test of a feature **not provided by MicroC**.
+
+- `test-chained-assignment.roll` - tests that an assignment is an expression and can be evaluated.
+This is a **positive** test.
+
+- `test-recursion.roll` - tests a recursive lambda (reserved variable `self` can be used to make a recursive call).
+This is a **positive** test of a feature **not provided by MicroC**.
+
+- `test-if.roll` - test an if statement with a boolean predicate.
+This is a **positive** test.
+
+- `test-for.roll` - tests a for loop.
+This is a **positive** test.
+
+- `test-closure.roll` - tests closures by creating a curried sum function (the first argument is being stored in the closure).
+This is a **positive** test of a feature **not provided by MicroC**.
+
+- `test-hello.roll` - test built-in putChar function and the fact that it is a first-class function.
+This is a **positive** test of a feature **not provided by MicroC**.
+
+We validate all tests using the modified version of the `testall.sh` file from MicroC (which itself uses diff and checks its output against a golden standard).

@@ -36,6 +36,7 @@ _opam/
 # Test output:
 tests/Output/*
 tests/parser/Output/*
+testall.log
 
 # LIT
 lit
