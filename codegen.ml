@@ -3,7 +3,8 @@ produces LLVM IR *)
 
 module L = Llvm
 module A = Ast
-open Sast 
+open Sast
+module Integer = Int
 
 module StringMap = Map.Make(String)
 
@@ -239,7 +240,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       let indices = List.map (lookup_index ty) names in
       let llvalues = List.map (expr builder) values in
 
-      let sort_fun (_,s1) (_,s2) = Int.compare s1 s2 in
+      let sort_fun (_,s1) (_,s2) = Integer.compare s1 s2 in
       let order_values_pairs = List.sort sort_fun (List.combine llvalues indices) in
       let ordered_values = (fst (List.split order_values_pairs)) in
       let array_of_llvales = Array.of_list ordered_values in
