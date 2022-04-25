@@ -1,0 +1,1 @@
+lambda (Int arg) -> Void {putChar(arg);}(71);

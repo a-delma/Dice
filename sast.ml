@@ -2,16 +2,18 @@
 
 open Ast
 
+module StringMap = Map.Make(String)
+
+
 type sLambda = {
     st       : typ;         (* Return type *)
     sid      : string;      (* A unique ID *)
-    stps     : string list; (* Type parameters *)
     sformals : bind list;   (* Parameters  *)
     slocals  : bind list; 
     sclosure : bind list;
     sbody    : sstmt list;
 }
-  
+
 and sexpr = typ * sx
 and sx =
     SLiteral of int
@@ -21,7 +23,7 @@ and sx =
   | SBinop of sexpr * op * sexpr
   | SUnop of uop * sexpr
   | SAssign of sexpr * sexpr
-  | SAssignList of (string * sexpr) list
+  | SAssignList of typ * (string * sexpr) list
   | SCall of sexpr * sexpr list
   | SRecordAccess of sexpr * string
   | SLambda of sLambda
@@ -35,16 +37,11 @@ and sstmt =
   | SFor of sexpr * sexpr * sexpr * sstmt
   | SWhile of sexpr * sstmt
 
-(* TODO: this type has to be removed *)
-type sfunc_decl = {
-  styp : typ;
-  sfname : string;
-  sf : bind list;
-  sl : bind list;
-  sb : sstmt list;
-}
+type styp = SInt | SBool | SFloat | SVoid
+                 | SArrow of styp list * styp
+                 | STypVar of string
+                 | SStruct of string * styp list
 
-type sprogram = struct_decl list * bind list * sstmt list
 
 (* Pretty-printing functions *)
 
@@ -58,16 +55,17 @@ let rec string_of_sexpr(sexpression) = match (snd sexpression) with
       string_of_sexpr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_sexpr e2
   | SUnop(o, e) -> string_of_uop o ^ string_of_sexpr e
   | SAssign(e1, e2) -> string_of_sexpr e1 ^ " = " ^ string_of_sexpr e2
-  | SAssignList(l) -> "{" ^
+  | SAssignList(_, l) -> "{" ^
       String.concat ", " (List.map string_of_sfield_assign l) ^ "}"
   | SCall(e1, e2) ->
       string_of_sexpr e1 ^ "(" ^ String.concat ", " (List.map string_of_sexpr e2) ^ ")"
   | SRecordAccess(e, s) -> string_of_sexpr e ^ "." ^ s
   | SLambda l->
-      "lambda " ^ string_of_typ_list l.stps "<" ">" ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair l.sformals) ^
+      "lambda " ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair l.sformals) ^
       ") -> " ^ string_of_typ l.st ^ " " ^ "{\n" ^
       String.concat "" (List.map string_of_vdecl l.slocals) ^
-      String.concat "" (List.map string_of_sstmt l.sbody) ^
+      String.concat "" (List.map string_of_sstmt l.sbody) ^ "Closure: " ^
+      String.concat "" (List.map string_of_vdecl l.sclosure) ^
       "}"
   | SNoexpr -> ""
 
@@ -87,7 +85,19 @@ and string_of_sstmt = function
 
 and string_of_sfield_assign (id, e) = id ^ ": " ^ string_of_sexpr e
 
-let string_of_sprogram (structs, vars, stmts) =
-  String.concat "" ((List.map string_of_sdecl structs) @
+and string_of_bind (name, typ) = (string_of_typ typ) ^ " " ^ name ^ ";\n" 
+
+and string_of_senv (name, bind) = "struct " ^ name ^ "{\n" 
+    ^ "};\n"
+
+
+and string_of_slambda sl = 
+      "id: " ^ sl.sid ^
+      ", return type: " ^ string_of_typ sl.st (* TODO: Different printings? *)
+      
+
+let string_of_sprogram (structs, vars, (main::lambdas)) =
+  String.concat "" ((List.map string_of_senv (StringMap.bindings structs)) @
                     (List.map string_of_vdecl vars) @
-                    (List.map string_of_sstmt stmts))
+                    (List.map string_of_sstmt main.sbody) @
+                    ["\nLambdas: \n"; String.concat "\n" (List.map string_of_slambda lambdas); "\n"])

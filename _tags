@@ -5,5 +5,6 @@ true: package(llvm), package(llvm.analysis)
 true : warn(+a-4)
 
 # Instruct ocamlbuild to ignore the "printbig.o" file when it's building
-"printbig.o": not_hygienic
+# "printbig.o": not_hygienic
+"cimport.o" : not_hygienic
 
