@@ -27,16 +27,6 @@ let translate (struct_decls, globals, lambdas) =
 
   in let the_module = L.create_module context "DICE" in
 
-  let rec ltype_name = function
-    | A.Int                 -> "int"
-    | A.Bool                -> "bool"
-    | A.Float               -> "double"
-    | A.Void                -> "void"
-    | A.Arrow(args, ret) -> 
-      "map_" ^ (String.concat "_and_" (List.map ltype_name args)) ^ "_to_" ^ ltype_name ret
-    | A.TypVar(name)                     -> name  
-  in
-
   let struct_dict = 
     let make_empty name _ = L.named_struct_type context name in
     StringMap.mapi make_empty struct_decls
@@ -44,24 +34,27 @@ let translate (struct_decls, globals, lambdas) =
 
 
   (* Convert Dice types to LLVM types *)
-  let rec ltype_of_typ = function
+  let ltype_of_typ = function
       A.Int   -> i32_t 
     | A.Bool  -> i1_t
     | A.Float -> float_t
     | A.Void  -> void_t
-    | A.Arrow(args, ret) as arrow -> L.pointer_type(L.function_type (ltype_of_typ ret) 
-                                        (Array.of_list (func_struct_ptr::(List.map ltype_of_typ args))))
+    | A.Arrow(_) -> func_struct_ptr
     | A.TypVar (name) -> try StringMap.find name struct_dict
       with _ -> raise (Failure (name ^ " is not a valid struct type"))
+    in    
+
+  let ltype_of_func_type = function
+      A.Arrow(args, ret) -> L.pointer_type(L.function_type (ltype_of_typ ret) 
+                            (Array.of_list (func_struct_ptr::(List.map ltype_of_typ args))))
+    | _                  -> raise (Failure "Invalid function cast")                 
   in
 
   let make_struct_body name type_dict =
     let (_, types) = List.split (StringMap.bindings type_dict) in
-    let ltypes_list = List.map ltype_of_typ types in
+    let ltypes_list = List.map ltype_of_typ types in (* TODO: might need to call a different type convertion fucntion*)
     let ltypes = Array.of_list ltypes_list in
     L.struct_set_body (StringMap.find name struct_dict) ltypes false
-    (* let test_func = L.function_type (L.void_type context) [| (StringMap.find name struct_dict) |] in
-    let _ = L.declare_function "test_func" test_func the_module in () *)
   in
 
   let _ = StringMap.mapi make_struct_body struct_decls in
@@ -75,41 +68,31 @@ let translate (struct_decls, globals, lambdas) =
                      "append_to_list" 
                      (L.function_type node_struct_ptr [| node_struct_ptr ; void_ptr_t |]) the_module in
 
-  let getnull_func = L.declare_function 
-                     "get_null_list" 
-                     (L.function_type node_struct_ptr [| |]) the_module in
-
   let malloc_func  = L.declare_function 
                      "malloc_" 
                      (L.function_type void_ptr_t [| i32_t |]) the_module in
   
-  let putchar_struct = (L.declare_global func_struct "putchar_" the_module) in
+  let putchar_struct = (L.declare_global func_struct_ptr "putchar_" the_module) in
                let _ = L.set_externally_initialized true putchar_struct     in
   
   let init_func = L.declare_function
                   "initialize"
                   (L.function_type void_t [||]) the_module in 
 
-(* Returns the size of the type t cast to an i32 (it would be i64 otherwise) *)
-  let size (t : L.lltype) = (L.const_bitcast (L.size_of t) i32_t) in
-(* Returns a pointer to a new heap allocated variable of type t *)
-  let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
-      let malloc_void = L.build_call malloc_func [|(size t)|] "void_heap_ptr" malloc_b 
-      in L.build_pointercast malloc_void (L.pointer_type t) "heap_ptr" malloc_b in
+
 
   (* Declare each global variable; remember its value in a map *)
   let global_vars : L.llvalue StringMap.t =
     let global_var m (t, n) = 
       let init = match t with
           A.Float -> L.const_float (ltype_of_typ t) 0.0
-        | A.Arrow(_,_) -> L.const_named_struct func_struct [||]
+        | A.Arrow(_,_) -> L.const_null func_struct_ptr
         | A.TypVar(name) -> L.const_named_struct (ltype_of_typ (A.TypVar name)) [||]
         | _ -> L.const_int (ltype_of_typ t) 0
       in StringMap.add n (L.define_global n init the_module) m in
     List.fold_left global_var StringMap.empty globals in
   let global_vars = StringMap.add "putChar" putchar_struct global_vars in
   
-
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
   let function_decls =
@@ -117,10 +100,8 @@ let translate (struct_decls, globals, lambdas) =
       let name = lambda.sid in
       let formals_list = 
         (List.map (fun (t,_) -> ltype_of_typ t) lambda.sformals) in
-      let formals_types = if name = "main" 
-                        then (Array.of_list formals_list)
-                        else (Array.of_list (func_struct_ptr::formals_list))
-      in let ftype = L.function_type (ltype_of_typ lambda.st) formals_types in
+      let formals_array = Array.of_list formals_list
+      in let ftype = L.function_type (ltype_of_typ lambda.st) formals_array in
       StringMap.add name (L.define_function name ftype the_module, lambda) m in
       List.fold_left function_decl StringMap.empty lambdas in
 
@@ -130,10 +111,8 @@ let translate (struct_decls, globals, lambdas) =
     let (the_function, _) = StringMap.find lambda.sid function_decls in
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
-    (* let _ = malloc i32_t builder in *)
-
     let _ = if lambda.sid = "main"
-            then ignore(L.build_call init_func [||] "" builder)
+            then ignore(L.build_call init_func [||] "" builder) (* TODO: What is this for? *)
           (* TODO possibly add another case if lambdas require it *)
       in
     (* Construct the function's "locals": formal arguments and locally
@@ -142,9 +121,9 @@ let translate (struct_decls, globals, lambdas) =
     let local_vars =
       let add_formal m (t, n) p = 
         let () = L.set_value_name n p in
-	      let local = L.build_alloca (ltype_of_typ t) n builder in
+        let local = L.build_alloca (ltype_of_typ t) n builder in
         let _  = L.build_store p local builder in
-	      StringMap.add n local m 
+        StringMap.add n local m
       in
 
       (* Allocate space for any locally declared variables and add the
@@ -154,40 +133,49 @@ let translate (struct_decls, globals, lambdas) =
 	      in StringMap.add n local_var m 
       in
 
-      let formals = List.fold_left2 add_formal StringMap.empty lambda.sformals
-          (Array.to_list (L.params the_function)) in  
+      let formals = List.fold_left2 add_formal StringMap.empty lambda.sformals 
+                                    (Array.to_list (L.params the_function)) in  
       List.fold_left add_local formals lambda.slocals
     in
-
+    let closure = 
+      if lambda.sid = "main"
+      then StringMap.empty else
+      let function_ptr = (Array.get (L.params the_function) 0) in
+      (* let function_val = L.build_load function_ptr "function" builder in *)
+      let closure_ptr  = L.build_struct_gep function_ptr 1 "closure_ptr" builder in
+      let loaded_closure_ptr = L.build_load closure_ptr "loaded_closure_ptr" builder in
+      let add_closure (m,i) (t, n) =
+        let void_ptr = L.build_call getnode_func [|loaded_closure_ptr; L.const_int i32_t i|] "node_" builder in
+        let arg_ptr = L.build_pointercast void_ptr (L.pointer_type (ltype_of_typ t)) "arg_ptr" builder in
+        let value = L.build_load arg_ptr "arg" builder in
+      (* let closure_elem = L.build_alloca (ltype_of_typ t) n builder *)
+        (StringMap.add n value m, i + 1)
+    in
+      fst (List.fold_left add_closure (StringMap.empty, 0) lambda.sclosure)
+    in
     (* Return the value for a variable or formal argument. First check
      * locals, then globals *)
-    let lookup n  = try StringMap.find n local_vars
-                    with Not_found -> 
-                      (try StringMap.find n global_vars
-                      with Not_found -> raise (Failure ("Cannot find variable " ^ n)))
+    let lookup n  = try (StringMap.find n local_vars, true)
+                    with Not_found -> (try (StringMap.find n closure, false)
+                                      with Not_found -> (try (StringMap.find n global_vars, true)
+                                                         with Not_found -> raise (Failure ("Cannot find variable " ^ n))))          
     in
 
     (* Construct code for an expression; return its value *)
-    let rec expr builder ((typ, e) : sexpr) = match e with
+    let rec expr builder ((_, e) : sexpr) = match e with
         SLiteral i -> L.const_int i32_t i
       | SBoolLit b -> L.const_int i1_t (if b then 1 else 0)
       | SFliteral l -> L.const_float_of_string float_t l
       | SNoexpr -> L.const_int i32_t 0
-      | SId s -> (match typ with (* TODO: should depend on whether it is local, global, or in closure*)
-          A.Arrow(_, _) -> (lookup s)
-        | _             -> L.build_load (lookup s) s builder)
+      | SId s -> (match (lookup s) with
+        | (v, true) -> L.build_load v s builder
+        | (v, false) -> v)
       | SAssign((t, le), rse) -> 
           (match le with 
           SId(s)-> 
-            (* If the right side is a global function, it must be loaded *)
-                  let rse' = 
-                    (match t with 
-                      Arrow(_,_) -> L.build_load (expr builder rse) "tmp" builder 
-                    | _          -> expr builder rse) in
-                  let le'  = (lookup s) in
-                  (* Returns the evaluation of the left side, a bit weird but it
-                      has the least edge cases I think (Ezra) *)
-                  let _ = L.build_store rse' le' builder in expr builder (t, le)
+            let rse' = expr builder rse in
+            let le', _  = (lookup s) in
+            let _ = L.build_store rse' le' builder in expr builder (t, le)
           (* TODO to implement record access where a function can 
              return a record and then get it's field we'll need to 
              incorperate expr builder le somehow as well *)
@@ -245,19 +233,40 @@ let translate (struct_decls, globals, lambdas) =
       (* Extremely worth reading if you're confused about gep https://www.llvm.org/docs/GetElementPtr.html *)
       let ptr = L.build_struct_gep function_struct 0 "ptr" builder in
       let func_opq = L.build_load ptr "func_opq" builder in
-      let func =  L.build_pointercast func_opq (ltype_of_typ ty) "func" builder in
+      let func =  L.build_pointercast func_opq (ltype_of_func_type ty) "func" builder in
       (* If the func has a null return type, we can't set it to anything (hence the empty string) *)
       (match ty with 
-        Arrow(_, Void) -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "" builder
+        A.Arrow(_, A.Void) -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "" builder
       | _              -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder)
-    | SRecordAccess(exp, field) -> 
+    | SRecordAccess(exp, _) -> 
       let llstruct = expr builder exp in
       let _ = (L.dump_value llstruct)
-      (* We need to return an llvalue *)
+      (* TODO: We need to return an llvalue *)
       in raise (Failure "NotImplemented2")
-    | SLambda (_) -> raise (Failure "NotImplemented3")
+    | SLambda (l) -> 
+      let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
+        let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
+        in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b
+        in let opaque_value = L.build_call malloc_func [|size|] "opaque_value" malloc_b
+        in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
+      in let add_argument closure (ty, id) = 
+        let llvalue = expr builder (ty, SId id)
+        in let malloc_arg = malloc (ltype_of_typ ty) builder
+        in let _ = L.build_store llvalue malloc_arg builder
+        in let opaque_arg = L.build_pointercast malloc_arg void_ptr_t "ptr_" builder
+        in L.build_call append_func [|closure; opaque_arg|] "new_closure" builder
+      in let function_struct = malloc func_struct builder 
+      in let closure_struct = L.const_null node_struct_ptr
+      in let full_closure = List.fold_left add_argument closure_struct l.sclosure
+      in let closure_ptr = L.build_struct_gep function_struct 1 "ptr_" builder 
+      in let _ = L.build_store full_closure closure_ptr builder
+      in let func_ptr = L.build_struct_gep function_struct 0 "ptr_" builder 
+      in let func_opaque = L.build_pointercast (fst (StringMap.find l.sid function_decls) )
+                                                func_ptr_t "func_opaque" builder
+      in let _ = L.build_store func_opaque func_ptr builder
+      in function_struct
+
     in
-    
     (* Invoke "instr builder" if the current block doesn't already
        have a terminator (e.g., a branch). *)
     let add_terminal builder instr =

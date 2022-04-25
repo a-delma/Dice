@@ -1,0 +1,8 @@
+lambda (Int arg)->Void{
+  [Int]->Void p;
+  p = putChar;
+  lambda ([Int]->Void p) -> Void {
+    p = putChar;
+    p(arg);
+  }(p);
+}(73);

@@ -1,22 +1,6 @@
-lambda () -> Void {
-    Int a;
-    a = 5;
-
-    lambda (Int c) -> Void {
-
-    }(2);
-
-
-    lambda (Int b) -> Void {
-
-        lambda () -> Void {
-            putChar(a);
-            putChar(b);
-            
-            putChar(c);
-
-        }();
-
-    }(3);
-
+lambda () -> Void {  
+    lambda (Int c) -> Void {}();
+    lambda () -> Void {
+        putChar(c);
+    }();
 }();

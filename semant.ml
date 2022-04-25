@@ -8,7 +8,7 @@ module StringMap = Map.Make(String)
 
 (* The main function that takes in a program data type checks all the features
    and returns the SAST program equivalent. *)
-let check (struct_decls, globals, stmts) =
+let check (_, struct_decls, globals, stmts) =
 (* Check if a certain kind of binding has void type or is a duplicate
     of another, previously checked binding *)
   let check_binds (to_check : bind list) = 
@@ -192,7 +192,7 @@ let check (struct_decls, globals, stmts) =
       in let _ = lambdaId := newId + 1 
       in (func_type, SLambda({st=l.t; 
                     sid="lambda" ^ (string_of_int newId); 
-                    sformals=l.formals; (* TODO: rename main here? *)
+                    sformals=(func_type, "self")::l.formals; (* TODO: rename main here? *)
                     slocals=l.locals; 
                     sclosure=closure_stmt (local_env::envs) (SBlock (body)); 
                     sbody=body}))
@@ -212,6 +212,7 @@ let check (struct_decls, globals, stmts) =
         SFor(expr envs e1, check_bool_expr envs e2, expr envs e3, check_stmt envs st)
     | While(p, s) -> SWhile(check_bool_expr envs p, check_stmt envs s)
     | Return e -> 
+    (* TODO check for returning nothing (walk the AST and check that something returns the type we expect) *)
       let (t, e')   = expr envs e in
       let func_type = match (type_of_identifier "self" envs) with
         Arrow(_, return_type) -> return_type
@@ -234,8 +235,10 @@ let check (struct_decls, globals, stmts) =
   let sstmts = List.map (fun stmt -> check_stmt [global_env] stmt) stmts in
   let main   = {st=Int; 
                 sid="main"; 
-                sformals=[]; 
+                sformals=[(Arrow([], Int), "self")]; 
                 slocals=[]; 
                 sclosure=[];
                 sbody=sstmts}
-  in (struct_env, globals', main::lambda_from_stmt (SBlock sstmts))
+  in let lambdas = create_lambda_list (SBlock sstmts)
+  in let _ = return_pass lambdas
+  in (struct_env, globals', main::lambdas)

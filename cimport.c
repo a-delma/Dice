@@ -10,10 +10,6 @@ struct Node_
   struct Node_* next;
 };
 
-struct Node_* get_null_list() {
-  return NULL;
-}
-
 struct Node_* append_to_list(struct Node_* list, char* val) {
   struct Node_* next = NULL;
   next = (struct Node_*) malloc(sizeof(struct Node_));
@@ -56,9 +52,10 @@ int putchar_helper(struct Function_* closure, int c) {
   printf("%c", c);
   return 0;
 }
-struct Function_ putchar_;
+struct Function_* putchar_;
 
 void initialize(){
-  putchar_.closure = NULL;
-  putchar_.ptr = (void*) putchar_helper;
+  putchar_ = (struct Function_*) malloc(sizeof(struct Function_));
+  putchar_->closure = NULL;
+  putchar_->ptr = (void*) putchar_helper;
 }
