@@ -1,6 +1,6 @@
 struct Test1 {
-    Bool test;
     Int inner;
+    Bool test;
 };
 
 struct Test4 {
@@ -18,5 +18,8 @@ Test1 hmm;
 Test2 hmmmmmm;
 Bool hello;
 
-hmm = {test: true, inner: 1};
+hmm = {test: true, inner: 86};
 hmmmmmm = {man: true, the: {inner: 3, test: false}, went: hmm};
+
+hmm.test = false;
+putChar(hmm.inner);
