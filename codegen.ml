@@ -4,6 +4,7 @@ produces LLVM IR *)
 module L = Llvm
 module A = Ast
 open Sast
+module Integer
 
 module StringMap = Map.Make(String)
 
