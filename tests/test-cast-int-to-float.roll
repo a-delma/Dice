@@ -1,6 +1,0 @@
-Int a;
-Float b;
-Float c;
-a = 74;
-b = 23.3;
-c = a + b;
