@@ -79,4 +79,7 @@ This is a **positive** test.
 - `test-recursion2.roll` - test recursion with a global first class function (instead of using self).
 This is a **positive** test of a feature **not provided by MicroC**.
 
+- `test-printing.roll` - test standard library print functions.
+This is a **positive** test.
+
 We validate all tests using the modified version of the `testall.sh` file from MicroC (which itself uses diff and checks its output against a golden standard).

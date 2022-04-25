@@ -1,0 +1,39 @@
+//import "../stdlib/math.roll"; TODO modify importing to handle multiple files
+
+[] -> Void newline;
+[] -> Void dot;
+[Int] -> Void printDigit;
+[Int] -> Void printInt;
+
+//TODO I think we need to implement float printing in C 
+[Int] -> Void print_float;
+[Int, Int]->Int mod;
+
+//It is an error for divisor to be 0
+
+mod = lambda(Int dividend, Int divisor) -> Int{
+    Int remainder;
+    Int quotient;
+
+    quotient = dividend / divisor;
+    remainder = dividend - (divisor * quotient);
+    return remainder;
+};
+
+newline = lambda()->Void{ putChar(10); };
+dot = lambda()->Void{ putChar(46); };
+
+//Only works on single digits, for internal use
+//  to use with printInt
+printDigit = lambda(Int d)->Void{
+  putChar(48 + d);
+};
+
+printInt = lambda(Int n)->Void{
+  if(n < 10){
+    printDigit(n);
+  } else {
+    printDigit(mod(n, 10));
+    self(n/10); 
+  }
+};
