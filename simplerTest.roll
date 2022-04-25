@@ -8,4 +8,4 @@ struct Test1 {
 Test1 hmm;
 
 hmm = {test: true, inner: 86, z: 89};
-hmm.z = 90;
+putChar(hmm.z);

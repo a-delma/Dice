@@ -191,9 +191,8 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
             let index = lookup_index ty field in 
             let mut_struct = L.build_insertvalue llstruct rse' index "mut_struct" builder in 
             let _ = (L.dump_value mut_struct) in
+            (* TODO: doesnt really assign anything!!! *)
             mut_struct
-            (* let _ = L.dump_module the_module in
-            raise (Failure "Struct Stuff") *)
           | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
         let (t, _) = e1
@@ -241,8 +240,10 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       let llvalues = List.map (expr builder) values in
 
       let sort_fun (_,s1) (_,s2) = Int.compare s1 s2 in
-      let order_values = List.sort sort_fun (List.combine llvalues indices) in
-      let array_of_llvales = Array.of_list (fst (List.split order_values)) in
+      let order_values_pairs = List.sort sort_fun (List.combine llvalues indices) in
+      let ordered_values = (fst (List.split order_values_pairs)) in
+      let array_of_llvales = Array.of_list ordered_values in
+      
       (* TODO: build one element at a time perhaps *)
       let lstruct = L.const_named_struct lty array_of_llvales
       in lstruct

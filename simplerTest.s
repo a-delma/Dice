@@ -18,6 +18,10 @@ main:                                   # @main
 	movl	$86, (%rax)
 	movb	$1, 4(%rax)
 	movl	$89, 8(%rax)
+	movq	putchar_@GOTPCREL(%rip), %rax
+	movq	(%rax), %rdi
+	movl	$89, %esi
+	callq	*(%rdi)
 	xorl	%eax, %eax
 	addq	$16, %rsp
 	.cfi_def_cfa_offset 16

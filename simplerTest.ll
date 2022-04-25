@@ -23,7 +23,12 @@ entry:
   store %Function_* %self, %Function_** %self1
   store %Test1 { i32 86, i1 true, i32 89 }, %Test1* @hmm
   %hmm = load %Test1, %Test1* @hmm
+  %putChar = load %Function_*, %Function_** @putchar_
+  %ptr = getelementptr inbounds %Function_, %Function_* %putChar, i32 0, i32 0
+  %func_opq = load void (...)*, void (...)** %ptr
+  %func = bitcast void (...)* %func_opq to void (%Function_*, i32)*
   %hmm2 = load %Test1, %Test1* @hmm
-  %mut_struct = insertvalue %Test1 %hmm2, i32 90, 2
+  %z = extractvalue %Test1 %hmm2, 2
+  call void %func(%Function_* %putChar, i32 %z)
   ret i32 0
 }
