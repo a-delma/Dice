@@ -58,6 +58,14 @@ let check (_, struct_decls, globals, stmts) =
     in
     let struct_env = List.fold_left create_struct empty_structs struct_decls in
 
+    (* creates an additional map of field to index for accessing values *)
+    let struct_indices = 
+      let map_func struc =
+        let fold_func key _ (acc, index) = 
+          (StringMap.add key index acc, index + 1) 
+        in let (new_indices, _) = StringMap.fold fold_func struc (StringMap.empty, 0) in 
+      new_indices 
+    in StringMap.map map_func struct_env in
 
     (* Takes in a list of type (string * type) and returns the first struct
        with the matching (string -> type) bindings *)
@@ -241,4 +249,4 @@ let check (_, struct_decls, globals, stmts) =
                 sbody=sstmts}
   in let lambdas = create_lambda_list (SBlock sstmts)
   in let _ = return_pass lambdas
-  in (struct_env, globals', main::lambdas)
+  in ((struct_env, struct_indices), globals', main::lambdas)

@@ -1,0 +1,11 @@
+struct Test1 {
+    Int inner;
+    Bool test;
+    Int z;
+};
+
+
+Test1 hmm;
+
+hmm = {test: true, inner: 86, z: 89};
+putChar(hmm.z);
