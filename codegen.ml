@@ -80,6 +80,9 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
   
   let putchar_struct = (L.declare_global func_struct_ptr "putchar_" the_module) in
                let _ = L.set_externally_initialized true putchar_struct     in
+
+  let int_to_float_struct = (L.declare_global func_struct_ptr "int_to_float_" the_module) in
+               let _ = L.set_externally_initialized true int_to_float_struct     in
   
   let init_func = L.declare_function
                   "initialize"
@@ -98,6 +101,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       in StringMap.add n (L.define_global n init the_module) m in
     List.fold_left global_var StringMap.empty globals in
   let global_vars = StringMap.add "putChar" putchar_struct global_vars in
+  let global_vars = StringMap.add "intToFloat" int_to_float_struct global_vars in
   
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)

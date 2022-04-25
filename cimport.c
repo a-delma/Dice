@@ -56,20 +56,32 @@ int putchar_helper(struct Function_* closure, int c) {
   return 0;
 }
 
+float int_to_float_helper(struct Function_* closure, int toCast) {
+  return (float) toCast;
+}
+
 float uni_helper(struct Function_* closure) {
   return ((float)rand()/(float)(RAND_MAX));
 }
 struct Function_* putchar_;
 struct Function_* uni_;
+struct Function_* int_to_float_;
 
 void initialize(){
   //putchar init
   putchar_ = (struct Function_*) malloc(sizeof(struct Function_));
   putchar_->closure = NULL;
   putchar_->ptr = (void*) putchar_helper;
-  srand(0);
+
+  
   //uni init
+  srand(0);
   uni_ = (struct Function_*) malloc(sizeof(struct Function_));
   uni_->closure = NULL;
   uni_->ptr = (void*) uni_helper;
+
+  //casting init
+  int_to_float_ = (struct Function_*)malloc(sizeof(struct Function_));
+  int_to_float_->closure = NULL;
+  int_to_float_->ptr = (void*) int_to_float_helper;
 }
