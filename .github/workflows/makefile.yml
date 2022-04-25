@@ -27,14 +27,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    # - uses: ocaml/setup-ocaml@v1.1.11
     
     - name: Install everything
       run:  | 
             sudo apt install ocaml llvm llvm-runtime m4 opam
-            opam init
-            opam install ${{ matrix.llvm }}
-            eval $(opam config env)
+            opam init --yes
+            opam install ${{ matrix.llvm }} --yes
+            eval $(opam config env) --yes
     - name: Compile Dice Compiler
       run: make
     - name: Compile A Program
