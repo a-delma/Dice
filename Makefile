@@ -12,15 +12,9 @@ all : toplevel.native
 cimport : cimport.c
 	cc -c cimport -DBUILD_TEST cimport.c
 
-verbose : toplevel.ml ast.ml parser.mly scanner.mll
-	ocamlyacc -v parser.mly
-
-toplevel.native : parser.mly scanner.mll codegen.ml semant.ml closure.ml cimport.o toplevel.ml
+toplevel.native : parser.mly scanner.mll codegen.ml semant.ml closure.ml cimport.o toplevel.ml sast.ml ast.ml pass.ml lambda.ml
 	opam config exec -- \
 	ocamlbuild -use-ocamlfind toplevel.native
-
-small : small.ml
-	ocamlbuild -use-ocamlfind small.native
 
 ############################
 #
@@ -29,7 +23,7 @@ small : small.ml
 
 TARGET="tests/*"
 
-test: toplevel.native
+test: toplevel.native cimport.o
 	./test.sh $(TARGET).roll
 	
 
@@ -37,10 +31,6 @@ comp_file: toplevel.native cimport.o
 	./toplevel.native $(TARGET).roll > $(TARGET).ll
 	llc -relocation-model=pic $(TARGET).ll > $(TARGET).s
 	cc -o $(TARGET).exe $(TARGET).s cimport.o
-
-simple_test: toplevel.native
-	./toplevel.native -l simpleTest.roll > simpleTest.ll
-	cat simpleTest.ll
 
 #################################
 

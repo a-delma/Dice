@@ -87,8 +87,14 @@ and string_of_sfield_assign (id, e) = id ^ ": " ^ string_of_sexpr e
 
 and string_of_bind (name, typ) = (string_of_typ typ) ^ " " ^ name ^ ";\n" 
 
-and string_of_senv (name, bind) = "struct " ^ name ^ "{\n" 
-    ^ "};\n"
+and string_of_senv (_, indices) =
+    let fold_func key data acc =
+        let indices = List.fold_left 
+            (fun str (field, index) -> str ^ "\t" ^ (string_of_int index ^ " : " ^ field ^ ";\n") ) "" (StringMap.bindings data) in
+        let struct_string = "struct " ^ key ^ " {\n" ^ indices ^ "};\n" 
+    in
+    struct_string::acc in
+    List.rev (StringMap.fold fold_func indices []) 
 
 
 and string_of_slambda sl = 
@@ -96,8 +102,12 @@ and string_of_slambda sl =
       ", return type: " ^ string_of_typ sl.st (* TODO: Different printings? *)
       
 
-let string_of_sprogram (structs, vars, (main::lambdas)) =
-  String.concat "" ((List.map string_of_senv (StringMap.bindings structs)) @
-                    (List.map string_of_vdecl vars) @
-                    (List.map string_of_sstmt main.sbody) @
-                    ["\nLambdas: \n"; String.concat "\n" (List.map string_of_slambda lambdas); "\n"])
+let string_of_sprogram (structs, vars, lambdas) =
+  String.concat "" ((string_of_senv structs) @
+                    (List.map string_of_vdecl vars) @ 
+                    (match lambdas with
+                        (main::ls) -> (List.map string_of_sstmt main.sbody) @
+                                      ["\nLambdas: \n"; 
+                                       String.concat "\n" 
+                                       (List.map string_of_slambda ls); "\n"]
+                      | []         -> []))

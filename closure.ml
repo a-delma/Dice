@@ -1,5 +1,4 @@
 open Sast
-open Ast
 open Pass
 
 module StringMap = Map.Make(String)
@@ -45,7 +44,9 @@ and eval = function
                    then []
                    else raise (Failure ("Attempt to reassign to \"" ^ s ^ "\" from closure"))
     | _ -> [])
-  | SLambda(l) -> let (locals::_) = envs in 
+  | SLambda(l) -> let locals = (match envs with
+                                    (locals::_) -> locals
+                                  | [] -> raise (Failure ("Local environment is absent"))) in 
   (*Returns the list l_super minus any elements that are in the StringMap m_sub*)
                   let rec diff l_super m_sub = (match l_super with
                       ((t, s)::tail) -> (try if t = StringMap.find s m_sub
@@ -55,5 +56,5 @@ and eval = function
                       | _     -> [])
                   in diff l.sclosure locals
   | _          -> []
-
-in fold_tree eval union [] root_stmt
+                in let throwaway _ = []
+in fold_tree_with_stmt throwaway eval union [] false root_stmt

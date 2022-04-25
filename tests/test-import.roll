@@ -1,0 +1,2 @@
+import "../stdlib/pow.roll";
+putChar(pow(2, 6) + 2);

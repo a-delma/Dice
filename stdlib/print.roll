@@ -1,0 +1,26 @@
+import "../stdlib/math.roll"; 
+
+[] -> Void newline;
+[] -> Void dot;
+[Int] -> Void printDigit;
+[Int] -> Void printInt;
+
+//TODO I think we need to implement float printing in C 
+[Int] -> Void print_float;
+newline = lambda()->Void{ putChar(10); };
+dot = lambda()->Void{ putChar(46); };
+
+//Only works on single digits, for internal use
+//  to use with printInt
+printDigit = lambda(Int d)->Void{
+  putChar(48 + d);
+};
+
+printInt = lambda(Int n)->Void{
+  if(n < 10){
+    printDigit(n);
+  } else {
+    self(n/10);
+    printDigit(mod(n, 10)); 
+  }
+};

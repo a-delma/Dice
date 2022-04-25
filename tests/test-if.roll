@@ -1,0 +1,5 @@
+
+if (false) 
+putChar(65);
+else 
+putChar(66);

@@ -47,13 +47,14 @@ rule token = parse
 | "false"  { BLIT(false) }
 | "struct" { STRUCT }
 | "lambda" { LAMBDA }
+| "import" { IMPORT }
 | digits as lxm { LITERAL(int_of_string lxm) }
 | digits '.'  digit* as lxm { FLIT(lxm) }
 | ['a'-'z']['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm { ID(lxm) }
 | ['A'-'Z']['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm { TYPVAR(lxm) }
+| '"' ([^ ' ' ';' '"'] | '\ ')* '"' as lxm { FILENAME(lxm) }
 | eof { EOF }
 | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
-
 and comment = parse
   ['\r' '\n'] { token lexbuf }
 | eof         { EOF }
