@@ -20,8 +20,10 @@ jobs:
         include:
         - os:                  'ubuntu-latest'
           llvm:                'llvm.10.0.0'
+          packages:            'ocaml llvm llvm-runtime m4 opam ocamlbuild'
         - os:                  'ubuntu-18.04'
           llvm:                'llvm.6.0.0'
+          packages:            'ocaml llvm llvm-runtime m4 opam'
 
       fail-fast: false
 
@@ -30,7 +32,7 @@ jobs:
     
     - name: Install everything
       run:  | 
-            sudo apt install ocaml llvm llvm-runtime m4 opam ocamlbuild
+            sudo apt install ${{ matrix.packages }}
             opam init --yes
             opam install ${{ matrix.llvm }} --yes
             eval $(opam config env)
