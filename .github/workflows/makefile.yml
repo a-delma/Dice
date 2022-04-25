@@ -30,10 +30,10 @@ jobs:
     
     - name: Install everything
       run:  | 
-            sudo apt install ocaml llvm llvm-runtime m4 opam
+            sudo apt install ocaml llvm llvm-runtime m4 opam ocamlbuild
             opam init --yes
             opam install ${{ matrix.llvm }} --yes
-            eval $(opam config env --yes)
+            eval $(opam config env)
     - name: Compile Dice Compiler
       run: make
     - name: Compile A Program
