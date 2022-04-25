@@ -20,20 +20,21 @@ jobs:
         include:
         - os:                  'ubuntu-latest'
           llvm:                'llvm.10.0.0'
+          packages:            'ocaml llvm llvm-runtime m4 opam ocamlbuild'
         - os:                  'ubuntu-18.04'
           llvm:                'llvm.6.0.0'
+          packages:            'ocaml llvm llvm-runtime m4 opam'
 
       fail-fast: false
 
     steps:
     - uses: actions/checkout@v2
-    # - uses: ocaml/setup-ocaml@v1.1.11
     
     - name: Install everything
       run:  | 
-            sudo apt install ocaml llvm llvm-runtime m4 opam
-            opam init
-            opam install ${{ matrix.llvm }}
+            sudo apt install ${{ matrix.packages }}
+            opam init --yes
+            opam install ${{ matrix.llvm }} --yes
             eval $(opam config env)
     - name: Compile Dice Compiler
       run: make
