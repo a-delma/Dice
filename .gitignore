@@ -46,3 +46,4 @@ tests/.lit*
 parser.conflicts
 *.s
 *.ll
+*.exe
