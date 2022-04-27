@@ -144,7 +144,7 @@ let check (_, struct_decls, globals, stmts) =
                         then (ty, SBinop((t1, e1'), op, (t2, e2')))
                         else if t1 = Int
                             then (ty, SBinop((Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t1, e1')])), op, (t2, e2')))
-                            else (ty, SBinop((t1, e2'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
+                            else (ty, SBinop((t1, e1'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
           in finalSB
     | Assign(le, re) -> (match le with 
         Id(s)-> let (lt, _) = expr envs le in

@@ -57,11 +57,11 @@ int putchar_helper(struct Function_* closure, int c) {
 }
 
 float int_to_float_helper(struct Function_* closure, int toCast) {
-  return (float) toCast;
+  return ((double) toCast);
 }
 
-int float_to_int_helper(struct Function_* closure, float toCast) {
-  return (int) toCast;
+int float_to_int_helper(struct Function_* closure, double toCast) {
+  return ((int) toCast);
 }
 
 float uni_helper(struct Function_* closure) {
