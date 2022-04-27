@@ -6,6 +6,11 @@ struct Test1 {
 
 
 Test1 hmm;
+Int test;
 
 hmm = {test: true, inner: 86, z: 89};
-putChar(hmm.z);
+test = hmm.inner = 90;
+putChar(hmm.inner);
+
+test = 3;
+putChar(test);
