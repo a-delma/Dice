@@ -1,0 +1,3 @@
+import "../stdlib/print.roll";
+
+printInt(floatToInt(758.234));
