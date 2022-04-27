@@ -1,11 +1,12 @@
 import "../stdlib/math.roll"; 
+import "../stdlib/pow.roll"; 
 
 [] -> Void newline;
 [] -> Void dot;
 [Int] -> Void printDigit;
 [Int] -> Void printInt;
 [Float] -> Float mantissa;
-[Float] -> Void printMantissa;
+[Float, Int] -> Void printMantissa;
 [Float] -> Void printFloat;
 
 //how many decimal points to print for floats
@@ -31,8 +32,7 @@ printInt = lambda(Int n)->Void{
 };
 
 mantissa = lambda(Float f)->Float{
-  //stub
-  return 9.234;
+  return (f - floatToInt(f));
 };
 
 //should take a float less than 1.
@@ -41,13 +41,14 @@ printMantissa = lambda(Float f, Int remaining)->Void{
     //just return 
   } else {
     printDigit(floatToInt(f * 10));
-    //self( , remaining - 1);
+    self(mantissa(f * 10), remaining - 1);
   }
 };
 
 printFloat = lambda(Float f)->Void{
-  Int theInt;
-  theInt = floatToInt(f);
-  printInt(theInt);
+  //f = f + 0.00013012;
+  printInt(floatToInt(f));
   dot();
+  printInt(floatToInt(pow(10, floatPrecision) * mantissa(f)));
+  //printMantissa(mantissa(f), floatPrecision);
 };
