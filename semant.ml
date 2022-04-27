@@ -58,6 +58,14 @@ let check (_, struct_decls, globals, stmts) =
     in
     let struct_env = List.fold_left create_struct empty_structs struct_decls in
 
+    (* creates an additional map of field to index for accessing values *)
+    let struct_indices = 
+      let map_func struc =
+        let fold_func key _ (acc, index) = 
+          (StringMap.add key index acc, index + 1) 
+        in let (new_indices, _) = StringMap.fold fold_func struc (StringMap.empty, 0) in 
+      new_indices 
+    in StringMap.map map_func struct_env in
 
     (* Takes in a list of type (string * type) and returns the first struct
        with the matching (string -> type) bindings *)
@@ -87,12 +95,16 @@ let check (_, struct_decls, globals, stmts) =
                                   StringMap.empty 
                                   globals'))
   in
+  (* casts *)
+  let global_env = StringMap.add "intToFloat" (Arrow([Int], Float)) global_env in
+  let global_env = StringMap.add "floatToInt" (Arrow([Float], Int)) global_env in
   (* Return a variable from our symbol table *)
   let rec type_of_identifier s envs = match envs with
       (inner::outer) -> (try StringMap.find s inner
                         with Not_found -> type_of_identifier s outer)
     | []             -> raise (Failure ("Undeclared identifier " ^ s))
   in
+  
   (* Return a semantically-checked expression, i.e., with a type *)
   let rec expr envs expression = match expression with
       Literal  l -> (Int, SLiteral l)
@@ -116,19 +128,24 @@ let check (_, struct_decls, globals, stmts) =
       (* All binary operators require operands of the same type *)
       (* TODO: DO we want to change this? *)
       let same = t1 = t2 in
+      let bothNum = ((t1 = Int)||(t1 = Float))&&((t2 = Int)||(t2 = Float)) in
       (* Determine expression type based on operator and operand types *)
       let ty = match op with
-        Add | Sub | Mult | Div when same && t1 = Int   -> Int
-      | Add | Sub | Mult | Div when same && t1 = Float -> Float
-      | Equal | Neq            when same               -> Bool
-      | Less | Leq | Greater | Geq
-                when same && (t1 = Int || t1 = Float) -> Bool
+        Add | Sub | Mult | Div     when same && t1 = Int -> Int
+      | Add | Sub | Mult | Div     when bothNum          -> Float
+      | Equal | Neq                when same             -> Bool
+      | Less | Leq | Greater | Geq when bothNum          -> Bool
       | And | Or when same && t1 = Bool -> Bool
       | _ -> raise (
         Failure ("Illegal binary operator " ^
                   string_of_typ t1 ^ " " ^ string_of_op op ^ " " ^
-                  string_of_typ t2 ^ " in " ^ string_of_expr e))
-      in (ty, SBinop((t1, e1'), op, (t2, e2')))
+                  string_of_typ t2 ^ " in " ^ string_of_expr e)) in
+          let finalSB = if same
+                        then (ty, SBinop((t1, e1'), op, (t2, e2')))
+                        else if t1 = Int
+                            then (ty, SBinop((Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t1, e1')])), op, (t2, e2')))
+                            else (ty, SBinop((t1, e2'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
+          in finalSB
     | Assign(le, re) -> (match le with 
         Id(s)-> let (lt, _) = expr envs le in
                 let (rt, sx) = expr envs re in 
@@ -241,4 +258,4 @@ let check (_, struct_decls, globals, stmts) =
                 sbody=sstmts}
   in let lambdas = create_lambda_list (SBlock sstmts)
   in let _ = return_pass lambdas
-  in (struct_env, globals', main::lambdas)
+  in ((struct_env, struct_indices), globals', main::lambdas)

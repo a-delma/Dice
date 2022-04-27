@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+//BEGINNING SEED
+
+
 // Basic lists (Node_) to use a closures
 // Plus accompanying functions:
 
@@ -52,10 +55,42 @@ int putchar_helper(struct Function_* closure, int c) {
   printf("%c", c);
   return 0;
 }
+
+float int_to_float_helper(struct Function_* closure, int toCast) {
+  return (float) toCast;
+}
+
+int float_to_int_helper(struct Function_* closure, float toCast) {
+  return (int) toCast;
+}
+
+float uni_helper(struct Function_* closure) {
+  return ((float)rand()/(float)(RAND_MAX));
+}
 struct Function_* putchar_;
+struct Function_* uni_;
+struct Function_* int_to_float_;
+struct Function_* float_to_int_;
 
 void initialize(){
+  //putchar init
   putchar_ = (struct Function_*) malloc(sizeof(struct Function_));
   putchar_->closure = NULL;
   putchar_->ptr = (void*) putchar_helper;
+
+  
+  //uni init
+  srand(0);
+  uni_ = (struct Function_*) malloc(sizeof(struct Function_));
+  uni_->closure = NULL;
+  uni_->ptr = (void*) uni_helper;
+
+  //casting init
+  int_to_float_ = (struct Function_*)malloc(sizeof(struct Function_));
+  int_to_float_->closure = NULL;
+  int_to_float_->ptr = (void*) int_to_float_helper;
+
+  float_to_int_ = (struct Function_*)malloc(sizeof(struct Function_));
+  float_to_int_->closure = NULL;
+  float_to_int_->ptr = (void*) float_to_int_helper;
 }

@@ -3,13 +3,13 @@ produces LLVM IR *)
 
 module L = Llvm
 module A = Ast
-open Sast 
+open Sast
 
 module StringMap = Map.Make(String)
 
 (* Code Generation from the SAST. Returns an LLVM module if successful,
    throws an exception if something is wrong. *)
-let translate (struct_decls, globals, lambdas) =
+let translate ((struct_decls, struct_indices), globals, lambdas) =
   let context    = L.global_context ()
   (* Add types to the context so we can use them in our LLVM code *)
   in let     i32_t      = L.i32_type    context
@@ -59,6 +59,12 @@ let translate (struct_decls, globals, lambdas) =
 
   let _ = StringMap.mapi make_struct_body struct_decls in
   
+  let lookup_index typ name = match typ with
+    | A.TypVar(st_name) -> 
+      let index_map = StringMap.find st_name struct_indices in
+      StringMap.find name index_map
+    | _ -> raise (Failure "indexing non struct type") 
+    in
 
   let getnode_func = L.declare_function 
                      "get_node" 
@@ -74,6 +80,12 @@ let translate (struct_decls, globals, lambdas) =
   
   let putchar_struct = (L.declare_global func_struct_ptr "putchar_" the_module) in
                let _ = L.set_externally_initialized true putchar_struct     in
+
+  let int_to_float_struct = (L.declare_global func_struct_ptr "int_to_float_" the_module) in
+               let _ = L.set_externally_initialized true int_to_float_struct     in
+
+  let float_to_int_struct = (L.declare_global func_struct_ptr "float_to_int_" the_module) in
+               let _ = L.set_externally_initialized true float_to_int_struct     in
   
   let init_func = L.declare_function
                   "initialize"
@@ -92,6 +104,9 @@ let translate (struct_decls, globals, lambdas) =
       in StringMap.add n (L.define_global n init the_module) m in
     List.fold_left global_var StringMap.empty globals in
   let global_vars = StringMap.add "putChar" putchar_struct global_vars in
+  let global_vars = StringMap.add "intToFloat" int_to_float_struct global_vars in
+  let global_vars = StringMap.add "floatToInt" float_to_int_struct global_vars in
+
   
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
@@ -179,7 +194,14 @@ let translate (struct_decls, globals, lambdas) =
           (* TODO to implement record access where a function can 
              return a record and then get it's field we'll need to 
              incorperate expr builder le somehow as well *)
-          | SRecordAccess(_, _) -> raise (Failure "CodeGen NotImplemented Struct Stuff")
+          | SRecordAccess((ty, exp), field) ->
+            let rse' = expr builder rse in
+            let llstruct = expr builder (ty, exp) in
+            let index = lookup_index ty field in 
+            let mut_struct = L.build_insertvalue llstruct rse' index "mut_struct" builder in 
+            let _ = (L.dump_value mut_struct) in
+            (* TODO: doesnt really assign anything!!! *)
+            mut_struct
           | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
         let (t, _) = e1
@@ -222,11 +244,17 @@ let translate (struct_decls, globals, lambdas) =
         | A.Not                  -> L.build_not) e' "tmp" builder
     | SAssignList (ty, binds) ->
       let lty = ltype_of_typ ty in
-      (* let struct_ptr = malloc lty builder in *)
-      let llvalues = List.map (expr builder) (snd (List.split binds)) in
-      let array_of_llvales = Array.of_list llvalues in
+      let names, values = (List.split binds) in
+      let indices = List.map (lookup_index ty) names in
+      let llvalues = List.map (expr builder) values in
+
+      let sort_fun (_,s1) (_,s2) = s1 - s2 in
+      let order_values_pairs = List.sort sort_fun (List.combine llvalues indices) in
+      let ordered_values = (fst (List.split order_values_pairs)) in
+      let array_of_llvales = Array.of_list ordered_values in
+      
+      (* TODO: build one element at a time perhaps *)
       let lstruct = L.const_named_struct lty array_of_llvales
-      (* let _ = prerr_endline (L.string_of_lltype (L.type_of lstruct)) *)
       in lstruct
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in
@@ -238,11 +266,10 @@ let translate (struct_decls, globals, lambdas) =
       (match ty with 
         A.Arrow(_, A.Void) -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "" builder
       | _              -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder)
-    | SRecordAccess(exp, _) -> 
-      let llstruct = expr builder exp in
-      let _ = (L.dump_value llstruct)
-      (* TODO: We need to return an llvalue *)
-      in raise (Failure "NotImplemented2")
+    | SRecordAccess((ty, exp), field) -> 
+      let llstruct = expr builder (ty, exp) in
+      let index = lookup_index ty field in 
+      L.build_extractvalue llstruct index field builder
     | SLambda (l) -> 
       let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
         let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
