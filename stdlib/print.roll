@@ -4,9 +4,14 @@ import "../stdlib/math.roll";
 [] -> Void dot;
 [Int] -> Void printDigit;
 [Int] -> Void printInt;
+[Float] -> Float mantissa;
+[Float] -> Void printMantissa;
+[Float] -> Void printFloat;
 
-//TODO I think we need to implement float printing in C 
-[Int] -> Void print_float;
+//how many decimal points to print for floats
+Int floatPrecision;
+floatPrecision = 4;
+
 newline = lambda()->Void{ putChar(10); };
 dot = lambda()->Void{ putChar(46); };
 
@@ -23,4 +28,26 @@ printInt = lambda(Int n)->Void{
     printDigit(mod(n, 10));
     self(n/10); 
   }
+};
+
+mantissa = lambda()->Float{
+  //stub
+  return 9.234;
+}
+
+//should take a float less than 1.
+printMantissa = lambda(Float f, Int remaining)->Void{
+  if(remaining < 1){
+    //just return 
+  } else {
+    printDigit(floatToInt(f * 10));
+    //self( , remaining - 1);
+  }
+};
+
+printFloat = lambda(Float f)->Void{
+  Int theInt;
+  theInt = floatToInt(f);
+  printInt(theInt);
+  dot();
 };

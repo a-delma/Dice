@@ -6,3 +6,5 @@ putChar(72);
 dot();
 newline();
 printInt(1234);
+newline();
+printFloat(758.23);
