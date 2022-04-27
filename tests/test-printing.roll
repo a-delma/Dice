@@ -1,0 +1,8 @@
+import "../stdlib/print.roll";
+
+putChar(72);
+newline();
+putChar(72);
+dot();
+newline();
+printInt(1234);

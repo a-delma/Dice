@@ -1,0 +1,6 @@
+lambda () -> Void {  
+    lambda (Int c) -> Void {}();
+    lambda () -> Void {
+        putChar(c);
+    }();
+}();

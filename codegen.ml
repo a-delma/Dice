@@ -3,156 +3,196 @@ produces LLVM IR *)
 
 module L = Llvm
 module A = Ast
-open Sast 
+open Sast
 
 module StringMap = Map.Make(String)
 
 (* Code Generation from the SAST. Returns an LLVM module if successful,
    throws an exception if something is wrong. *)
-let translate (_, globals, stmts) =
-  let functions = [{ styp = A.Int; 
-                     sfname = "main";
-                     sf = [];
-                     sl = [];
-                     sb = stmts}] in
-  let context    = L.global_context () in
+let translate ((struct_decls, struct_indices), globals, lambdas) =
+  let context    = L.global_context ()
   (* Add types to the context so we can use them in our LLVM code *)
-  let i32_t      = L.i32_type    context
-  (* and i8_t       = L.i8_type     context *)
-  and i1_t       = L.i1_type     context
-  and float_t    = L.double_type context
-  and void_t     = L.void_type   context 
-  (* Create an LLVM module -- this is a "container" into which we'll 
-     generate actual code *)
-  and the_module = L.create_module context "MicroC" in
+  in let     i32_t      = L.i32_type    context
+  in let     i1_t       = L.i1_type     context
+  in let     float_t    = L.double_type context
+  in let     void_t     = L.void_type   context 
+  in let     void_ptr_t = L.pointer_type (L.i8_type context)
+  in let     func_ptr_t = L.pointer_type (L.var_arg_function_type void_t [| |])
+  in let     node_struct = L.named_struct_type context "Node_"
+  in let     func_struct = L.named_struct_type context "Function_"  
+  in let     node_struct_ptr = L.pointer_type node_struct
+  in let     func_struct_ptr = L.pointer_type func_struct in
+  let _ = L.struct_set_body func_struct [| (func_ptr_t); (L.pointer_type node_struct) |] false in
+  let _ = L.struct_set_body node_struct [| (void_ptr_t); (L.pointer_type node_struct) |] false 
 
-  let rec ltype_name = function
-    | A.Int                 -> "int"
-    | A.Bool                -> "bool"
-    | A.Float               -> "double"
-    | A.Void                -> "void"
-    | A.Arrow(_, args, ret) -> 
-      "map_" ^ (String.concat "_and_" (List.map ltype_name args)) ^ "_to_" ^ ltype_name ret
-    | _                     -> raise (Failure "Not implemented")  
+  in let the_module = L.create_module context "DICE" in
+
+  let struct_dict = 
+    let make_empty name _ = L.named_struct_type context name in
+    StringMap.mapi make_empty struct_decls
   in
 
-  (* Convert MicroC types to LLVM types *)
+
+  (* Convert Dice types to LLVM types *)
   let ltype_of_typ = function
       A.Int   -> i32_t 
     | A.Bool  -> i1_t
     | A.Float -> float_t
     | A.Void  -> void_t
-    | A.Arrow(_, _, _) as arrow -> 
-      (match L.type_by_name the_module ((ltype_name arrow) ^ "_struct") with 
-        Some(t) -> t (* Hard-coding for now *)
-      | None    -> raise (Failure "Type not found"))  
-    | _ -> raise (Failure "We need to implement more complex types (for instance [Int] -> Void)")
+    | A.Arrow(_) -> func_struct_ptr
+    | A.TypVar (name) -> try StringMap.find name struct_dict
+      with _ -> raise (Failure (name ^ " is not a valid struct type"))
+    in    
+
+  let ltype_of_func_type = function
+      A.Arrow(args, ret) -> L.pointer_type(L.function_type (ltype_of_typ ret) 
+                            (Array.of_list (func_struct_ptr::(List.map ltype_of_typ args))))
+    | _                  -> raise (Failure "Invalid function cast")                 
   in
+
+  let make_struct_body name type_dict =
+    let (_, types) = List.split (StringMap.bindings type_dict) in
+    let ltypes_list = List.map ltype_of_typ types in (* TODO: might need to call a different type convertion fucntion*)
+    let ltypes = Array.of_list ltypes_list in
+    L.struct_set_body (StringMap.find name struct_dict) ltypes false
+  in
+
+  let _ = StringMap.mapi make_struct_body struct_decls in
+  
+  let lookup_index typ name = match typ with
+    | A.TypVar(st_name) -> 
+      let index_map = StringMap.find st_name struct_indices in
+      StringMap.find name index_map
+    | _ -> raise (Failure "indexing non struct type") 
+    in
+
+  let getnode_func = L.declare_function 
+                     "get_node" 
+                     (L.function_type void_ptr_t [| node_struct_ptr ; i32_t |]) the_module in
+
+  let append_func = L.declare_function 
+                     "append_to_list" 
+                     (L.function_type node_struct_ptr [| node_struct_ptr ; void_ptr_t |]) the_module in
+
+  let malloc_func  = L.declare_function 
+                     "malloc_" 
+                     (L.function_type void_ptr_t [| i32_t |]) the_module in
+  
+  let putchar_struct = (L.declare_global func_struct_ptr "putchar_" the_module) in
+               let _ = L.set_externally_initialized true putchar_struct     in
+  
+  let init_func = L.declare_function
+                  "initialize"
+                  (L.function_type void_t [||]) the_module in 
+
+
 
   (* Declare each global variable; remember its value in a map *)
   let global_vars : L.llvalue StringMap.t =
     let global_var m (t, n) = 
       let init = match t with
           A.Float -> L.const_float (ltype_of_typ t) 0.0
+        | A.Arrow(_,_) -> L.const_null func_struct_ptr
+        | A.TypVar(name) -> L.const_named_struct (ltype_of_typ (A.TypVar name)) [||]
         | _ -> L.const_int (ltype_of_typ t) 0
       in StringMap.add n (L.define_global n init the_module) m in
     List.fold_left global_var StringMap.empty globals in
+  let global_vars = StringMap.add "putChar" putchar_struct global_vars in
   
-  let putchar_t = L.function_type i32_t [| i32_t |] in
-  let putchar_func = L.declare_function "putchar" putchar_t the_module in
-
-  (* Defines a struct with a function pointer which takes and returns an i32 *)
-  let function_struct_name = ((ltype_name (A.Arrow([], [A.Int], A.Void))) ^ "_struct") in 
-  let f_i32_i32_struct = L.named_struct_type context function_struct_name in
-  let f_i32_i32 = (L.function_type i32_t [| (L.pointer_type f_i32_i32_struct); i32_t |]) in
-  L.struct_set_body f_i32_i32_struct [| (L.pointer_type f_i32_i32) |] false;
-  
-  (* Creation of the with closure function *)
-  (* let func = L.declare_function "putchar_with_closure" f_i32_i32 the_module in *)
-  let putchar_with_closure = L.define_function "putchar_with_closure" f_i32_i32 the_module in
-
-
-  let builder_temp = L.builder_at_end context (L.entry_block putchar_with_closure) in
-  let (_, param) = (L.param putchar_with_closure 0, L.param putchar_with_closure 1) in
-  let _ = L.build_call putchar_func [| param |] "we need to put something here" builder_temp in
-
-
-  let _ = L.build_ret (L.const_int i32_t 0) builder_temp in
-
-
-  (* creation of the c call *)
-  
-
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
-   let function_decls : (L.llvalue * sfunc_decl) StringMap.t =
-    let function_decl m fdecl =
-      let name = fdecl.sfname
-      and formal_types = 
-	Array.of_list (List.map (fun (t,_) -> ltype_of_typ t) fdecl.sf)
-      in let ftype = L.function_type (ltype_of_typ fdecl.styp) formal_types in
-      StringMap.add name (L.define_function name ftype the_module, fdecl) m in
-    List.fold_left function_decl StringMap.empty functions in
+  let function_decls =
+    let function_decl m lambda =
+      let name = lambda.sid in
+      let formals_list = 
+        (List.map (fun (t,_) -> ltype_of_typ t) lambda.sformals) in
+      let formals_array = Array.of_list formals_list
+      in let ftype = L.function_type (ltype_of_typ lambda.st) formals_array in
+      StringMap.add name (L.define_function name ftype the_module, lambda) m in
+      List.fold_left function_decl StringMap.empty lambdas in
 
   (* Fill in the body of the given function *)
-  let build_function_body fdecl =
+  let build_function_body lambda =
 
-    let (the_function, _) = StringMap.find fdecl.sfname function_decls in
+    let (the_function, _) = StringMap.find lambda.sid function_decls in
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
-    let _ = L.build_global_stringptr "%d\n" "fmt" builder
-    and _ = L.build_global_stringptr "%g\n" "fmt" builder in
-
+    let _ = if lambda.sid = "main"
+            then ignore(L.build_call init_func [||] "" builder) (* TODO: What is this for? *)
+          (* TODO possibly add another case if lambdas require it *)
+      in
     (* Construct the function's "locals": formal arguments and locally
        declared variables.  Allocate each on the stack, initialize their
        value, if appropriate, and remember their values in the "locals" map *)
     let local_vars =
       let add_formal m (t, n) p = 
         let () = L.set_value_name n p in
-	let local = L.build_alloca (ltype_of_typ t) n builder in
+        let local = L.build_alloca (ltype_of_typ t) n builder in
         let _  = L.build_store p local builder in
-	StringMap.add n local m 
+        StringMap.add n local m
       in
 
       (* Allocate space for any locally declared variables and add the
        * resulting registers to our map *)
       let add_local m (t, n) =
-	let local_var = L.build_alloca (ltype_of_typ t) n builder
-	in StringMap.add n local_var m 
+	    let local_var = L.build_alloca (ltype_of_typ t) n builder
+	      in StringMap.add n local_var m 
       in
 
-      let formals = List.fold_left2 add_formal StringMap.empty fdecl.sf
-          (Array.to_list (L.params the_function)) in
-      (* SHould probably append putChar to the right in code below *)    
-      List.fold_left add_local formals ((A.Arrow([], [A.Int], A.Void), "putChar")::fdecl.sl)
+      let formals = List.fold_left2 add_formal StringMap.empty lambda.sformals 
+                                    (Array.to_list (L.params the_function)) in  
+      List.fold_left add_local formals lambda.slocals
     in
-
+    let closure = 
+      if lambda.sid = "main"
+      then StringMap.empty else
+      let function_ptr = (Array.get (L.params the_function) 0) in
+      (* let function_val = L.build_load function_ptr "function" builder in *)
+      let closure_ptr  = L.build_struct_gep function_ptr 1 "closure_ptr" builder in
+      let loaded_closure_ptr = L.build_load closure_ptr "loaded_closure_ptr" builder in
+      let add_closure (m,i) (t, n) =
+        let void_ptr = L.build_call getnode_func [|loaded_closure_ptr; L.const_int i32_t i|] "node_" builder in
+        let arg_ptr = L.build_pointercast void_ptr (L.pointer_type (ltype_of_typ t)) "arg_ptr" builder in
+        let value = L.build_load arg_ptr "arg" builder in
+      (* let closure_elem = L.build_alloca (ltype_of_typ t) n builder *)
+        (StringMap.add n value m, i + 1)
+    in
+      fst (List.fold_left add_closure (StringMap.empty, 0) lambda.sclosure)
+    in
     (* Return the value for a variable or formal argument. First check
      * locals, then globals *)
-    let lookup n = try StringMap.find n local_vars
-                   with Not_found -> StringMap.find n global_vars
+    let lookup n  = try (StringMap.find n local_vars, true)
+                    with Not_found -> (try (StringMap.find n closure, false)
+                                      with Not_found -> (try (StringMap.find n global_vars, true)
+                                                         with Not_found -> raise (Failure ("Cannot find variable " ^ n))))          
     in
 
-    let ptr = L.build_gep (lookup "putChar") [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in
-    let _ =   L.build_store putchar_with_closure ptr builder in
-
     (* Construct code for an expression; return its value *)
-    let rec expr builder ((typ, e) : sexpr) = match e with
-	      SLiteral i -> L.const_int i32_t i
+    let rec expr builder ((_, e) : sexpr) = match e with
+        SLiteral i -> L.const_int i32_t i
       | SBoolLit b -> L.const_int i1_t (if b then 1 else 0)
       | SFliteral l -> L.const_float_of_string float_t l
       | SNoexpr -> L.const_int i32_t 0
-      | SId s -> (match typ with 
-          A.Arrow(_, _, _) -> (lookup s)
-        | _                -> L.build_load (lookup s) s builder)
-      | SAssign((_, le), rse) -> 
+      | SId s -> (match (lookup s) with
+        | (v, true) -> L.build_load v s builder
+        | (v, false) -> v)
+      | SAssign((t, le), rse) -> 
           (match le with 
-          SId(s)-> let e' = expr builder rse in
-                   let _  = L.build_store e' (lookup s) builder in e'
+          SId(s)-> 
+            let rse' = expr builder rse in
+            let le', _  = (lookup s) in
+            let _ = L.build_store rse' le' builder in expr builder (t, le)
           (* TODO to implement record access where a function can 
              return a record and then get it's field we'll need to 
              incorperate expr builder le somehow as well *)
-          | SRecordAccess(_, _) -> raise (Failure "CodeGen NotImplemented Struct Stuff")
+          | SRecordAccess((ty, exp), field) ->
+            let rse' = expr builder rse in
+            let llstruct = expr builder (ty, exp) in
+            let index = lookup_index ty field in 
+            let mut_struct = L.build_insertvalue llstruct rse' index "mut_struct" builder in 
+            let _ = (L.dump_value mut_struct) in
+            (* TODO: doesnt really assign anything!!! *)
+            mut_struct
           | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
         let (t, _) = e1
@@ -176,7 +216,7 @@ let translate (_, globals, stmts) =
         | A.Add     -> L.build_add
         | A.Sub     -> L.build_sub
         | A.Mult    -> L.build_mul
-              | A.Div     -> L.build_sdiv
+        | A.Div     -> L.build_sdiv
         | A.And     -> L.build_and
         | A.Or      -> L.build_or
         | A.Equal   -> L.build_icmp L.Icmp.Eq
@@ -193,21 +233,58 @@ let translate (_, globals, stmts) =
           A.Neg when t = A.Float -> L.build_fneg 
         | A.Neg                  -> L.build_neg
         | A.Not                  -> L.build_not) e' "tmp" builder
-    (* | SAssignList ((_, _)::_) -> raise (Failure "NotImplemented") *)
-    | SAssignList _ -> raise (Failure "NotImplemented")
-    | SCall (callable, args) -> 
-      let closure = expr builder callable in
-      let ptr = L.build_gep closure [|(L.const_int i32_t 0); (L.const_int i32_t 0)|] "ptr" builder in 
-      let fnc = L.build_load ptr "fnc" builder in
-      L.build_call fnc (Array.of_list (closure::(List.map (expr builder) args))) "result" builder
-    | SRecordAccess(_, _) -> raise (Failure "NotImplemented")
-    | SLambda (_) -> raise (Failure "NotImplemented")
+    | SAssignList (ty, binds) ->
+      let lty = ltype_of_typ ty in
+      let names, values = (List.split binds) in
+      let indices = List.map (lookup_index ty) names in
+      let llvalues = List.map (expr builder) values in
+
+      let sort_fun (_,s1) (_,s2) = s1 - s2 in
+      let order_values_pairs = List.sort sort_fun (List.combine llvalues indices) in
+      let ordered_values = (fst (List.split order_values_pairs)) in
+      let array_of_llvales = Array.of_list ordered_values in
+      
+      (* TODO: build one element at a time perhaps *)
+      let lstruct = L.const_named_struct lty array_of_llvales
+      in lstruct
+    | SCall ((ty, callable), args) -> 
+      let function_struct = expr builder (ty, callable) in
+      (* Extremely worth reading if you're confused about gep https://www.llvm.org/docs/GetElementPtr.html *)
+      let ptr = L.build_struct_gep function_struct 0 "ptr" builder in
+      let func_opq = L.build_load ptr "func_opq" builder in
+      let func =  L.build_pointercast func_opq (ltype_of_func_type ty) "func" builder in
+      (* If the func has a null return type, we can't set it to anything (hence the empty string) *)
+      (match ty with 
+        A.Arrow(_, A.Void) -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "" builder
+      | _              -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder)
+    | SRecordAccess((ty, exp), field) -> 
+      let llstruct = expr builder (ty, exp) in
+      let index = lookup_index ty field in 
+      L.build_extractvalue llstruct index field builder
+    | SLambda (l) -> 
+      let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
+        let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
+        in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b
+        in let opaque_value = L.build_call malloc_func [|size|] "opaque_value" malloc_b
+        in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
+      in let add_argument closure (ty, id) = 
+        let llvalue = expr builder (ty, SId id)
+        in let malloc_arg = malloc (ltype_of_typ ty) builder
+        in let _ = L.build_store llvalue malloc_arg builder
+        in let opaque_arg = L.build_pointercast malloc_arg void_ptr_t "ptr_" builder
+        in L.build_call append_func [|closure; opaque_arg|] "new_closure" builder
+      in let function_struct = malloc func_struct builder 
+      in let closure_struct = L.const_null node_struct_ptr
+      in let full_closure = List.fold_left add_argument closure_struct l.sclosure
+      in let closure_ptr = L.build_struct_gep function_struct 1 "ptr_" builder 
+      in let _ = L.build_store full_closure closure_ptr builder
+      in let func_ptr = L.build_struct_gep function_struct 0 "ptr_" builder 
+      in let func_opaque = L.build_pointercast (fst (StringMap.find l.sid function_decls) )
+                                                func_ptr_t "func_opaque" builder
+      in let _ = L.build_store func_opaque func_ptr builder
+      in function_struct
+
     in
-    
-    (* Each basic block in a program ends with a "terminator" instruction i.e.
-    one that ends the basic block. By definition, these instructions must
-    indicate which basic block comes next -- they typically yield "void" value
-    and produce control flow, not values *)
     (* Invoke "instr builder" if the current block doesn't already
        have a terminator (e.g., a branch). *)
     let add_terminal builder instr =
@@ -225,7 +302,7 @@ let translate (_, globals, stmts) =
         (* Generate code for this expression, return resulting builder *)
       | SExpr e -> let _ = expr builder e in builder 
       | SReturn e -> 
-        let _ = match fdecl.styp with
+        let _ = match lambda.st with
                               (* Special "return nothing" instr *)
                               A.Void -> L.build_ret_void builder 
                               (* Build return statement *)
@@ -292,14 +369,14 @@ let translate (_, globals, stmts) =
     in
 
     (* Build the code for each statement in the function *)
-    let builder = stmt builder (SBlock fdecl.sb) in
+    let builder = stmt builder (SBlock lambda.sbody) in
 
     (* Add a return if the last block falls off the end *)
-    add_terminal builder (match fdecl.styp with
+    add_terminal builder (match lambda.st with
         A.Void -> L.build_ret_void
       | A.Float -> L.build_ret (L.const_float float_t 0.0)
       | t -> L.build_ret (L.const_int (ltype_of_typ t) 0))
   in
 
-  List.iter build_function_body functions;
+  List.iter build_function_body lambdas;
   the_module

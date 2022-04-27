@@ -1,0 +1,5 @@
+Int a;
+
+for (a = 72; a < 78; a = a + 1){
+    putChar(a);
+}

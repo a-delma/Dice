@@ -1,0 +1,10 @@
+lambda () -> Void {
+    Int a;
+    a = 3;
+
+    lambda () -> Void {
+        a = 4;
+    };
+
+    putChar(a);
+};

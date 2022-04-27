@@ -1,0 +1,12 @@
+
+[Int, Int]->Int mod;
+
+//It is an error for divisor to be 0
+mod = lambda(Int dividend, Int divisor) -> Int{
+    Int remainder;
+    Int quotient;
+
+    quotient = dividend / divisor;
+    remainder = dividend - (divisor * quotient);
+    return remainder;
+};

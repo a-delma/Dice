@@ -10,7 +10,8 @@
 %token ARROW STRUCT /* Not sure about precedence or associativity*/
 %token <int> LITERAL
 %token <bool> BLIT
-%token <string> ID FLIT TYPVAR
+%token <string> ID FLIT TYPVAR FILENAME
+%token IMPORT
 %token EOF
 
 
@@ -33,7 +34,15 @@
 
 %%
 program:
-  sdecl_opt vdecl_opt stmt_opt EOF {$1, $2, $3}
+  imports_opt sdecl_opt vdecl_opt stmt_opt EOF {$1, $2, $3, $4}
+
+imports_opt:
+    /* nothing */ { [] }
+  | imports_list  { $1 }
+
+imports_list:
+    IMPORT FILENAME SEMI              { [String.sub $2 1 ((String.length $2) - 2)]     }
+  | imports_list IMPORT FILENAME SEMI { (String.sub $3 1 ((String.length $3) - 2)) :: $1 }
 
 formals_opt:
     /* nothing */ { [] }
@@ -42,14 +51,6 @@ formals_opt:
 formal_list:
     typ ID                   { [($1,$2)]     }
   | formal_list COMMA typ ID { ($3,$4) :: $1 }
-
-typaram_list_opt:
-    /* nothing */ { [] }
-  |  LT typaram_list GT  { $2 }
-
-typaram_list:
-    TYPVAR                    { [$1]     }
-  | typaram_list COMMA TYPVAR { $3 :: $1 }
 
 typ_list:
     /* nothing */      { []       }
@@ -61,10 +62,10 @@ typ:
   | BOOL                             { Bool  }
   | FLOAT                            { Float }
   | VOID                             { Void  }
-  | typaram_list_opt LSQURE typ_list RSQURE ARROW typ
-                                     { Arrow($1, List.rev $3, $6) }
+  | LSQURE typ_list RSQURE ARROW typ
+                                     { Arrow(List.rev $2, $5) }
   | TYPVAR                           { TypVar $1 }
-  | TYPVAR LT typ_list GT            { PolyTyp($1, $3)}
+  // | TYPVAR LT typ_list GT            { PolyTyp($1, $3)}
 
 vdecl_opt:
     /* nothing */ { []          }
@@ -86,7 +87,7 @@ sdecl_list:
   | sdecl            { [$1]     }
 
 sdecl:
-   STRUCT typaram_list_opt TYPVAR LBRACE vdecl_list RBRACE SEMI { ($2, $3, $5) }
+   STRUCT TYPVAR LBRACE vdecl_list RBRACE SEMI { ( $2, $4) }
 
 stmt_opt:
     /* nothing */ { []          }
@@ -99,7 +100,7 @@ stmt_list:
 stmt:
     expr SEMI                               { Expr $1               }
   | RETURN expr_opt SEMI                    { Return $2             }
-  | LBRACE stmt_opt RBRACE                  { Block(List.rev $2)    }
+  | LBRACE stmt_opt RBRACE                  { Block($2)    }
   | IF LPAREN expr RPAREN stmt %prec NOELSE { If($3, $5, Block([])) }
   | IF LPAREN expr RPAREN stmt ELSE stmt    { If($3, $5, $7)        }
   | FOR LPAREN expr_opt SEMI expr SEMI expr_opt RPAREN stmt
@@ -133,10 +134,10 @@ expr:
   | LBRACE assign_list RBRACE {AssignList(List.rev $2)}
   | expr DOT ID      { RecordAccess($1, $3)   } 
   | expr LPAREN args_opt RPAREN
-                     { Call($1, $3)           }
+                     { Call($1, List.rev $3)           }
   | LPAREN expr RPAREN { $2                   }
-  | LAMBDA typaram_list_opt LPAREN formals_opt RPAREN ARROW typ LBRACE vdecl_opt stmt_opt RBRACE
-                     { Lambda({tps=$2; formals=$4; t=$7; locals=$9; body=$10})     }
+  | LAMBDA LPAREN formals_opt RPAREN ARROW typ LBRACE vdecl_opt stmt_opt RBRACE
+                     { Lambda({formals=$3; t=$6; locals=$8; body=$9})     }
 
 assign_list:
     ID COLON expr                   { [($1, $3)]   }

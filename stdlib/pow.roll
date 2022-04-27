@@ -1,0 +1,7 @@
+[Int, Int] -> Int pow;
+pow = lambda (Int base, Int pow) -> Int {
+  if (pow == 0) {
+    return 1;
+  }
+  return base * self(base, pow - 1);
+};
