@@ -30,10 +30,10 @@ printInt = lambda(Int n)->Void{
   }
 };
 
-mantissa = lambda()->Float{
+mantissa = lambda(Float f)->Float{
   //stub
   return 9.234;
-}
+};
 
 //should take a float less than 1.
 printMantissa = lambda(Float f, Int remaining)->Void{
