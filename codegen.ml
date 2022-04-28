@@ -14,7 +14,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
   (* Add types to the context so we can use them in our LLVM code *)
   in let     i32_t      = L.i32_type    context
   in let     i1_t       = L.i1_type     context
-  in let     float_t    = L.double_type context
+  in let     float_t    = L.float_type context
   in let     void_t     = L.void_type   context 
   in let     void_ptr_t = L.pointer_type (L.i8_type context)
   in let     func_ptr_t = L.pointer_type (L.var_arg_function_type void_t [| |])
