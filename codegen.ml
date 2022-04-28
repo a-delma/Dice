@@ -14,7 +14,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
   (* Add types to the context so we can use them in our LLVM code *)
   in let     i32_t      = L.i32_type    context
   in let     i1_t       = L.i1_type     context
-  in let     float_t    = L.double_type context
+  in let     float_t    = L.float_type context
   in let     void_t     = L.void_type   context 
   in let     void_ptr_t = L.pointer_type (L.i8_type context)
   in let     func_ptr_t = L.pointer_type (L.var_arg_function_type void_t [| |])
@@ -80,6 +80,12 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
   
   let putchar_struct = (L.declare_global func_struct_ptr "putchar_" the_module) in
                let _ = L.set_externally_initialized true putchar_struct     in
+
+  let int_to_float_struct = (L.declare_global func_struct_ptr "int_to_float_" the_module) in
+               let _ = L.set_externally_initialized true int_to_float_struct     in
+
+  let float_to_int_struct = (L.declare_global func_struct_ptr "float_to_int_" the_module) in
+               let _ = L.set_externally_initialized true float_to_int_struct     in
   
   let init_func = L.declare_function
                   "initialize"
@@ -99,6 +105,9 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       in StringMap.add n (L.define_global n init_value the_module) m in
     List.fold_left global_var StringMap.empty globals in
   let global_vars = StringMap.add "putChar" putchar_struct global_vars in
+  let global_vars = StringMap.add "intToFloat" int_to_float_struct global_vars in
+  let global_vars = StringMap.add "floatToInt" float_to_int_struct global_vars in
+
   
   (* Define each function (arguments and return type) so we can 
    * define it's body and call it later *)
