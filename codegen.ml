@@ -91,17 +91,18 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
                   "initialize"
                   (L.function_type void_t [||]) the_module in 
 
-
+  let init t = match t with
+    | A.Float -> L.const_float (ltype_of_typ t) 0.0
+    | A.Arrow(_,_) -> L.const_null func_struct_ptr
+    | A.TypVar(name) -> L.const_named_struct (ltype_of_typ (A.TypVar name)) [||]
+    | _ -> L.const_int (ltype_of_typ t) 0
+  in
 
   (* Declare each global variable; remember its value in a map *)
   let global_vars : L.llvalue StringMap.t =
     let global_var m (t, n) = 
-      let init = match t with
-          A.Float -> L.const_float (ltype_of_typ t) 0.0
-        | A.Arrow(_,_) -> L.const_null func_struct_ptr
-        | A.TypVar(name) -> L.const_named_struct (ltype_of_typ (A.TypVar name)) [||]
-        | _ -> L.const_int (ltype_of_typ t) 0
-      in StringMap.add n (L.define_global n init the_module) m in
+      let init_value = init t
+      in StringMap.add n (L.define_global n init_value the_module) m in
     List.fold_left global_var StringMap.empty globals in
   let global_vars = StringMap.add "putChar" putchar_struct global_vars in
   let global_vars = StringMap.add "intToFloat" int_to_float_struct global_vars in
@@ -199,9 +200,12 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
             let llstruct = expr builder (ty, exp) in
             let index = lookup_index ty field in 
             let mut_struct = L.build_insertvalue llstruct rse' index "mut_struct" builder in 
-            let _ = (L.dump_value mut_struct) in
-            (* TODO: doesnt really assign anything!!! *)
-            mut_struct
+            (match exp with 
+              SId(s) -> 
+                let le', _  = (lookup s) in 
+                let _ = L.build_store mut_struct le' builder
+                in rse'
+              | _ -> rse')
           | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
         let (t, _) = e1
@@ -243,18 +247,29 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
         | A.Neg                  -> L.build_neg
         | A.Not                  -> L.build_not) e' "tmp" builder
     | SAssignList (ty, binds) ->
-      let lty = ltype_of_typ ty in
+      let lty = ltype_of_typ ty in (* getting the type of the struct *)
       let names, values = (List.split binds) in
+
+      (* ordering the values to be placed in the struct *)
       let indices = List.map (lookup_index ty) names in
       let llvalues = List.map (expr builder) values in
 
       let sort_fun (_,s1) (_,s2) = s1 - s2 in
       let order_values_pairs = List.sort sort_fun (List.combine llvalues indices) in
-      let ordered_values = (fst (List.split order_values_pairs)) in
-      let array_of_llvales = Array.of_list ordered_values in
+      (* let ordered_values = (fst (List.split order_values_pairs)) in *)
+      
+      (* creating default values to make an empty struct *)
+      let name = match ty with 
+        | A.TypVar (n) -> n
+        | _ -> raise (Failure "Building of non struct type") in
+      let types = (snd (List.split (StringMap.bindings (StringMap.find name struct_decls)))) in
+      let init_values = List.map init types in
+      let array_of_inits = Array.of_list init_values in
       
       (* TODO: build one element at a time perhaps *)
-      let lstruct = L.const_named_struct lty array_of_llvales
+      let init_struct = L.const_named_struct lty array_of_inits in
+      let add_elem acc (value, index) = L.build_insertvalue acc value index "building_struct" builder in
+      let lstruct = List.fold_left add_elem init_struct order_values_pairs
       in lstruct
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in

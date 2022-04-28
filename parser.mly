@@ -63,7 +63,7 @@ typ:
   | FLOAT                            { Float }
   | VOID                             { Void  }
   | LSQURE typ_list RSQURE ARROW typ
-                                     { Arrow($2, $5) }
+                                     { Arrow(List.rev $2, $5) }
   | TYPVAR                           { TypVar $1 }
   // | TYPVAR LT typ_list GT            { PolyTyp($1, $3)}
 

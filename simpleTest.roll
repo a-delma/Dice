@@ -1,0 +1,25 @@
+struct Test1 {
+    Int inner;
+    Bool test;
+};
+
+struct Test4 {
+    Bool test;
+    Int inner;
+};
+
+struct Test2 {
+    Test1 the;
+    Bool man;
+    Test1 went;
+};
+
+Test1 hmm;
+Test2 hmmmmmm;
+Bool hello;
+
+hmm = {test: true, inner: 86};
+hmmmmmm = {man: true, the: {inner: 3, test: false}, went: hmm};
+
+hmm.inner = 90;
+putChar(hmm.inner);
