@@ -1,0 +1,32 @@
+{
+    "name": "dice-extension",
+    "displayName": "Dice Extension",
+    "description": "VSCode support for the Dice Lanugage",
+    "version": "0.0.1",
+    "publisher": "a-delma",
+    "engines": {
+        "vscode": "^1.65.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "dice",
+            "aliases": ["Dice", "dice"],
+            "extensions": [".roll"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "dice",
+            "scopeName": "source.dice",
+            "path": "./syntaxes/dice.tmLanguage.json"
+        }],
+        "snippets": [
+            {
+                "language": "dice",
+                "path": "./snippets/dice.json"
+            }
+        ]
+    }
+}

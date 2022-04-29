@@ -89,8 +89,10 @@ let check (_, struct_decls, globals, stmts) =
   (**** Checking Global Variables ****)
   let globals = [(Arrow([Int], Void),  "putChar" ); 
                  (Arrow([],    Float), "uni"    );
-                 (Arrow([Int], Void),  "set_seed");
-                 (Arrow([Int], Void),  "self")] @ globals in
+                 (Arrow([Int], Void),  "setSeed");
+                 (Arrow([Int], Void),  "self");
+                 (Arrow([Int], Float), "intToFloat");
+                 (Arrow([Float], Int), "floatToInt")] @ globals in
   let globals' = check_binds globals in 
   let global_env = (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
                                   StringMap.empty 
@@ -125,19 +127,24 @@ let check (_, struct_decls, globals, stmts) =
       (* All binary operators require operands of the same type *)
       (* TODO: DO we want to change this? *)
       let same = t1 = t2 in
+      let bothNum = ((t1 = Int)||(t1 = Float))&&((t2 = Int)||(t2 = Float)) in
       (* Determine expression type based on operator and operand types *)
       let ty = match op with
-        Add | Sub | Mult | Div when same && t1 = Int   -> Int
-      | Add | Sub | Mult | Div when same && t1 = Float -> Float
-      | Equal | Neq            when same               -> Bool
-      | Less | Leq | Greater | Geq
-                when same && (t1 = Int || t1 = Float) -> Bool
+        Add | Sub | Mult | Div     when same && t1 = Int -> Int
+      | Add | Sub | Mult | Div     when bothNum          -> Float
+      | Equal | Neq                when same             -> Bool
+      | Less | Leq | Greater | Geq when bothNum          -> Bool
       | And | Or when same && t1 = Bool -> Bool
       | _ -> raise (
         Failure ("Illegal binary operator " ^
                   string_of_typ t1 ^ " " ^ string_of_op op ^ " " ^
-                  string_of_typ t2 ^ " in " ^ string_of_expr e))
-      in (ty, SBinop((t1, e1'), op, (t2, e2')))
+                  string_of_typ t2 ^ " in " ^ string_of_expr e)) in
+          let finalSB = if same
+                        then (ty, SBinop((t1, e1'), op, (t2, e2')))
+                        else if t1 = Int
+                            then (ty, SBinop((Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t1, e1')])), op, (t2, e2')))
+                            else (ty, SBinop((t1, e1'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
+          in finalSB
     | Assign(le, re) -> (match le with 
         Id(s)-> let (lt, _) = expr envs le in
                 let (rt, sx) = expr envs re in 

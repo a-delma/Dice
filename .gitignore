@@ -44,3 +44,6 @@ tests/.lit*
 
 # Menhir:
 parser.conflicts
+*.s
+*.ll
+*.exe

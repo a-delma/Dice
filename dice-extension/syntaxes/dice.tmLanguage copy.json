@@ -1,0 +1,41 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Dice",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#types"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.control.dice",
+				"match": "\\b(if|while|for|return|lambda)\\b"
+			}]
+		},
+		"strings": {
+			"name": "string.quoted.double.dice",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.dice",
+					"match": "\\\\."
+				}
+			]
+		},
+		"types": {
+			"patterns": [{
+				"name": "keyword.control.dice",
+				"match": "\\b(if|while|for|return|lambda)\\b"
+			}]
+		},
+	},
+	"scopeName": "source.dice"
+}

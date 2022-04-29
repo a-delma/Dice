@@ -1,0 +1,21 @@
+{
+    "lambda-funcion" : {
+        "prefix" : "lamb",
+        "body" : [
+            "lambda ($1)->$2  {",
+            "\t$0",
+            "}"
+        ],
+        "description" : "lambda function snippet"
+    },
+
+    "struct" : {
+        "prefix" : "struct",
+        "body" : [
+            "struct $1 {",
+            "\t$0",
+            "};"
+        ],
+        "description" : "struct initialization snippet"
+    }
+}

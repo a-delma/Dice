@@ -21,5 +21,5 @@ Bool hello;
 hmm = {test: true, inner: 86};
 hmmmmmm = {man: true, the: {inner: 3, test: false}, went: hmm};
 
-hmm.test = false;
+hmm.inner = 90;
 putChar(hmm.inner);

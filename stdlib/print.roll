@@ -1,12 +1,18 @@
 import "../stdlib/math.roll"; 
+import "../stdlib/pow.roll"; 
 
 [] -> Void newline;
 [] -> Void dot;
 [Int] -> Void printDigit;
 [Int] -> Void printInt;
+[Float] -> Float mantissa;
+[Float, Int] -> Void printMantissa;
+[Float] -> Void printFloat;
 
-//TODO I think we need to implement float printing in C 
-[Int] -> Void print_float;
+//how many decimal points to print for floats
+Int floatPrecision;
+floatPrecision = 4;
+
 newline = lambda()->Void{ putChar(10); };
 dot = lambda()->Void{ putChar(46); };
 
@@ -22,5 +28,34 @@ printInt = lambda(Int n)->Void{
   } else {
     self(n/10);
     printDigit(mod(n, 10)); 
+  }
+};
+
+mantissa = lambda(Float f)->Float{
+  return (f - floatToInt(f));
+};
+
+//should take a float less than 1.
+printMantissa = lambda(Float f, Int remaining)->Void{
+  if(remaining < 1){
+    //just return 
+  } else {
+    printDigit(floatToInt(f * 10));
+    self(mantissa(f * 10), remaining - 1);
+  }
+};
+
+printFloat = lambda(Float f)->Void{
+  Int m;
+  Int i;
+  m = floatToInt(pow(10, floatPrecision) * mantissa(f) + 0.5);
+  printInt(floatToInt(f));
+  dot();
+  if(m == 0){
+    for(i = 0; i < floatPrecision; i = i + 1){
+      printDigit(0);
+    }
+  } else {
+    printInt(m);
   }
 };

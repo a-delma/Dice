@@ -4,8 +4,19 @@ struct Test1 {
     Int z;
 };
 
-
 Test1 hmm;
+Test1 thing1;
+[Test1] -> [Int] -> Int testFun;
 
-hmm = {test: true, inner: 86, z: 89};
-putChar(hmm.z);
+testFun = lambda (Test1 str) -> [Int] -> Int {
+    return (lambda (Int temp) -> Int {
+        thing1 = str;
+        thing1.z = 56;
+        putChar(thing1.z);
+        return str.inner;
+    }); 
+};
+
+hmm = {test: true, inner: 90, z: 89};
+testFun(hmm)(5);
+putChar(thing1.inner);

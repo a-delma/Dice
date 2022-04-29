@@ -37,10 +37,6 @@ and sstmt =
   | SFor of sexpr * sexpr * sexpr * sstmt
   | SWhile of sexpr * sstmt
 
-type styp = SInt | SBool | SFloat | SVoid
-                 | SArrow of styp list * styp
-                 | STypVar of string
-                 | SStruct of string * styp list
 
 
 (* Pretty-printing functions *)
