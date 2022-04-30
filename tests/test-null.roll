@@ -1,0 +1,37 @@
+
+struct Temp1 {
+  Bool bo;
+};
+Int a;
+[Float]->Bool b;
+Temp1 c;
+
+a = null;
+b = null;
+// c = null;
+
+if(a == null){
+  putChar(48);
+} else {
+  putChar(49);
+}
+
+if(b == null){
+  putChar(48);
+} else {
+  putChar(49);
+}
+
+if(b != null){
+  putChar(48);
+} else {
+  putChar(49);
+}
+
+// TODO make null work with structs.
+// when you uncomment, make sure to add to test-null.out
+// if(c == null){
+//   putChar(48);
+// } else {
+//   putChar(49);
+// }
