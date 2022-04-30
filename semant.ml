@@ -87,24 +87,24 @@ let check (_, struct_decls, globals, stmts) =
   in
 
   (**** Checking Global Variables ****)
-  
-  let globals' = check_binds globals in (* TODO: Add putChar and self to globals BEFORE building global_env *)
-  let global_env = StringMap.add "putChar" (Arrow([Int], Void)) 
-                  (StringMap.add "self"    Void 
-                  (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
+  let globals = [(Arrow([Int], Void),  "putChar" ); 
+                 (Arrow([],    Float), "uni"    );
+                 (Arrow([Int], Void),  "setSeed");
+                 (Arrow([Int], Void),  "self");
+                 (Arrow([Int], Float), "intToFloat");
+                 (Arrow([Float], Void),"printFloat");
+                 (Arrow([Float], Int), "floatToInt")] @ globals in
+  let globals' = check_binds globals in 
+  let global_env = (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
                                   StringMap.empty 
-                                  globals'))
+                                  globals')
   in
-  (* casts *)
-  let global_env = StringMap.add "intToFloat" (Arrow([Int], Float)) global_env in
-  let global_env = StringMap.add "floatToInt" (Arrow([Float], Int)) global_env in
   (* Return a variable from our symbol table *)
   let rec type_of_identifier s envs = match envs with
       (inner::outer) -> (try StringMap.find s inner
                         with Not_found -> type_of_identifier s outer)
     | []             -> raise (Failure ("Undeclared identifier " ^ s))
   in
-  
   (* Return a semantically-checked expression, i.e., with a type *)
   let rec expr envs expression = match expression with
       Literal  l -> (Int, SLiteral l)
@@ -195,12 +195,10 @@ let check (_, struct_decls, globals, stmts) =
       in (field_ty, SRecordAccess ((ev_expr_ty, ev_expr_sx), field))
     | Lambda l         -> 
       let func_type = Arrow(List.map fst l.formals, l.t) in
-      let locals'   = check_binds l.locals @ l.formals in
-      (* TODO: Add "self" to locals BEFORE constructing local_env and check it is not in formals *)
-      let local_env = List.fold_left 
-                      (fun m (ty, name) -> StringMap.add name ty m)
-                      (StringMap.add "self" func_type StringMap.empty)
-                      locals' in (* TODO: Does this concatenation mean we can't check for shadowing? *)
+      let locals'   = check_binds l.locals @ l.formals @ [(func_type, "self")]in
+      let local_env = (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
+                      StringMap.empty 
+                      locals') in (* TODO: Does this concatenation mean we can't check for shadowing? *)
                                  (* TODO: It does. I think we should change LRM to reflect that. *)
       let body      = (match (check_stmt (local_env::envs) (Block l.body)) with
           SBlock(sl) -> sl

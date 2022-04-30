@@ -7,11 +7,11 @@ import "../stdlib/pow.roll";
 [Int] -> Void printInt;
 [Float] -> Float mantissa;
 [Float, Int] -> Void printMantissa;
-[Float] -> Void printFloat;
+//[Float] -> Void printFloat;
 
 //how many decimal points to print for floats
-Int floatPrecision;
-floatPrecision = 4;
+//Int floatPrecision;
+//floatPrecision = 4;
 
 newline = lambda()->Void{ putChar(10); };
 dot = lambda()->Void{ putChar(46); };
@@ -45,7 +45,7 @@ printMantissa = lambda(Float f, Int remaining)->Void{
   }
 };
 
-printFloat = lambda(Float f)->Void{
+/*printFloat = lambda(Float f)->Void{
   Int m;
   Int i;
   m = floatToInt(pow(10, floatPrecision) * mantissa(f) + 0.5);
@@ -58,4 +58,4 @@ printFloat = lambda(Float f)->Void{
   } else {
     printInt(m);
   }
-};
+};*/
