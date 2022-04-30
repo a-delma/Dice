@@ -51,9 +51,27 @@ char* malloc_(int size) {
 
 // Built-in:
 
-int putchar_helper(struct Function_* closure, int c) {
+
+// The implementation of random number generation functions below 
+// (myrand and mysrand) are modified version of corresponding 
+// functions from the Open Group Base Specifications C Documentation
+// (https://pubs.opengroup.org/onlinepubs/9699919799/functions/rand.html)
+static unsigned long next = 1;
+float uni_helper(struct Function_* closure)  {
+    next = next * 1103515245 + 12345;
+    return ((unsigned)(next/65536) % 32768) / 32768.0;
+}
+
+void set_seed_helper(struct Function_* closure, int seed) {
+    next = seed;
+}
+
+void putchar_helper(struct Function_* closure, int c) {
   printf("%c", c);
-  return 0;
+}
+
+void print_float_helper(struct Function_* closure, float f) {
+  printf("%f", f);
 }
 
 float int_to_float_helper(struct Function_* closure, int toCast) {
@@ -64,28 +82,31 @@ int float_to_int_helper(struct Function_* closure, float toCast) {
   return ((int) toCast);
 }
 
-float uni_helper(struct Function_* closure) {
-  return ((float)rand()/(float)(RAND_MAX));
-}
 struct Function_* putchar_;
+struct Function_* print_float_;
 struct Function_* uni_;
+struct Function_* set_seed_;
 struct Function_* int_to_float_;
 struct Function_* float_to_int_;
 
 void initialize(){
-  //putchar init
+  
   putchar_ = (struct Function_*) malloc(sizeof(struct Function_));
   putchar_->closure = NULL;
   putchar_->ptr = (void*) putchar_helper;
 
-  
-  //uni init
-  srand(0);
+  print_float_ = (struct Function_*) malloc(sizeof(struct Function_));
+  print_float_->closure = NULL;
+  print_float_->ptr = (void*) print_float_helper;
+
   uni_ = (struct Function_*) malloc(sizeof(struct Function_));
   uni_->closure = NULL;
   uni_->ptr = (void*) uni_helper;
 
-  //casting init
+  set_seed_ = (struct Function_*) malloc(sizeof(struct Function_));
+  set_seed_->closure = NULL;
+  set_seed_->ptr = (void*) set_seed_helper;
+  
   int_to_float_ = (struct Function_*)malloc(sizeof(struct Function_));
   int_to_float_->closure = NULL;
   int_to_float_->ptr = (void*) int_to_float_helper;

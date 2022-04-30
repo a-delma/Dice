@@ -1,0 +1,37 @@
+import "../stdlib/print.roll";
+
+Float tmp1;
+Float tmp2;
+Int i;
+
+// test that uni generates random numbers based on specified seeds:
+setSeed(1);
+printFloat(uni());
+newline();
+printFloat(uni());
+newline();
+
+// test for another seed:
+setSeed(2);
+printFloat(uni());
+newline();
+printFloat(uni());
+
+// test that setSeed resets uni:
+for (i = 0; i < 1000; i = i + 1) {
+    setSeed(i);
+    tmp1 = uni();
+    setSeed(i);
+    tmp2 = uni();
+    if (tmp1 != tmp2) {
+        putChar(65);
+    }
+}
+
+// test that uni only generates numbers within (0:1] range:
+for (i = 0; i < 1000; i = i + 1) {
+    tmp1 = uni();
+    if ((tmp1 < 0.0) || (tmp1 >= 1.0)) {
+        putChar(65);
+    }
+}
