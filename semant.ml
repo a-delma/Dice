@@ -146,20 +146,31 @@ let check (_, struct_decls, globals, stmts) =
                             then (ty, SBinop((Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t1, e1')])), op, (t2, e2')))
                             else (ty, SBinop((t1, e1'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
           in finalSB
-    | Assign(le, re) -> (match le with 
+    | Assign(le, re) -> 
+    (* (match le with 
         Id(s)-> let (lt, _) = expr envs le in
                 let (rt, sx) = expr envs re in 
                 (* Null AKA Void is allowed to be assigned to any type *)
-                if lt = rt || (rt = Void) 
-                  then (rt, SAssign((lt ,SId(s)), (rt, sx)))
+                let is_not_primitive = function 
+                    Arrow(_,_)  -> true
+                  | TypVar(_)   -> true 
+                  | _           -> false in  
+                if lt = rt || (rt = Void && (is_not_primitive lt))
+                  then (rt, SAssign((lt, SId(s)), (lt, sx)))
                   else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
-        | RecordAccess (_, _) -> 
-          let (lt, lsexper) = expr envs le in
-          let (rt, sx) = expr envs re in
-          (* Null AKA Void is allowed to be assigned to any type *)
-          if lt = rt || (rt = Void) 
-            then (rt, SAssign((lt ,lsexper), (rt, sx)))
-            else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
+        | RecordAccess (_, _) ->  *)
+        (match le with 
+          Id(_) | RecordAccess(_, _) ->
+            let (lt, lsexper) = expr envs le in
+            let (rt, sx) = expr envs re in
+            (* Null AKA Void is allowed to be assigned to any type *)
+            let is_not_primitive = function 
+                    Arrow(_,_)  -> true
+                  | TypVar(_)   -> true 
+                  | _           -> false in  
+            if lt = rt || (rt = Void && (is_not_primitive lt))
+              then (rt, SAssign((lt ,lsexper), (rt, sx)))
+              else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
         | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
     | AssignList(assigns) -> 
       let names, exprs = List.split assigns in
