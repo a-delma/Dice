@@ -1,11 +1,13 @@
 import "../stdlib/print.roll"; 
 
-Int i;
-Int j;
+[]->Void i;
+[Int]->Void j;
 
 i = lambda ()->Void {
   return null;
-}();
+};
+
+i = i();
 
 printBool(i == null);
 

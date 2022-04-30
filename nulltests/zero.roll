@@ -1,0 +1,11 @@
+import "../stdlib/print.roll"; 
+
+Int i;
+Float f;
+Bool b;
+f = 0.0;
+i = 0;
+b = false;
+printBool(i == null);
+printBool(f == null); //TODO fix this
+printBool(b == null);

@@ -1,0 +1,8 @@
+import "../stdlib/print.roll"; 
+
+Int i;
+i = null;
+
+i = i + 3;
+
+printInt(i);
