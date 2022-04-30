@@ -92,6 +92,7 @@ let check (_, struct_decls, globals, stmts) =
                  (Arrow([Int], Void),  "setSeed");
                  (Arrow([Int], Void),  "self");
                  (Arrow([Int], Float), "intToFloat");
+                 (Arrow([Float], Void),"printFloat");
                  (Arrow([Float], Int), "floatToInt")] @ globals in
   let globals' = check_binds globals in 
   let global_env = (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)

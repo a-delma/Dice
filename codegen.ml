@@ -81,6 +81,9 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
   let putchar_struct = (L.declare_global func_struct_ptr "putchar_" the_module) in
                let _ = L.set_externally_initialized true putchar_struct     in
 
+  let print_float_struct = (L.declare_global func_struct_ptr "print_float_" the_module) in
+               let _ = L.set_externally_initialized true print_float_struct in
+
   let uni_struct = (L.declare_global func_struct_ptr "uni_" the_module) in
                let _ = L.set_externally_initialized true uni_struct     in
 
@@ -115,6 +118,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
   let global_vars = StringMap.add "setSeed" set_seed_struct global_vars in
   let global_vars = StringMap.add "intToFloat" int_to_float_struct global_vars in
   let global_vars = StringMap.add "floatToInt" float_to_int_struct global_vars in
+  let global_vars = StringMap.add "printFloat" print_float_struct global_vars in
 
   
   (* Define each function (arguments and return type) so we can 
@@ -165,14 +169,12 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       if lambda.sid = "main"
       then StringMap.empty else
       let function_ptr = (Array.get (L.params the_function) 0) in
-      (* let function_val = L.build_load function_ptr "function" builder in *)
       let closure_ptr  = L.build_struct_gep function_ptr 1 "closure_ptr" builder in
       let loaded_closure_ptr = L.build_load closure_ptr "loaded_closure_ptr" builder in
       let add_closure (m,i) (t, n) =
         let void_ptr = L.build_call getnode_func [|loaded_closure_ptr; L.const_int i32_t i|] "node_" builder in
         let arg_ptr = L.build_pointercast void_ptr (L.pointer_type (ltype_of_typ t)) "arg_ptr" builder in
         let value = L.build_load arg_ptr "arg" builder in
-      (* let closure_elem = L.build_alloca (ltype_of_typ t) n builder *)
         (StringMap.add n value m, i + 1)
     in
       fst (List.fold_left add_closure (StringMap.empty, 0) lambda.sclosure)
