@@ -32,6 +32,8 @@ comp_file: toplevel.native cimport.o
 	llc -relocation-model=pic $(TARGET).ll > $(TARGET).s
 	cc -o $(TARGET).exe $(TARGET).s cimport.o
 
+small : small.ml
+	ocamlbuild -use-ocamlfind small.native
 #################################
 
 clean :

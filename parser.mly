@@ -3,7 +3,7 @@
 %{ open Ast %}
 
 %token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN COLON
-%token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT
+%token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT NULL
 %token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID
 %token LSQURE RSQURE
 %token LAMBDA
@@ -116,6 +116,7 @@ expr:
   | FLIT             { Fliteral($1)           }
   | BLIT             { BoolLit($1)            }
   | ID               { Id($1)                 }
+  | NULL             { Null                   }
   | expr PLUS   expr { Binop($1, Add,   $3)   }
   | expr MINUS  expr { Binop($1, Sub,   $3)   }
   | expr TIMES  expr { Binop($1, Mult,  $3)   }

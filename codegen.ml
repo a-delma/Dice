@@ -187,16 +187,19 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
         | (v, true) -> L.build_load v s builder
         | (v, false) -> v)
       | SAssign((t, le), rse) -> 
+          let rse' = (match (fst rse) with 
+          (* TODO (ezra) worried this may have weird effects in side effecting situations *)
+            A.Void -> let _ = expr builder rse in (L.const_null (ltype_of_typ t))
+          | _      -> expr builder rse) in
           (match le with 
           SId(s)-> 
-            let rse' = expr builder rse in
             let le', _  = (lookup s) in
+            (* TODO include the null case for struct fields as well *)
             let _ = L.build_store rse' le' builder in expr builder (t, le)
           (* TODO to implement record access where a function can 
              return a record and then get it's field we'll need to 
              incorperate expr builder le somehow as well *)
           | SRecordAccess((ty, exp), field) ->
-            let rse' = expr builder rse in
             let llstruct = expr builder (ty, exp) in
             let index = lookup_index ty field in 
             let mut_struct = L.build_insertvalue llstruct rse' index "mut_struct" builder in 
@@ -208,44 +211,51 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
               | _ -> rse')
           | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
-        let (t, _) = e1
+        let (lt, _) = e1
+        and (rt, _) = e2
         and e1' = expr builder e1
         and e2' = expr builder e2 in
-        if t = A.Float then (match op with 
-          A.Add     -> L.build_fadd
-        | A.Sub     -> L.build_fsub
-        | A.Mult    -> L.build_fmul
-        | A.Div     -> L.build_fdiv 
-        | A.Equal   -> L.build_fcmp L.Fcmp.Oeq
-        | A.Neq     -> L.build_fcmp L.Fcmp.One
-        | A.Less    -> L.build_fcmp L.Fcmp.Olt
-        | A.Leq     -> L.build_fcmp L.Fcmp.Ole
-        | A.Greater -> L.build_fcmp L.Fcmp.Ogt
-        | A.Geq     -> L.build_fcmp L.Fcmp.Oge
-        | A.And | A.Or -> raise 
-        (Failure "internal error: semant should have rejected and/or on float")
-            ) e1' e2' "tmp" builder 
-        else (match op with
-        | A.Add     -> L.build_add
-        | A.Sub     -> L.build_sub
-        | A.Mult    -> L.build_mul
-        | A.Div     -> L.build_sdiv
-        | A.And     -> L.build_and
-        | A.Or      -> L.build_or
-        | A.Equal   -> L.build_icmp L.Icmp.Eq
-        | A.Neq     -> L.build_icmp L.Icmp.Ne
-        | A.Less    -> L.build_icmp L.Icmp.Slt
-        | A.Leq     -> L.build_icmp L.Icmp.Sle
-        | A.Greater -> L.build_icmp L.Icmp.Sgt
-        | A.Geq     -> L.build_icmp L.Icmp.Sge
-        ) e1' e2' "tmp" builder
-          | SUnop(op, e) ->
-        let (t, _) = e in
-              let e' = expr builder e in
-        (match op with
-          A.Neg when t = A.Float -> L.build_fneg 
-        | A.Neg                  -> L.build_neg
-        | A.Not                  -> L.build_not) e' "tmp" builder
+          (* TODO implement not equal as well *)
+        (match op with 
+          A.Equal  when lt = A.Void -> L.build_is_null e2' "null_cmp" builder 
+        | A.Neq    when lt = A.Void -> L.build_is_not_null e2' "null_cmp" builder 
+        | A.Equal  when rt = A.Void -> L.build_is_null e1' "null_cmp" builder 
+        | A.Neq    when rt = A.Void -> L.build_is_not_null e1' "null_cmp" builder 
+        | _ -> if lt = A.Float then (match op with 
+              A.Add     -> L.build_fadd
+            | A.Sub     -> L.build_fsub
+            | A.Mult    -> L.build_fmul
+            | A.Div     -> L.build_fdiv 
+            | A.Equal   -> L.build_fcmp L.Fcmp.Oeq
+            | A.Neq     -> L.build_fcmp L.Fcmp.One
+            | A.Less    -> L.build_fcmp L.Fcmp.Olt
+            | A.Leq     -> L.build_fcmp L.Fcmp.Ole
+            | A.Greater -> L.build_fcmp L.Fcmp.Ogt
+            | A.Geq     -> L.build_fcmp L.Fcmp.Oge
+            | A.And | A.Or -> raise 
+            (Failure "internal error: semant should have rejected and/or on float")
+                ) e1' e2' "tmp" builder 
+            else (match op with
+            | A.Add     -> L.build_add
+            | A.Sub     -> L.build_sub
+            | A.Mult    -> L.build_mul
+            | A.Div     -> L.build_sdiv
+            | A.And     -> L.build_and
+            | A.Or      -> L.build_or
+            | A.Equal   -> L.build_icmp L.Icmp.Eq
+            | A.Neq     -> L.build_icmp L.Icmp.Ne
+            | A.Less    -> L.build_icmp L.Icmp.Slt
+            | A.Leq     -> L.build_icmp L.Icmp.Sle
+            | A.Greater -> L.build_icmp L.Icmp.Sgt
+            | A.Geq     -> L.build_icmp L.Icmp.Sge
+            ) e1' e2' "tmp" builder)
+    | SUnop(op, e) ->
+            let (t, _) = e in
+                  let e' = expr builder e in
+            (match op with
+              A.Neg when t = A.Float -> L.build_fneg 
+            | A.Neg                  -> L.build_neg
+            | A.Not                  -> L.build_not) e' "tmp" builder
     | SAssignList (ty, binds) ->
       let lty = ltype_of_typ ty in (* getting the type of the struct *)
       let names, values = (List.split binds) in
@@ -285,6 +295,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       let llstruct = expr builder (ty, exp) in
       let index = lookup_index ty field in 
       L.build_extractvalue llstruct index field builder
+    | SNull -> L.undef void_t
     | SLambda (l) -> 
       let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
         let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
@@ -307,6 +318,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
                                                 func_ptr_t "func_opaque" builder
       in let _ = L.build_store func_opaque func_ptr builder
       in function_struct
+    (* TODO SNoexpr to get rid of pattern matching warning? *)
 
     in
     (* Invoke "instr builder" if the current block doesn't already
