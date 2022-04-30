@@ -7,6 +7,7 @@ import "../stdlib/pow.roll";
 [Int] -> Void printInt;
 [Float] -> Float mantissa;
 [Float, Int] -> Void printMantissa;
+[Bool] -> Void printBool;
 //[Float] -> Void printFloat;
 
 //how many decimal points to print for floats
@@ -42,6 +43,25 @@ printMantissa = lambda(Float f, Int remaining)->Void{
   } else {
     printDigit(floatToInt(f * 10));
     self(mantissa(f * 10), remaining - 1);
+  }
+};
+
+printBool = lambda (Bool b)->Void  {
+  if(b){
+    //Prints "true"
+    putChar(116);
+    putChar(114);
+    putChar(117);
+    putChar(101);
+    newline();
+  } else {
+    //Prints "false"
+    putChar(102);
+    putChar(97);
+    putChar(108);
+    putChar(115);
+    putChar(101);
+    newline();
   }
 };
 

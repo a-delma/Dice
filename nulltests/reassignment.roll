@@ -1,0 +1,13 @@
+import "../stdlib/print.roll"; 
+
+[Int]-> Int i;
+
+i = lambda (Int j)->Int {
+  return 1;
+};
+
+printBool(i == null);
+
+i = null;
+
+printBool(i == null);

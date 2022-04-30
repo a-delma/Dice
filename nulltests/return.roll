@@ -1,0 +1,16 @@
+import "../stdlib/print.roll"; 
+
+Int i;
+Int j;
+
+i = lambda ()->Void {
+  return null;
+}();
+
+printBool(i == null);
+
+j = lambda ()->Void {
+  return;
+}();
+
+printBool(j == null);
