@@ -1,3 +1,4 @@
+import "../stdlib/print.roll";
 
 struct Temp1 {
   Bool bo;
@@ -10,28 +11,10 @@ a = null;
 b = null;
 // c = null;
 
-if(a == null){
-  putChar(48);
-} else {
-  putChar(49);
-}
-
-if(b == null){
-  putChar(48);
-} else {
-  putChar(49);
-}
-
-if(b != null){
-  putChar(48);
-} else {
-  putChar(49);
-}
+printBool(a == null);
+printBool(b == null);
+printBool(b != null);
 
 // TODO make null work with structs.
 // when you uncomment, make sure to add to test-null.out
-// if(c == null){
-//   putChar(48);
-// } else {
-//   putChar(49);
-// }
+//printBool(c == null);
