@@ -5,7 +5,7 @@ struct Howdy {
 };
 
 Howdy doo;
-doo = {i : 3};
+doo = new Howdy{i : 3};
 
 doo = lambda ()->Howdy  {
   return null;
