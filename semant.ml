@@ -237,7 +237,7 @@ let check (_, struct_decls, globals, stmts) =
       in
       if t = func_type then SReturn (t, e') 
       else raise (Failure ("Return yields type " ^ string_of_typ t ^ " while " ^
-                          string_of_typ func_type ^ " expected in " ^ string_of_expr e))
+                          string_of_typ func_type ^ " expected in return " ^ string_of_expr e))
     | Block sl -> 
         let rec check_stmt_list = function
             [Return _ as s] -> [check_stmt envs s]

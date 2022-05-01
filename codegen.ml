@@ -200,7 +200,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
         | (v, false) -> v)
       | SAssign((t, le), rse) -> 
           let rse' = (match (fst rse) with 
-          (* TODO (ezra) worried this may have weird effects in side effecting situations *)
+          (* TODO rework this to actually create the llvm code for the function*)
             A.Void -> let _ = expr builder rse in (L.const_null (ltype_of_typ t))
           | _      -> expr builder rse) in
           (match le with 
@@ -208,9 +208,8 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
             let le', _  = (lookup s) in
             (* TODO include the null case for struct fields as well *)
             let _ = L.build_store rse' le' builder in expr builder (t, le)
-          (* TODO to implement record access where a function can 
-             return a record and then get it's field we'll need to 
-             incorperate expr builder le somehow as well *)
+          (* TODO write a test for a function  
+             returning a record and then get it's field*)
           | SRecordAccess((ty, exp), field) ->
             let llstruct = expr builder (ty, exp) in
             let index = lookup_index ty field in 
@@ -287,12 +286,11 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       let types = (snd (List.split (StringMap.bindings (StringMap.find name struct_decls)))) in
       let init_values = List.map init types in
       let array_of_inits = Array.of_list init_values in
-      
-      (* TODO: build one element at a time perhaps *)
       let init_struct = L.const_named_struct lty array_of_inits in
       let add_elem acc (value, index) = L.build_insertvalue acc value index "building_struct" builder in
       let lstruct = List.fold_left add_elem init_struct order_values_pairs
       in lstruct
+      (* SCall of null should be an error *)
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in
       (* Extremely worth reading if you're confused about gep https://www.llvm.org/docs/GetElementPtr.html *)
