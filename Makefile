@@ -43,9 +43,14 @@ clean :
 	rm -f parser.ml
 	rm -f parser.output
 	rm -rf _build
-	rm -f *.ll
-	rm -f *.s
-	rm -f *.exe
+	rm -f -r */*.ll
+	rm -f -r */*.s
+	rm -f -r */*.exe
 	rm -f testall.log
 	rm -f cimport.o
 
+clean_test:
+	rm -f -r */*.ll
+	rm -f -r */*.s
+	rm -f -r */*.exe
+	rm -f testall.log

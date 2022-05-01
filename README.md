@@ -85,4 +85,22 @@ This is a **positive** test.
 - `test-null.roll` - test comparison of variables with null.
 This is a **positive** test.
 
+- `test-struct-declaration.roll` - test struct declarations.
+This is a **positive** test.
+
+- `test-struct-init.roll` - test for the initialization and assignment of a struct.
+This is a **positive** test.
+
+- `test-struct-access.roll` - test for extracting a field from a struct.
+This is a **positive** test.
+
+- `test-struct-nested` - test for structs that contain other structs. Tests both initialization and access of the inner fields. 
+This is a **positive** test.
+
+- `test-struct-closure` - test to ensure that structs can be stored in the the closure of function call.
+This is a **positive** test.
+
+- `test-struct-return` - test to ensure that structs are returned from functions correctly. 
+This is a **positive** test.
+
 We validate all tests using the modified version of the `testall.sh` file from MicroC (which itself uses diff and checks its output against a golden standard).

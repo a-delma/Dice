@@ -1,0 +1,19 @@
+struct Test1 {
+    Int int1;
+    Bool bool1;
+};
+
+struct Test2 {
+    Test1 str1;
+    Int int2;
+    Test2 rec;
+};
+
+
+[Int] -> Test1 getStr;
+
+getStr = lambda (Int inner)->Test1  {
+    return {int1: inner, bool1: false};
+};
+
+putChar(getStr(90).int1);
