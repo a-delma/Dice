@@ -32,6 +32,7 @@ and expr =
   | Call of expr * expr list
   | RecordAccess of expr * string
   | Lambda of lambda
+  | Null
   | Noexpr
 
 and stmt =
@@ -112,6 +113,7 @@ let rec string_of_expr = function
       String.concat "" (List.map string_of_vdecl l.locals) ^
       String.concat "" (List.map string_of_stmt l.body) ^
       "}"
+  | Null -> "null"
   | Noexpr -> ""
 
 

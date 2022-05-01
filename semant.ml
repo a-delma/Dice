@@ -127,14 +127,14 @@ let check (_, struct_decls, globals, stmts) =
       and (t2, e2') = expr envs e2 in
       (* All binary operators require operands of the same type *)
       (* TODO: DO we want to change this? *)
-      let same = t1 = t2 in
+      let same = t1 = t2 || t2 = Void || t1 = Void in
       let bothNum = ((t1 = Int)||(t1 = Float))&&((t2 = Int)||(t2 = Float)) in
       (* Determine expression type based on operator and operand types *)
       let ty = match op with
-        Add | Sub | Mult | Div     when same && t1 = Int -> Int
-      | Add | Sub | Mult | Div     when bothNum          -> Float
-      | Equal | Neq                when same             -> Bool
-      | Less | Leq | Greater | Geq when bothNum          -> Bool
+        Add | Sub | Mult | Div     when same && t1 = Int       -> Int
+      | Add | Sub | Mult | Div     when bothNum                -> Float
+      | Equal | Neq                when same                   -> Bool
+      | Less | Leq | Greater | Geq when bothNum                -> Bool
       | And | Or when same && t1 = Bool -> Bool
       | _ -> raise (
         Failure ("Illegal binary operator " ^
@@ -149,16 +149,17 @@ let check (_, struct_decls, globals, stmts) =
     | Assign(le, re) -> (match le with 
         Id(s)-> let (lt, _) = expr envs le in
                 let (rt, sx) = expr envs re in 
-                if lt = rt (* TODO: use custom equality function? *) 
+                (* Null AKA Void is allowed to be assigned to any type *)
+                if lt = rt || (rt = Void) 
                   then (rt, SAssign((lt ,SId(s)), (rt, sx)))
                   else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
         | RecordAccess (_, _) -> 
           let (lt, lsexper) = expr envs le in
           let (rt, sx) = expr envs re in
-          if lt = rt (* TODO: use custom equality function? *) 
+          (* Null AKA Void is allowed to be assigned to any type *)
+          if lt = rt || (rt = Void) 
             then (rt, SAssign((lt ,lsexper), (rt, sx)))
             else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
-          (* (ltyp, SAssign((ltyp, lsexper), (ltyp, lsexper))) *)
         | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
     | AssignList(assigns) -> 
       let names, exprs = List.split assigns in
@@ -211,6 +212,7 @@ let check (_, struct_decls, globals, stmts) =
                     slocals=l.locals; 
                     sclosure=closure_stmt (local_env::envs) (SBlock (body)); 
                     sbody=body}))
+    | Null           -> (Void, SNull)
     | Noexpr         -> (Void, SNoexpr)
 
   and check_bool_expr envs e = 
@@ -235,7 +237,7 @@ let check (_, struct_decls, globals, stmts) =
       in
       if t = func_type then SReturn (t, e') 
       else raise (Failure ("Return yields type " ^ string_of_typ t ^ " while " ^
-                          string_of_typ func_type ^ " expected in " ^ string_of_expr e))
+                          string_of_typ func_type ^ " expected in return " ^ string_of_expr e))
     | Block sl -> 
         let rec check_stmt_list = function
             [Return _ as s] -> [check_stmt envs s]

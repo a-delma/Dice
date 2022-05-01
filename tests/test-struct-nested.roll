@@ -1,0 +1,20 @@
+struct Test1 {
+    Int int1;
+    Bool bool1;
+};
+
+struct Test2 {
+    Test1 str1;
+    Int int2;
+};
+
+
+Test1 str1;
+Test2 str2;
+
+str1 = {int1: 90, bool1: false};
+str2 = {str1: str1, int2: 89};
+putChar(str2.str1.int1);
+
+str2 = {int2: 88, str1: {int1: 97, bool1: true}};
+putChar(str2.str1.int1);

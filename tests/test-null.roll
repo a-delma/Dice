@@ -1,0 +1,20 @@
+import "../stdlib/print.roll";
+
+struct Temp1 {
+  Bool bo;
+};
+Int a;
+[Float]->Bool b;
+Temp1 c;
+
+a = null;
+b = null;
+// c = null;
+
+printBool(a == null);
+printBool(b == null);
+printBool(b != null);
+
+// TODO make null work with structs.
+// when you uncomment, make sure to add to test-null.out
+//printBool(c == null);

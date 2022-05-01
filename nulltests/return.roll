@@ -1,0 +1,18 @@
+import "../stdlib/print.roll"; 
+
+[]->Void i;
+[Int]->Void j;
+
+i = lambda ()->Void {
+  return null;
+};
+
+i = i();
+
+printBool(i == null);
+
+j = lambda ()->Void {
+  return;
+}();
+
+printBool(j == null);

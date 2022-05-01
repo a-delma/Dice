@@ -40,7 +40,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
     | A.Float -> float_t
     | A.Void  -> void_t
     | A.Arrow(_) -> func_struct_ptr
-    | A.TypVar (name) -> try StringMap.find name struct_dict
+    | A.TypVar (name) -> try L.pointer_type (StringMap.find name struct_dict)
       with _ -> raise (Failure (name ^ " is not a valid struct type"))
     in    
 
@@ -169,12 +169,14 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       if lambda.sid = "main"
       then StringMap.empty else
       let function_ptr = (Array.get (L.params the_function) 0) in
+      (* let function_val = L.build_load function_ptr "function" builder in *)
       let closure_ptr  = L.build_struct_gep function_ptr 1 "closure_ptr" builder in
       let loaded_closure_ptr = L.build_load closure_ptr "loaded_closure_ptr" builder in
       let add_closure (m,i) (t, n) =
         let void_ptr = L.build_call getnode_func [|loaded_closure_ptr; L.const_int i32_t i|] "node_" builder in
         let arg_ptr = L.build_pointercast void_ptr (L.pointer_type (ltype_of_typ t)) "arg_ptr" builder in
         let value = L.build_load arg_ptr "arg" builder in
+      (* let closure_elem = L.build_alloca (ltype_of_typ t) n builder *)
         (StringMap.add n value m, i + 1)
     in
       fst (List.fold_left add_closure (StringMap.empty, 0) lambda.sclosure)
@@ -187,6 +189,12 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
                                                          with Not_found -> raise (Failure ("Cannot find variable " ^ n))))          
     in
 
+    let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
+        let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
+        in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b
+        in let opaque_value = L.build_call malloc_func [|size|] "opaque_value" malloc_b
+        in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
+    in
     (* Construct code for an expression; return its value *)
     let rec expr builder ((_, e) : sexpr) = match e with
         SLiteral i -> L.const_int i32_t i
@@ -197,67 +205,71 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
         | (v, true) -> L.build_load v s builder
         | (v, false) -> v)
       | SAssign((t, le), rse) -> 
+          let rse' = (match (fst rse) with 
+          (* TODO rework this to actually create the llvm code for the function*)
+            A.Void -> let _ = expr builder rse in (L.const_null (ltype_of_typ t))
+          | _      -> expr builder rse) in
           (match le with 
           SId(s)-> 
-            let rse' = expr builder rse in
             let le', _  = (lookup s) in
+            (* TODO include the null case for struct fields as well *)
             let _ = L.build_store rse' le' builder in expr builder (t, le)
-          (* TODO to implement record access where a function can 
-             return a record and then get it's field we'll need to 
-             incorperate expr builder le somehow as well *)
           | SRecordAccess((ty, exp), field) ->
-            let rse' = expr builder rse in
             let llstruct = expr builder (ty, exp) in
-            let index = lookup_index ty field in 
-            let mut_struct = L.build_insertvalue llstruct rse' index "mut_struct" builder in 
-            (match exp with 
-              SId(s) -> 
-                let le', _  = (lookup s) in 
-                let _ = L.build_store mut_struct le' builder
-                in rse'
-              | _ -> rse')
+            let index = lookup_index ty field in
+            let elm_ptr = L.build_struct_gep llstruct index (field ^ "_ptr") builder in
+            let _ = L.build_store rse' elm_ptr builder in
+            rse'
           | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
-        let (t, _) = e1
+        let (lt, _) = e1
+        and (rt, _) = e2
         and e1' = expr builder e1
         and e2' = expr builder e2 in
-        if t = A.Float then (match op with 
-          A.Add     -> L.build_fadd
-        | A.Sub     -> L.build_fsub
-        | A.Mult    -> L.build_fmul
-        | A.Div     -> L.build_fdiv 
-        | A.Equal   -> L.build_fcmp L.Fcmp.Oeq
-        | A.Neq     -> L.build_fcmp L.Fcmp.One
-        | A.Less    -> L.build_fcmp L.Fcmp.Olt
-        | A.Leq     -> L.build_fcmp L.Fcmp.Ole
-        | A.Greater -> L.build_fcmp L.Fcmp.Ogt
-        | A.Geq     -> L.build_fcmp L.Fcmp.Oge
-        | A.And | A.Or -> raise 
-        (Failure "internal error: semant should have rejected and/or on float")
-            ) e1' e2' "tmp" builder 
-        else (match op with
-        | A.Add     -> L.build_add
-        | A.Sub     -> L.build_sub
-        | A.Mult    -> L.build_mul
-        | A.Div     -> L.build_sdiv
-        | A.And     -> L.build_and
-        | A.Or      -> L.build_or
-        | A.Equal   -> L.build_icmp L.Icmp.Eq
-        | A.Neq     -> L.build_icmp L.Icmp.Ne
-        | A.Less    -> L.build_icmp L.Icmp.Slt
-        | A.Leq     -> L.build_icmp L.Icmp.Sle
-        | A.Greater -> L.build_icmp L.Icmp.Sgt
-        | A.Geq     -> L.build_icmp L.Icmp.Sge
-        ) e1' e2' "tmp" builder
-          | SUnop(op, e) ->
-        let (t, _) = e in
-              let e' = expr builder e in
-        (match op with
-          A.Neg when t = A.Float -> L.build_fneg 
-        | A.Neg                  -> L.build_neg
-        | A.Not                  -> L.build_not) e' "tmp" builder
+          (* TODO implement not equal as well *)
+        (match op with 
+          A.Equal  when lt = A.Void -> L.build_is_null e2' "null_cmp" builder 
+        | A.Neq    when lt = A.Void -> L.build_is_not_null e2' "null_cmp" builder 
+        | A.Equal  when rt = A.Void -> L.build_is_null e1' "null_cmp" builder 
+        | A.Neq    when rt = A.Void -> L.build_is_not_null e1' "null_cmp" builder 
+        | _ -> if lt = A.Float then (match op with 
+              A.Add     -> L.build_fadd
+            | A.Sub     -> L.build_fsub
+            | A.Mult    -> L.build_fmul
+            | A.Div     -> L.build_fdiv 
+            | A.Equal   -> L.build_fcmp L.Fcmp.Oeq
+            | A.Neq     -> L.build_fcmp L.Fcmp.One
+            | A.Less    -> L.build_fcmp L.Fcmp.Olt
+            | A.Leq     -> L.build_fcmp L.Fcmp.Ole
+            | A.Greater -> L.build_fcmp L.Fcmp.Ogt
+            | A.Geq     -> L.build_fcmp L.Fcmp.Oge
+            | A.And | A.Or -> raise 
+            (Failure "internal error: semant should have rejected and/or on float")
+                ) e1' e2' "tmp" builder 
+            else (match op with
+            | A.Add     -> L.build_add
+            | A.Sub     -> L.build_sub
+            | A.Mult    -> L.build_mul
+            | A.Div     -> L.build_sdiv
+            | A.And     -> L.build_and
+            | A.Or      -> L.build_or
+            | A.Equal   -> L.build_icmp L.Icmp.Eq
+            | A.Neq     -> L.build_icmp L.Icmp.Ne
+            | A.Less    -> L.build_icmp L.Icmp.Slt
+            | A.Leq     -> L.build_icmp L.Icmp.Sle
+            | A.Greater -> L.build_icmp L.Icmp.Sgt
+            | A.Geq     -> L.build_icmp L.Icmp.Sge
+            ) e1' e2' "tmp" builder)
+    | SUnop(op, e) ->
+            let (t, _) = e in
+                  let e' = expr builder e in
+            (match op with
+              A.Neg when t = A.Float -> L.build_fneg 
+            | A.Neg                  -> L.build_neg
+            | A.Not                  -> L.build_not) e' "tmp" builder
     | SAssignList (ty, binds) ->
-      let lty = ltype_of_typ ty in (* getting the type of the struct *)
+      let pty = ltype_of_typ ty in
+      let lty = L.element_type pty in (* getting the type of the struct *)
       let names, values = (List.split binds) in
 
       (* ordering the values to be placed in the struct *)
@@ -275,12 +287,13 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       let types = (snd (List.split (StringMap.bindings (StringMap.find name struct_decls)))) in
       let init_values = List.map init types in
       let array_of_inits = Array.of_list init_values in
-      
-      (* TODO: build one element at a time perhaps *)
       let init_struct = L.const_named_struct lty array_of_inits in
       let add_elem acc (value, index) = L.build_insertvalue acc value index "building_struct" builder in
-      let lstruct = List.fold_left add_elem init_struct order_values_pairs
-      in lstruct
+      let lstruct = List.fold_left add_elem init_struct order_values_pairs in
+      let str_ptr = malloc lty builder in
+      let _ = L.build_store lstruct str_ptr builder in
+      str_ptr
+      (* SCall of null should be an error *)
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in
       (* Extremely worth reading if you're confused about gep https://www.llvm.org/docs/GetElementPtr.html *)
@@ -294,14 +307,11 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
     | SRecordAccess((ty, exp), field) -> 
       let llstruct = expr builder (ty, exp) in
       let index = lookup_index ty field in 
-      L.build_extractvalue llstruct index field builder
+      let elm_ptr = L.build_struct_gep llstruct index field builder 
+      in L.build_load elm_ptr field builder
+    | SNull -> L.undef void_t
     | SLambda (l) -> 
-      let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
-        let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
-        in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b
-        in let opaque_value = L.build_call malloc_func [|size|] "opaque_value" malloc_b
-        in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
-      in let add_argument closure (ty, id) = 
+      let add_argument closure (ty, id) = 
         let llvalue = expr builder (ty, SId id)
         in let malloc_arg = malloc (ltype_of_typ ty) builder
         in let _ = L.build_store llvalue malloc_arg builder
@@ -317,6 +327,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
                                                 func_ptr_t "func_opaque" builder
       in let _ = L.build_store func_opaque func_ptr builder
       in function_struct
+    (* TODO SNoexpr to get rid of pattern matching warning? *)
 
     in
     (* Invoke "instr builder" if the current block doesn't already
