@@ -1,0 +1,13 @@
+import "../stdlib/print.roll"; 
+
+struct Howdy {
+  Int i;
+};
+
+Howdy doo;
+
+
+printBool(doo.i == null);
+
+doo.i = 3;
+printBool(doo.i == null);
