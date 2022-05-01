@@ -20,6 +20,6 @@ let check_for_return (sl : sLambda) =
       A.Void -> true
     | _    -> if fold_tree_with_stmt is_return (fun _ -> false) (||) false false (SBlock sl.sbody) 
               then true
-              else raise (Failure ("Expected return in " ^ sl.sid ^ " but found none.")))
+              else raise (Failure ("Not every path returns a value in " ^ sl.sid)))
             
 let return_pass (sls : sLambda list) = List.fold_right (fun l acc -> (check_for_return l) && acc) sls true
