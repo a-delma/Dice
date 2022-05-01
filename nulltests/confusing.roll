@@ -1,0 +1,10 @@
+lambda ()->[]->Void { 
+  if(5 > 2){
+    return lambda ()->Void {};
+    
+  } else {
+    //only errors when return types differ in branches of
+    // an if statement - why?
+    return null;
+  }
+};

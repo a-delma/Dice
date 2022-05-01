@@ -1,13 +1,10 @@
 import "../stdlib/print.roll"; 
 
 struct Howdy {
-  Int i;
+  []->Void i;
 };
 
 Howdy doo;
 
-
-printBool(doo.i == null);
-
-doo.i = 3;
+doo = {i : null};
 printBool(doo.i == null);
