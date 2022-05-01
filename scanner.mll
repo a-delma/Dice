@@ -49,6 +49,7 @@ rule token = parse
 | "lambda" { LAMBDA }
 | "import" { IMPORT }
 | "null"   { NULL }
+| "new"    { NEW }
 | digits as lxm { LITERAL(int_of_string lxm) }
 | digits '.'  digit* as lxm { FLIT(lxm) }
 | ['a'-'z']['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm { ID(lxm) }

@@ -1,0 +1,12 @@
+import "../stdlib/print.roll"; 
+
+[Int] -> Void  a;
+[Int] -> Void  b;
+
+a = b = printInt;
+a = b = null;
+
+printBool(a == null);
+printBool(b == null);
+printBool(a != null);
+printBool(b != null);

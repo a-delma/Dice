@@ -1,0 +1,29 @@
+import "../stdlib/print.roll";
+
+struct BoolList {
+  Bool b;
+  BoolList l;
+};
+
+BoolList l;
+
+l = null;
+
+printBool(l == null);
+printBool(l != null);
+
+l = new BoolList{b:true, l:null};
+
+printBool(l != null);
+printBool(l == null);
+printBool(l.l == null);
+printBool(l.l != null);
+
+l.l = new BoolList{b:false, l:null};
+
+printBool(l != null);
+printBool(l == null);
+printBool(l.l != null);
+printBool(l.l == null);
+printBool(l.l.l == null);
+printBool(l.l.l != null);

@@ -1,8 +1,0 @@
-
-//TODO how do we check for this with a .err file?
-
-[Int]->Int i;
-
-i = null;
-
-i(3);

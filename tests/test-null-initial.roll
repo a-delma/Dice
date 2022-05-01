@@ -1,0 +1,14 @@
+import "../stdlib/print.roll"; 
+
+struct Test {
+    Int int;
+};
+
+Test t;
+[Bool] -> Float f;
+
+
+printBool(t == null); 
+printBool(f == null); 
+printBool(t != null); 
+printBool(f != null); 

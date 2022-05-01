@@ -67,24 +67,19 @@ let check (_, struct_decls, globals, stmts) =
       new_indices 
     in StringMap.map map_func struct_env in
 
-    (* Takes in a list of type (string * type) and returns the first struct
-       with the matching (string -> type) bindings *)
-    let struct_from_list binds =
-      (* converts the assignment list into a stringmap *)
-      let bind_map = List.fold_left 
-        (fun env (name, typ) -> StringMap.add name typ env)  StringMap.empty binds in
-      (* Function to compare each struct with the given struct *)
-      let comp _ types = StringMap.equal (=) bind_map types in
-      let filtered_structs = StringMap.filter comp struct_env in
-        (* If there were no structs that matched, it will fail *)
-        if StringMap.cardinal filtered_structs = 0
-          then
-            let string_of_bind (name, typ) = (string_of_typ typ) ^ " " ^ name ^ "" in
-            let msg = String.concat ", " (List.map string_of_bind binds)in
-            raise (Failure ("No struct with types: " ^ msg))
-        else 
-      TypVar (fst (StringMap.find_first (fun _ -> true) filtered_structs))
+  let lookup_field_type typ name = match typ with 
+      TypVar(typname) -> 
+        let binds = (try StringMap.find typname struct_env 
+                      with _ -> raise (Failure ("Undefined struct " ^ typname)))
+        in (try StringMap.find name binds 
+            with _ -> raise (Failure ("Struct " ^ typname ^ " does not have field " ^ name))) 
+    | _ -> raise (Failure ("Type " ^ string_of_typ typ ^ " is not a struct type"))
   in
+
+  let is_not_primitive = function 
+                  Arrow(_,_)  -> true
+                | TypVar(_)   -> true 
+                | _           -> false in  
 
   (**** Checking Global Variables ****)
   let globals = [(Arrow([Int], Void),  "putChar" ); 
@@ -125,16 +120,15 @@ let check (_, struct_decls, globals, stmts) =
     | Binop(e1, op, e2) as e -> 
       let (t1, e1') = expr envs e1 
       and (t2, e2') = expr envs e2 in
-      (* All binary operators require operands of the same type *)
-      (* TODO: DO we want to change this? *)
-      let same = t1 = t2 || t2 = Void || t1 = Void in
+      let nullComparison = (t1 = Void && is_not_primitive t2) || (t2 = Void && is_not_primitive t1) in
+      let same = t1 = t2 && t1 != Void in
       let bothNum = ((t1 = Int)||(t1 = Float))&&((t2 = Int)||(t2 = Float)) in
       (* Determine expression type based on operator and operand types *)
       let ty = match op with
-        Add | Sub | Mult | Div     when same && t1 = Int       -> Int
-      | Add | Sub | Mult | Div     when bothNum                -> Float
-      | Equal | Neq                when same                   -> Bool
-      | Less | Leq | Greater | Geq when bothNum                -> Bool
+        Add | Sub | Mult | Div     when same && t1 = Int                       -> Int
+      | Add | Sub | Mult | Div     when bothNum                                -> Float
+      | Equal | Neq                when same || bothNum || nullComparison      -> Bool
+      | Less | Leq | Greater | Geq when bothNum                                -> Bool
       | And | Or when same && t1 = Bool -> Bool
       | _ -> raise (
         Failure ("Illegal binary operator " ^
@@ -142,37 +136,50 @@ let check (_, struct_decls, globals, stmts) =
                   string_of_typ t2 ^ " in " ^ string_of_expr e)) in
           let finalSB = if same
                         then (ty, SBinop((t1, e1'), op, (t2, e2')))
+                        else if nullComparison
+                            then if t1 = Void
+                            then (ty, SBinop((t2, SNullPointerCast(t2, (Void, e1'))), op, (t2, e2')))
+                            else (ty, SBinop((t1, e1'), op, (t1, SNullPointerCast(t1, (Void, e2')))))
                         else if t1 = Int
                             then (ty, SBinop((Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t1, e1')])), op, (t2, e2')))
                             else (ty, SBinop((t1, e1'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
           in finalSB
     | Assign(le, re) -> (match le with 
-        Id(s)-> let (lt, _) = expr envs le in
-                let (rt, sx) = expr envs re in 
-                (* Null AKA Void is allowed to be assigned to any type *)
-                if lt = rt || (rt = Void) 
-                  then (rt, SAssign((lt ,SId(s)), (rt, sx)))
-                  else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
-        | RecordAccess (_, _) -> 
-          let (lt, lsexper) = expr envs le in
-          let (rt, sx) = expr envs re in
-          (* Null AKA Void is allowed to be assigned to any type *)
-          if lt = rt || (rt = Void) 
-            then (rt, SAssign((lt ,lsexper), (rt, sx)))
+        Id(_) | RecordAccess(_, _) ->
+          let (lt, lse) = expr envs le in
+          let (rt, rse) = expr envs re in
+          if lt = rt
+            then (rt, SAssign((lt ,lse), (rt, rse)))
+            else if (rt = Void && (is_not_primitive lt))
+            then (rt, SAssign((lt ,lse), (lt, SNullPointerCast(lt, (rt, rse)))))
             else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
-        | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
-    | AssignList(assigns) -> 
-      let names, exprs = List.split assigns in
-      let sexpers = List.map (expr envs) exprs in
-      let typ = struct_from_list (List.combine names (List.map fst sexpers)) in
-      (typ, SAssignList(typ, (List.combine names sexpers)))  
+      | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
+    | AssignList(typ, assigns) -> 
+      let get_checked_bind = function 
+        (name, e) -> let (sexpr_type, sx) as sexpr = expr envs e in
+                     let field_type = lookup_field_type typ name in
+                     if (field_type = sexpr_type)
+                     then (name, sexpr)
+                     else if (sexpr_type = Void && is_not_primitive field_type) 
+                     then (name, (field_type, SNullPointerCast(field_type, (sexpr_type, sx))))
+                     else raise (Failure ("Field " ^ name ^ " of type " ^ 
+                                          string_of_typ typ ^ " has type " ^ 
+                                          string_of_typ field_type ^ " but expression " ^ 
+                                          string_of_expr e ^ " has type " ^ 
+                                          string_of_typ sexpr_type)) 
+      in let sbinds = List.map get_checked_bind assigns
+      in (typ, SAssignList(typ, sbinds)) 
     | Call(callable, args) as call -> 
       let (func_type, callable') = expr envs callable in
       let check_arg param_type arg = 
         let (arg_type, arg') = expr envs arg in 
-        if (param_type = arg_type) then (arg_type, arg') else (* TODO: use custom equality function? *) 
-          raise (Failure ("Illegal argument found " ^ string_of_typ arg_type ^
-          " expected " ^ string_of_typ param_type  ^ " in " ^ string_of_expr arg))
+        if (param_type = arg_type) 
+        then (arg_type, arg') 
+        else if (arg_type = Void && is_not_primitive param_type)
+        then (param_type, SNullPointerCast(param_type, (arg_type, arg')))  
+        else raise (Failure ("Illegal argument found " ^ string_of_typ arg_type ^
+                             " expected " ^ string_of_typ param_type  ^ " in " ^ 
+                             string_of_expr arg))
       in 
       (match func_type with
         Arrow((param_types, return_type)) ->
@@ -235,7 +242,10 @@ let check (_, struct_decls, globals, stmts) =
         Arrow(_, return_type) -> return_type
       | _ -> raise (Failure "Return in nonfunction-type")
       in
-      if t = func_type then SReturn (t, e') 
+      if t = func_type 
+      then SReturn (t, e') 
+      else if (t = Void && is_not_primitive func_type)
+      then SReturn (func_type, SNullPointerCast(func_type, (t, e')))
       else raise (Failure ("Return yields type " ^ string_of_typ t ^ " while " ^
                           string_of_typ func_type ^ " expected in return " ^ string_of_expr e))
     | Block sl -> 

@@ -28,7 +28,7 @@ and expr =
   | Binop of expr * op * expr
   | Unop of uop * expr
   | Assign of expr * expr
-  | AssignList of (string * expr) list
+  | AssignList of typ * ((string * expr) list)
   | Call of expr * expr list
   | RecordAccess of expr * string
   | Lambda of lambda
@@ -102,7 +102,7 @@ let rec string_of_expr = function
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
   | Unop(o, e) -> string_of_uop o ^ string_of_expr e
   | Assign(e1, e2) -> string_of_expr e1 ^ " = " ^ string_of_expr e2
-  | AssignList(l) -> "{" ^
+  | AssignList(t, l) -> string_of_typ t ^ "{" ^
       String.concat ", " (List.map string_of_field_assign l) ^ "}"
   | Call(e1, e2) ->
       string_of_expr e1 ^ "(" ^ String.concat ", " (List.map string_of_expr e2) ^ ")"

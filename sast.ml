@@ -28,6 +28,7 @@ and sx =
   | SRecordAccess of sexpr * string
   | SLambda of sLambda
   | SNull
+  | SNullPointerCast of typ * sexpr
   | SNoexpr
 
 and sstmt =
@@ -65,6 +66,7 @@ let rec string_of_sexpr(sexpression) = match (snd sexpression) with
       String.concat "" (List.map string_of_vdecl l.sclosure) ^
       "}"
   | SNull -> "null"
+  | SNullPointerCast (_, e) -> string_of_sexpr e
   | SNoexpr -> ""
 
 

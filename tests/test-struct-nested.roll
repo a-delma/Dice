@@ -12,9 +12,9 @@ struct Test2 {
 Test1 str1;
 Test2 str2;
 
-str1 = {int1: 90, bool1: false};
-str2 = {str1: str1, int2: 89};
+str1 = new Test1{int1: 90, bool1: false};
+str2 = new Test2{str1: str1, int2: 89};
 putChar(str2.str1.int1);
 
-str2 = {int2: 88, str1: {int1: 97, bool1: true}};
+str2 = new Test2{int2: 88, str1: new Test1{int1: 97, bool1: true}};
 putChar(str2.str1.int1);

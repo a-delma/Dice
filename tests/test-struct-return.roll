@@ -13,7 +13,7 @@ struct Test2 {
 [Int] -> Test1 getStr;
 
 getStr = lambda (Int inner)->Test1  {
-    return {int1: inner, bool1: false};
+    return new Test1{int1: inner, bool1: false};
 };
 
 putChar(getStr(90).int1);

@@ -4,7 +4,7 @@
 
 %token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN COLON
 %token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT NULL
-%token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID
+%token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID NEW
 %token LSQURE RSQURE
 %token LAMBDA
 %token ARROW STRUCT /* Not sure about precedence or associativity*/
@@ -132,7 +132,7 @@ expr:
   | MINUS expr %prec NOT { Unop(Neg, $2)      }
   | NOT expr         { Unop(Not, $2)          }
   | expr ASSIGN expr { Assign($1, $3)         }
-  | LBRACE assign_list RBRACE {AssignList(List.rev $2)}
+  | NEW typ LBRACE assign_list RBRACE {AssignList($2, List.rev $4)}
   | expr DOT ID      { RecordAccess($1, $3)   } 
   | expr LPAREN args_opt RPAREN
                      { Call($1, List.rev $3)           }

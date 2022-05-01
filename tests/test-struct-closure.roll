@@ -17,6 +17,6 @@ testFun = lambda (Test1 str) -> [Int] -> Int {
     }); 
 };
 
-hmm = {test: true, inner: 90, z: 89};
+hmm = new Test1{test: true, inner: 90, z: 89};
 testFun(hmm)(5);
 putChar(thing1.inner);
