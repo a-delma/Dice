@@ -1,0 +1,14 @@
+import "../stdlib/print.roll"; 
+
+struct Howdy {
+  Int i;
+};
+
+Howdy doo;
+doo = {i : 3};
+
+doo = lambda ()->Howdy  {
+  return null;
+}();
+
+printBool(doo == null);
