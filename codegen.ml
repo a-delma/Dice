@@ -40,7 +40,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
     | A.Float -> float_t
     | A.Void  -> void_t
     | A.Arrow(_) -> func_struct_ptr
-    | A.TypVar (name) -> try StringMap.find name struct_dict
+    | A.TypVar (name) -> try L.pointer_type (StringMap.find name struct_dict)
       with _ -> raise (Failure (name ^ " is not a valid struct type"))
     in    
 
@@ -189,6 +189,12 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
                                                          with Not_found -> raise (Failure ("Cannot find variable " ^ n))))          
     in
 
+    let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
+        let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
+        in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b
+        in let opaque_value = L.build_call malloc_func [|size|] "opaque_value" malloc_b
+        in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
+    in
     (* Construct code for an expression; return its value *)
     let rec expr builder ((_, e) : sexpr) = match e with
         SLiteral i -> L.const_int i32_t i
@@ -208,18 +214,12 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
             let le', _  = (lookup s) in
             (* TODO include the null case for struct fields as well *)
             let _ = L.build_store rse' le' builder in expr builder (t, le)
-          (* TODO write a test for a function  
-             returning a record and then get it's field*)
           | SRecordAccess((ty, exp), field) ->
             let llstruct = expr builder (ty, exp) in
-            let index = lookup_index ty field in 
-            let mut_struct = L.build_insertvalue llstruct rse' index "mut_struct" builder in 
-            (match exp with 
-              SId(s) -> 
-                let le', _  = (lookup s) in 
-                let _ = L.build_store mut_struct le' builder
-                in rse'
-              | _ -> rse')
+            let index = lookup_index ty field in
+            let elm_ptr = L.build_struct_gep llstruct index (field ^ "_ptr") builder in
+            let _ = L.build_store rse' elm_ptr builder in
+            rse'
           | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
         let (lt, _) = e1
@@ -268,7 +268,8 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
             | A.Neg                  -> L.build_neg
             | A.Not                  -> L.build_not) e' "tmp" builder
     | SAssignList (ty, binds) ->
-      let lty = ltype_of_typ ty in (* getting the type of the struct *)
+      let pty = ltype_of_typ ty in
+      let lty = L.element_type pty in (* getting the type of the struct *)
       let names, values = (List.split binds) in
 
       (* ordering the values to be placed in the struct *)
@@ -288,8 +289,10 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       let array_of_inits = Array.of_list init_values in
       let init_struct = L.const_named_struct lty array_of_inits in
       let add_elem acc (value, index) = L.build_insertvalue acc value index "building_struct" builder in
-      let lstruct = List.fold_left add_elem init_struct order_values_pairs
-      in lstruct
+      let lstruct = List.fold_left add_elem init_struct order_values_pairs in
+      let str_ptr = malloc lty builder in
+      let _ = L.build_store lstruct str_ptr builder in
+      str_ptr
       (* SCall of null should be an error *)
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in
@@ -304,15 +307,11 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
     | SRecordAccess((ty, exp), field) -> 
       let llstruct = expr builder (ty, exp) in
       let index = lookup_index ty field in 
-      L.build_extractvalue llstruct index field builder
+      let elm_ptr = L.build_struct_gep llstruct index field builder 
+      in L.build_load elm_ptr field builder
     | SNull -> L.undef void_t
     | SLambda (l) -> 
-      let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
-        let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
-        in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b
-        in let opaque_value = L.build_call malloc_func [|size|] "opaque_value" malloc_b
-        in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
-      in let add_argument closure (ty, id) = 
+      let add_argument closure (ty, id) = 
         let llvalue = expr builder (ty, SId id)
         in let malloc_arg = malloc (ltype_of_typ ty) builder
         in let _ = L.build_store llvalue malloc_arg builder

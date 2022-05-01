@@ -3,23 +3,9 @@ struct Test1 {
     Bool test;
 };
 
-struct Test4 {
-    Bool test;
-    Int inner;
-};
-
-struct Test2 {
-    Test1 the;
-    Bool man;
-    Test1 went;
-};
-
 Test1 hmm;
-Test2 hmmmmmm;
-Bool hello;
+hmm = {inner: 90, test: true};
 
-hmm = {test: true, inner: 86};
-hmmmmmm = {man: true, the: {inner: 3, test: false}, went: hmm};
+hmm.inner = 89;
 
-hmm.inner = 90;
-putChar(hmm.inner);
+putChar(hmm.inner = 88);
