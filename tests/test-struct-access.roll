@@ -11,5 +11,5 @@ struct Test2 {
 
 
 Test1 str;
-str = {int1: 90, bool1: false};
+str = new Test1{int1: 90, bool1: false};
 putChar(str.int1);

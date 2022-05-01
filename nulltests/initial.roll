@@ -1,8 +1,0 @@
-import "../stdlib/print.roll"; 
-
-Int i;
-[Bool, Bool, Bool] -> Float f;
-
-//TODO should this be true or false?
-printBool(i == null); //I would expect this to be false 
-printBool(f == null); //but this to be true

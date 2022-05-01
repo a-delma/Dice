@@ -10,9 +10,4 @@ i = lambda ()->Void {
 i = i();
 
 printBool(i == null);
-
-j = lambda ()->Void {
-  return;
-}();
-
-printBool(j == null);
+printBool(i != null);

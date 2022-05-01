@@ -102,8 +102,8 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
 
   let init t = match t with
     | A.Float -> L.const_float (ltype_of_typ t) 0.0
-    | A.Arrow(_,_) -> L.const_null func_struct_ptr
-    | A.TypVar(name) -> L.const_named_struct (ltype_of_typ (A.TypVar name)) [||]
+    | A.Arrow(_,_) -> L.const_pointer_null func_struct_ptr
+    | A.TypVar(name) -> L.const_pointer_null (ltype_of_typ (A.TypVar name)) 
     | _ -> L.const_int (ltype_of_typ t) 0
   in
 
@@ -157,7 +157,8 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       (* Allocate space for any locally declared variables and add the
        * resulting registers to our map *)
       let add_local m (t, n) =
-	    let local_var = L.build_alloca (ltype_of_typ t) n builder
+	      let local_var = L.build_alloca (ltype_of_typ t) n builder
+        in let _ = L.build_store (init t) local_var builder
 	      in StringMap.add n local_var m 
       in
 
@@ -310,6 +311,9 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       let elm_ptr = L.build_struct_gep llstruct index field builder 
       in L.build_load elm_ptr field builder
     | SNull -> L.undef void_t
+    | SNullPointerCast (ty, exp) ->
+      let _ = expr builder (exp) in
+      L.const_pointer_null (ltype_of_typ ty)
     | SLambda (l) -> 
       let add_argument closure (ty, id) = 
         let llvalue = expr builder (ty, SId id)
