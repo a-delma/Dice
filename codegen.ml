@@ -242,16 +242,10 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
           | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
         let (lt, _) = e1
-        and (rt, _) = e2
         and e1' = expr builder e1
         and e2' = expr builder e2 in
           (* TODO implement not equal as well *)
-        (match op with 
-          A.Equal  when lt = A.Void -> L.build_is_null e2' "null_cmp" builder 
-        | A.Neq    when lt = A.Void -> L.build_is_not_null e2' "null_cmp" builder 
-        | A.Equal  when rt = A.Void -> L.build_is_null e1' "null_cmp" builder 
-        | A.Neq    when rt = A.Void -> L.build_is_not_null e1' "null_cmp" builder 
-        | _ -> if lt = A.Float then (match op with 
+        if lt = A.Float then (match op with 
               A.Add     -> L.build_fadd
             | A.Sub     -> L.build_fsub
             | A.Mult    -> L.build_fmul
@@ -278,7 +272,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
             | A.Leq     -> L.build_icmp L.Icmp.Sle
             | A.Greater -> L.build_icmp L.Icmp.Sgt
             | A.Geq     -> L.build_icmp L.Icmp.Sge
-            ) e1' e2' "tmp" builder)
+            ) e1' e2' "tmp" builder
     | SUnop(op, e) ->
             let (t, _) = e in
                   let e' = expr builder e in
@@ -328,7 +322,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       let index = lookup_index ty field in 
       let elm_ptr = L.build_struct_gep llstruct index field builder 
       in L.build_load elm_ptr field builder
-    | SNull -> L.undef void_t
+    | SNull -> L.const_pointer_null void_t
     | SNullPointerCast (ty, exp) ->
       let _ = expr builder (exp) in
       L.const_pointer_null (ltype_of_typ ty)
