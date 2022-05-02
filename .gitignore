@@ -37,6 +37,7 @@ _opam/
 tests/Output/*
 tests/parser/Output/*
 testall.log
+runtemp.sh
 
 # LIT
 lit
