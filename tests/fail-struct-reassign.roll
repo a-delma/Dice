@@ -1,0 +1,21 @@
+import "../stdlib/print.roll";
+
+struct T {Int i;};
+T t1;
+T t2;
+
+t1 = new T{i:12};
+
+t2 = new T{i:13};
+
+
+lambda () -> Void {
+    Int a;
+    T t3;
+    a = 7;
+    t3 = new T{i:14};
+    lambda () -> Void {
+        t3 = t1;
+    }();
+    printInt(t3.i);
+}();
