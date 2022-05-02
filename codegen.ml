@@ -424,7 +424,12 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
     add_terminal builder (match lambda.st with
         A.Void -> L.build_ret_void
       | A.Float -> L.build_ret (L.const_float float_t 0.0)
-      | t -> L.build_ret (L.const_int (ltype_of_typ t) 0))
+      | A.Int  -> L.build_ret (L.const_int i32_t 0)
+      | A.Bool -> L.build_ret (L.const_int i1_t 0)
+      | A.Arrow(_,_) -> L.build_ret (L.const_null func_struct_ptr)
+      | t -> L.build_ret (L.const_null (ltype_of_typ t))
+      (* TODO add a type for TypVar AKA structs *)
+      )
   in
 
   List.iter build_function_body lambdas;
