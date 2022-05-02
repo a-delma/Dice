@@ -22,6 +22,7 @@ let () =
     let (import_decls, _, _, _) as ast = Parser.program Scanner.token lexbuf in
     let remove_last (l) = List.rev (List.tl (List.rev l)) in
     let dir = String.concat "/" (remove_last (String.split_on_char '/' filename)) ^ "/" in
+    let dir = if dir = "/" then "" else dir in
     let import_files = List.map (fun (path) -> String.concat "" [dir; path]) import_decls in
     (* let _ = print_endline "ast parsed" in *)
     let asts = List.rev (ast::(List.map parse_file import_files)) in
