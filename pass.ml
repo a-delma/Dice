@@ -24,17 +24,17 @@ let fold_tree_with_stmt (eval_stmt : sstmt -> 'a)
   | SWhile(p, s)        -> zipper (collect_expr [p]) (fold_stmt s))
 
   and fold_expr ex = zipper (eval_expr ex) (match ex with
-      SBinop(e1, _, e2)   -> (collect_expr [e1; e2])
-    | SUnop(_, e)         -> (collect_expr [e])
-    | SAssign(e1, e2)     -> (collect_expr [e1; e2])
-    (* To be tested *)
-    | SAssignList(_, ses) -> collect_expr (snd (List.split ses))
-    | SCall(e, args)      -> collect_expr (e::args)
-    | SRecordAccess(e, _) -> collect_expr [e]
-    | SLambda(l)          -> if compute_sublambdas 
-                             then fold_stmt (SBlock l.sbody)
-                             else empty
-    | _                   -> empty)
+      SBinop(e1, _, e2)      -> (collect_expr [e1; e2])
+    | SUnop(_, e)            -> (collect_expr [e])
+    | SAssign(e1, e2)        -> (collect_expr [e1; e2])
+    | SAssignList(_, ses)    -> collect_expr (snd (List.split ses))
+    | SCall(e, args)         -> collect_expr (e::args)
+    | SRecordAccess(e, _)    -> collect_expr [e]
+    | SLambda(l)             -> if compute_sublambdas 
+                                then fold_stmt (SBlock l.sbody)
+                                else empty
+    | SNullPointerCast(_, e) -> (collect_expr [e])                         
+    | _                      -> empty)
 
   and collect_expr = function
   (_, e)::es -> zipper (fold_expr e) (collect_expr es)

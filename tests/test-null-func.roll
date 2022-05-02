@@ -1,0 +1,15 @@
+import "../stdlib/print.roll";
+
+[]->Bool b;
+
+b = null;
+
+printBool(b == null);
+printBool(b != null);
+
+b = lambda() -> Bool {
+  return true;
+};
+
+printBool(b != null);
+printBool(b == null);

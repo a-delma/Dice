@@ -3,8 +3,8 @@
 %{ open Ast %}
 
 %token SEMI LPAREN RPAREN LBRACE RBRACE COMMA PLUS MINUS TIMES DIVIDE ASSIGN COLON
-%token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT
-%token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID
+%token NOT EQ NEQ LT LEQ GT GEQ AND OR DOT NULL
+%token RETURN IF ELSE FOR WHILE INT BOOL FLOAT VOID NEW
 %token LSQURE RSQURE
 %token LAMBDA
 %token ARROW STRUCT /* Not sure about precedence or associativity*/
@@ -63,7 +63,7 @@ typ:
   | FLOAT                            { Float }
   | VOID                             { Void  }
   | LSQURE typ_list RSQURE ARROW typ
-                                     { Arrow(List.rev $2, $5) }
+                                     { Arrow($2, $5) }
   | TYPVAR                           { TypVar $1 }
   // | TYPVAR LT typ_list GT            { PolyTyp($1, $3)}
 
@@ -116,6 +116,7 @@ expr:
   | FLIT             { Fliteral($1)           }
   | BLIT             { BoolLit($1)            }
   | ID               { Id($1)                 }
+  | NULL             { Null                   }
   | expr PLUS   expr { Binop($1, Add,   $3)   }
   | expr MINUS  expr { Binop($1, Sub,   $3)   }
   | expr TIMES  expr { Binop($1, Mult,  $3)   }
@@ -131,7 +132,7 @@ expr:
   | MINUS expr %prec NOT { Unop(Neg, $2)      }
   | NOT expr         { Unop(Not, $2)          }
   | expr ASSIGN expr { Assign($1, $3)         }
-  | LBRACE assign_list RBRACE {AssignList(List.rev $2)}
+  | NEW typ LBRACE assign_list RBRACE {AssignList($2, List.rev $4)}
   | expr DOT ID      { RecordAccess($1, $3)   } 
   | expr LPAREN args_opt RPAREN
                      { Call($1, List.rev $3)           }

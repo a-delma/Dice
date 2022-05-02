@@ -27,6 +27,8 @@ and sx =
   | SCall of sexpr * sexpr list
   | SRecordAccess of sexpr * string
   | SLambda of sLambda
+  | SNull
+  | SNullPointerCast of typ * sexpr
   | SNoexpr
 
 and sstmt =
@@ -37,10 +39,6 @@ and sstmt =
   | SFor of sexpr * sexpr * sexpr * sstmt
   | SWhile of sexpr * sstmt
 
-type styp = SInt | SBool | SFloat | SVoid
-                 | SArrow of styp list * styp
-                 | STypVar of string
-                 | SStruct of string * styp list
 
 
 (* Pretty-printing functions *)
@@ -67,6 +65,8 @@ let rec string_of_sexpr(sexpression) = match (snd sexpression) with
       String.concat "" (List.map string_of_sstmt l.sbody) ^ "Closure: " ^
       String.concat "" (List.map string_of_vdecl l.sclosure) ^
       "}"
+  | SNull -> "null"
+  | SNullPointerCast (_, e) -> string_of_sexpr e
   | SNoexpr -> ""
 
 

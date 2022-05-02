@@ -32,6 +32,8 @@ comp_file: toplevel.native cimport.o
 	llc -relocation-model=pic $(TARGET).ll > $(TARGET).s
 	cc -o $(TARGET).exe $(TARGET).s cimport.o
 
+small : small.ml
+	ocamlbuild -use-ocamlfind small.native
 #################################
 
 clean :
@@ -41,9 +43,14 @@ clean :
 	rm -f parser.ml
 	rm -f parser.output
 	rm -rf _build
-	rm -f *.ll
-	rm -f *.s
-	rm -f *.exe
+	rm -f -r */*.ll
+	rm -f -r */*.s
+	rm -f -r */*.exe
 	rm -f testall.log
 	rm -f cimport.o
 
+clean_test:
+	rm -f -r */*.ll
+	rm -f -r */*.s
+	rm -f -r */*.exe
+	rm -f testall.log
