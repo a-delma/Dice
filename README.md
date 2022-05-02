@@ -103,4 +103,7 @@ This is a **positive** test.
 - `test-struct-return` - test to ensure that structs are returned from functions correctly. 
 This is a **positive** test.
 
+- `test-struct-return2` - another test to ensure that structs are returned from functions correctly, with if / else. 
+This is a **positive** test.
+
 We validate all tests using the modified version of the `testall.sh` file from MicroC (which itself uses diff and checks its output against a golden standard).

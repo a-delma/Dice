@@ -1,0 +1,20 @@
+
+
+struct Temp1 {
+  Int a;
+};
+
+Temp1 foo;
+Temp1 bar;
+foo = new Temp1{a : 50};
+
+bar = lambda ()->Temp1  {
+  if(1 == 1){
+    return foo;
+  } else {
+    return null;
+  }
+}();
+
+putChar(bar.a);
+

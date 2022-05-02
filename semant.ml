@@ -79,6 +79,7 @@ let check (_, struct_decls, globals, stmts) =
   let is_not_primitive = function 
                   Arrow(_,_)  -> true
                 | TypVar(_)   -> true 
+                | Void        -> true
                 | _           -> false in  
 
   (**** Checking Global Variables ****)
