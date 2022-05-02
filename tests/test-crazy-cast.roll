@@ -1,0 +1,24 @@
+import "../stdlib/print.roll";
+
+Int a;
+Float b;
+Bool c;
+Int d;
+Float e;
+Bool f;
+
+a = 65;
+b = 66.0;
+c = true;
+
+d = floatToInt(b);
+printInt(d);
+newline();
+e = boolToFloat(c);
+printFloat(e);
+newline();
+f = intToBool(a);
+printBool(f);
+newline();
+
+printFloat(intToFloat(boolToInt(floatToBool(intToFloat(a))))); // a = 65 -> 65.0 -> true -> 1 -> 1.0

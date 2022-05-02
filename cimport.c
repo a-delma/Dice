@@ -78,6 +78,10 @@ float int_to_float_helper(struct Function_* closure, int toCast) {
   return ((float) toCast);
 }
 
+int int_to_bool_helper(struct Function_* closure, int toCast) {
+  return toCast == 0 ? 0 : 1;
+}
+
 int float_to_int_helper(struct Function_* closure, float toCast) {
   return ((int) toCast);
 }
@@ -86,13 +90,24 @@ int float_to_bool_helper(struct Function_* closure, float toCast) {
   return uni_helper(closure) <= toCast ? 1 : 0;
 }
 
+float bool_to_float_helper(struct Function_* closure, int toCast) {
+  return toCast == 0 ? 0.0 : 1.0;
+}
+
+int bool_to_int_helper(struct Function_* closure, int toCast) {
+  return toCast;
+}
+
 struct Function_* putchar_;
 struct Function_* print_float_;
 struct Function_* uni_;
 struct Function_* set_seed_;
 struct Function_* int_to_float_;
+struct Function_* int_to_bool_;
 struct Function_* float_to_int_;
 struct Function_* float_to_bool_;
+struct Function_* bool_to_int_;
+struct Function_* bool_to_float_;
 
 void initialize(){
   
@@ -123,4 +138,16 @@ void initialize(){
   float_to_bool_ = (struct Function_*)malloc(sizeof(struct Function_));
   float_to_bool_->closure = NULL;
   float_to_bool_->ptr = (void*) float_to_bool_helper;
+
+  int_to_bool_ = (struct Function_*)malloc(sizeof(struct Function_));
+  int_to_bool_->closure = NULL;
+  int_to_bool_->ptr = (void*) int_to_bool_helper;
+
+  bool_to_float_ = (struct Function_*)malloc(sizeof(struct Function_));
+  bool_to_float_->closure = NULL;
+  bool_to_float_->ptr = (void*) bool_to_float_helper;
+
+  bool_to_int_ = (struct Function_*)malloc(sizeof(struct Function_));
+  bool_to_int_->closure = NULL;
+  bool_to_int_->ptr = (void*) bool_to_int_helper;
 }

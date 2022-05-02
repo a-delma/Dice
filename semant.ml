@@ -87,10 +87,13 @@ let check (_, struct_decls, globals, stmts) =
                  (Arrow([],    Float), "uni"    );
                  (Arrow([Int], Void),  "setSeed");
                  (Arrow([Int], Void),  "self");
-                 (Arrow([Int], Float), "intToFloat");
                  (Arrow([Float], Void),"printFloat");
+                 (Arrow([Int], Float), "intToFloat");
+                 (Arrow([Int], Bool), "intToBool");
                  (Arrow([Float], Int), "floatToInt");
-                 (Arrow([Float], Bool), "floatToBool")] @ globals in
+                 (Arrow([Float], Bool), "floatToBool");
+                 (Arrow([Bool], Float), "boolToFloat");
+                 (Arrow([Bool], Int), "boolToInt");] @ globals in
   let globals' = check_binds globals in 
   let global_env = (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
                                   StringMap.empty 
