@@ -1,6 +1,0 @@
-import "../stdlib/print.roll";
-
-[Int] -> Bool  a;
-[Int] -> Float b;
-
-a = b = null;

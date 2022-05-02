@@ -79,7 +79,6 @@ let check (_, struct_decls, globals, stmts) =
   let is_not_primitive = function 
                   Arrow(_,_)  -> true
                 | TypVar(_)   -> true 
-                | Void        -> true
                 | _           -> false in  
 
   (**** Checking Global Variables ****)
@@ -122,7 +121,7 @@ let check (_, struct_decls, globals, stmts) =
       let (t1, e1') = expr envs e1 
       and (t2, e2') = expr envs e2 in
       let nullComparison = (t1 = Void && is_not_primitive t2) || (t2 = Void && is_not_primitive t1) in
-      let same = t1 = t2 && t1 != Void in
+      let same = t1 = t2 in
       let bothNum = ((t1 = Int)||(t1 = Float))&&((t2 = Int)||(t2 = Float)) in
       (* Determine expression type based on operator and operand types *)
       let ty = match op with
@@ -152,7 +151,7 @@ let check (_, struct_decls, globals, stmts) =
           if lt = rt
             then (rt, SAssign((lt ,lse), (rt, rse)))
             else if (rt = Void && (is_not_primitive lt))
-            then (rt, SAssign((lt ,lse), (lt, SNullPointerCast(lt, (rt, rse)))))
+            then (lt, SAssign((lt ,lse), (lt, SNullPointerCast(lt, (rt, rse)))))
             else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
       | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
     | AssignList(typ, assigns) -> 
