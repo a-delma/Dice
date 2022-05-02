@@ -1,0 +1,11 @@
+import "../stdlib/print.roll";
+
+Int a;
+Float b;
+b = 1.0;
+a = 65;
+setSeed(1);
+for(; b; b = b*0.999){
+    putChar(a);
+    a = a + 1;
+}
