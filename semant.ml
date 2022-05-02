@@ -89,7 +89,8 @@ let check (_, struct_decls, globals, stmts) =
                  (Arrow([Int], Void),  "self");
                  (Arrow([Int], Float), "intToFloat");
                  (Arrow([Float], Void),"printFloat");
-                 (Arrow([Float], Int), "floatToInt")] @ globals in
+                 (Arrow([Float], Int), "floatToInt");
+                 (Arrow([Float], Bool), "floatToBool")] @ globals in
   let globals' = check_binds globals in 
   let global_env = (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
                                   StringMap.empty 
@@ -118,11 +119,13 @@ let check (_, struct_decls, globals, stmts) =
       let (t, e') = expr envs e in
       let ty = match op with
         Neg when t = Int || t = Float -> t
-      | Not when t = Bool -> Bool
+      | Not when t = Bool || t = Float -> Bool
       | _ -> raise (Failure ("Illegal unary operator " ^ 
                             string_of_uop op ^ string_of_typ t ^
                             " in " ^ string_of_expr ex))
-      in (ty, SUnop(op, (t, e')))
+      in if t = Float && op = Not 
+         then (ty, SUnop(op, (Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t, e')]))))
+         else (ty, SUnop(op, (t, e')))
     | Binop(e1, op, e2) as e -> 
       let (t1, e1') = expr envs e1 
       and (t2, e2') = expr envs e2 in
@@ -152,8 +155,8 @@ let check (_, struct_decls, globals, stmts) =
                              else if t2 = Int 
                                   then (ty, SBinop((t1, e1'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
                                   else if t1 = Bool
-                                       then (ty, SBinop((t1, e1'), op, (Bool, SCall((Arrow([Float], Bool), SId "uni"), [(t2, e2')]))))
-                                       else (ty, SBinop((Bool, SCall((Arrow([Float], Bool), SId "uni"), [(t1, e1')])), op, (t2, e2')))
+                                       then (ty, SBinop((t1, e1'), op, (Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t2, e2')]))))
+                                       else (ty, SBinop((Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t1, e1')])), op, (t2, e2')))
           in finalSB
     | Assign(le, re) -> (match le with 
         Id(_) | RecordAccess(_, _) ->
@@ -237,7 +240,10 @@ let check (_, struct_decls, globals, stmts) =
     let (t', e') = expr envs e
     and err = "Expected Boolean or Float expression in " ^ string_of_expr e
     in if not ((t' = Bool) || (t' = Float)) (* TODO: use custom equality function? *) 
-      then raise (Failure err) else (t', e') 
+      then raise (Failure err)
+      else if t' = Float
+           then (Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t', e')]))
+           else (t', e') 
 
   (* Return a semantically-checked statement i.e. containing sexprs *)
   and check_stmt envs statement = match statement with

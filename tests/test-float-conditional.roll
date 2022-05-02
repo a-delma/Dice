@@ -1,0 +1,31 @@
+import "../stdlib/print.roll";
+
+Int a;
+setSeed(1);
+for (a = 1; a < 100; a = a + 1){
+    if (0.333) 
+    printInt(1);
+    else 
+    printInt(0);
+}
+//Printing stuff//////////////
+newline();
+newline();
+putChar(78);
+putChar(69);
+putChar(87);
+putChar(32);
+putChar(83);
+putChar(69);
+putChar(69);
+putChar(68);
+newline();
+newline();
+//////////////////////////////
+setSeed(2);
+for (a = 1; a < 100; a = a + 1){
+    if (0.333) 
+    printInt(1);
+    else 
+    printInt(0);
+}
