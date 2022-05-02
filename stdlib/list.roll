@@ -1,0 +1,43 @@
+import "../stdlib/print.roll";
+
+struct IntStack {
+    IntStack next;
+    Int value;
+    Bool empty;
+};
+
+struct IntStackUtils {
+    []->IntStack newIntStack;
+    [IntStack, Int]->Void push;
+    [IntStack]->Int pop;
+};
+
+IntStackUtils intStackUtils;
+
+intStackUtils = new IntStackUtils{ 
+    newIntStack : lambda ()->IntStack  {
+        IntStack ret;
+        ret = new IntStack{next : null, value : 0, empty : true};
+        return ret;
+    }, 
+    push : lambda (IntStack stack, Int newValue)->Void  {
+        IntStack newNode;
+        if(stack.empty){
+            stack.empty = false;
+        } else {
+            newNode = new IntStack{next : stack.next, value : stack.value};
+            stack.next = newNode;
+        }
+        stack.value = newValue;
+    }, pop : lambda (IntStack stack)->Int  {
+        Int ret;
+        ret = stack.value;
+        stack = stack.next;
+        return ret;
+    }};
+
+
+printInt(4);
+
+
+
