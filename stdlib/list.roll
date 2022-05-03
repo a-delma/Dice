@@ -6,13 +6,32 @@ struct IntStack {
     Bool empty;
 };
 
+struct IntList{
+  IntStack values;
+  Int size;
+};
+
 struct IntStackUtils {
     []->IntStack newIntStack;
     [IntStack, Int]->Void push;
     [IntStack]->Int pop;
 };
 
+struct IntListUtils{
+  []->IntList newIntList;
+  [IntList, Int]->Void add;
+  [IntList, Int, Int]->Void updateAt;
+  [IntList, Int]->Int getAt;
+};
+
 IntStackUtils intStackUtils;
+IntListUtils intListUtils;
+
+IntStack testStack;
+
+//this line errors when it's above the intStackUtils initialization but doesn't if it's below.
+//    very strange!!
+intListUtils = new IntListUtils{newIntList : null, add : null, updateAt : null, getAt : null}; 
 
 intStackUtils = new IntStackUtils{ 
     newIntStack : lambda ()->IntStack  {
@@ -32,12 +51,46 @@ intStackUtils = new IntStackUtils{
     }, pop : lambda (IntStack stack)->Int  {
         Int ret;
         ret = stack.value;
+        if(stack.next == null){
+          stack.empty = true;
+          stack.value = 0;
+        } else {
+          stack.value = stack.next.value;
+          stack.next = stack.next.next;
+        }
         stack = stack.next;
         return ret;
     }};
+    
+    
+
+// struct IntList{
+//   IntStack values;
+//   Int size;
+// };
+
+// lambda ()->IntList  {
+//   IntList ret;
+//   ret = new IntList{values : intStackUtils.newIntStack(), size : 0};
+//   return ret;
+// };
+
+//[IntList, Int]->Void add;
+//[IntList, Int, Int]->Void updateAt;
+//[IntList, Int]->Int getAt;
 
 
-printInt(4);
+// testStack = intStackUtils.newIntStack();
+
+// intStackUtils.push(testStack, 1);
+// intStackUtils.push(testStack, 2);
+// intStackUtils.push(testStack, 3);
+// intStackUtils.push(testStack, 4);
+
+// printInt(intStackUtils.pop(testStack));
+// printInt(intStackUtils.pop(testStack));
+// printInt(intStackUtils.pop(testStack));
+// printInt(intStackUtils.pop(testStack));
 
 
 
