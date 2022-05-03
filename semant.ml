@@ -104,11 +104,6 @@ let check (_, struct_decls, globals, stmts) =
                         with Not_found -> type_of_identifier s outer)
     | []             -> raise (Failure ("Undeclared identifier " ^ s))
   in
-  let is_boollike t = match t with
-    Float -> true
-  | Bool -> true
-  | _ -> false 
-  in
   (* Return a semantically-checked expression, i.e., with a type *)
   let rec expr envs expression = match expression with
       Literal  l -> (Int, SLiteral l)
@@ -121,27 +116,24 @@ let check (_, struct_decls, globals, stmts) =
       let (t, e') = expr envs e in
       let ty = match op with
         Neg when t = Int || t = Float -> t
-      | Not when t = Bool || t = Float -> Bool
+      | Not when t = Bool -> Bool
       | _ -> raise (Failure ("Illegal unary operator " ^ 
                             string_of_uop op ^ string_of_typ t ^
                             " in " ^ string_of_expr ex))
-      in if t = Float && op = Not 
-         then (ty, SUnop(op, (Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t, e')]))))
-         else (ty, SUnop(op, (t, e')))
+      in (ty, SUnop(op, (t, e')))
     | Binop(e1, op, e2) as e -> 
       let (t1, e1') = expr envs e1 
       and (t2, e2') = expr envs e2 in
       let nullComparison = (t1 = Void && is_not_primitive t2) || (t2 = Void && is_not_primitive t1) in
       let same = t1 = t2 in
       let bothNum = ((t1 = Int)||(t1 = Float))&&((t2 = Int)||(t2 = Float)) in
-      let bothBoollike = (is_boollike t1) && (is_boollike t2) in
       (* Determine expression type based on operator and operand types *)
       let ty = match op with
-        Add | Sub | Mult | Div     when same && t1 = Int -> Int
-      | Add | Sub | Mult | Div     when bothNum          -> Float
-      | Equal | Neq                when same             -> Bool
-      | Less | Leq | Greater | Geq when bothNum          -> Bool
-      | And | Or when bothBoollike -> Bool
+        Add | Sub | Mult | Div     when same && t1 = Int                       -> Int
+      | Add | Sub | Mult | Div     when bothNum                                -> Float
+      | Equal | Neq                when same || bothNum || nullComparison      -> Bool
+      | Less | Leq | Greater | Geq when bothNum                                -> Bool
+      | And | Or when same && t1 = Bool -> Bool
       | _ -> raise (
         Failure ("Illegal binary operator " ^
                   string_of_typ t1 ^ " " ^ string_of_op op ^ " " ^
@@ -149,16 +141,16 @@ let check (_, struct_decls, globals, stmts) =
           let finalSB = if same
                         then (ty, SBinop((t1, e1'), op, (t2, e2')))
                         else if nullComparison
-                            then if t1 = Void
-                            then (ty, SBinop((t2, SNullPointerCast(t2, (Void, e1'))), op, (t2, e2')))
-                            else (ty, SBinop((t1, e1'), op, (t1, SNullPointerCast(t1, (Void, e2')))))
-                        else if t1 = Int
-                             then (ty, SBinop((Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t1, e1')])), op, (t2, e2')))
-                             else if t2 = Int 
-                                  then (ty, SBinop((t1, e1'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
-                                  else if t1 = Bool
-                                       then (ty, SBinop((t1, e1'), op, (Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t2, e2')]))))
-                                       else (ty, SBinop((Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t1, e1')])), op, (t2, e2')))
+                             then if t1 = Void
+                                  then (ty, SBinop((t2, SNullPointerCast(t2, (Void, e1'))), op, (t2, e2')))
+                                  else (ty, SBinop((t1, e1'), op, (t1, SNullPointerCast(t1, (Void, e2')))))
+                             else if t1 = Int
+                                  then (ty, SBinop((Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t1, e1')])), op, (t2, e2')))
+                                  else if t2 = Int 
+                                       then (ty, SBinop((t1, e1'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
+                                       else if t1 = Bool
+                                            then (ty, SBinop((t1, e1'), op, (Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t2, e2')]))))
+                                            else (ty, SBinop((Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t1, e1')])), op, (t2, e2')))
           in finalSB
     | Assign(le, re) -> (match le with 
         Id(_) | RecordAccess(_, _) ->
@@ -238,7 +230,7 @@ let check (_, struct_decls, globals, stmts) =
     | Null           -> (Void, SNull)
     | Noexpr         -> (Void, SNoexpr)
 
-  and check_bool_expr envs e = 
+    and check_bool_expr envs e = 
     let (t', e') = expr envs e
     and err = "Expected Boolean or Float expression in " ^ string_of_expr e
     in if not ((t' = Bool) || (t' = Float)) (* TODO: use custom equality function? *) 
