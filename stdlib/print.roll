@@ -9,6 +9,7 @@ import "../stdlib/pow.roll";
 [Float, Int] -> Void printMantissa;
 [Bool] -> Void printBool;
 //[Float] -> Void printFloat;
+[Float] -> Void printColor;
 
 //how many decimal points to print for floats
 //Int floatPrecision;
@@ -79,3 +80,30 @@ printBool = lambda (Bool b)->Void  {
     printInt(m);
   }
 };*/
+
+printColor = lambda(Float f)->Void{
+  if(f >= 1.0){
+    putChar(64);
+  } else if(f > 0.9){
+    putChar(37);
+  } else if(f > 0.8){
+    putChar(35);
+  } else if(f > 0.7){
+    putChar(42);
+  } else if(f > 0.6){
+    putChar(43);
+  } else if(f > 0.5){
+    putChar(61);
+  } else if(f > 0.4){
+    putChar(45);
+  } else if(f > 0.3){
+    putChar(58);
+  } else if(f > 0.2){
+    putChar(46);
+  } else if(f > 0.1){
+    putChar(32);
+  } else {
+    putChar(32);
+  }
+};
+
