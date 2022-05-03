@@ -93,8 +93,20 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
   let int_to_float_struct = (L.declare_global func_struct_ptr "int_to_float_" the_module) in
                let _ = L.set_externally_initialized true int_to_float_struct     in
 
+  let int_to_bool_struct = (L.declare_global func_struct_ptr "int_to_bool_" the_module) in
+               let _ = L.set_externally_initialized true int_to_bool_struct     in
+
   let float_to_int_struct = (L.declare_global func_struct_ptr "float_to_int_" the_module) in
                let _ = L.set_externally_initialized true float_to_int_struct     in
+
+  let float_to_bool_struct = (L.declare_global func_struct_ptr "float_to_bool_" the_module) in
+               let _ = L.set_externally_initialized true float_to_bool_struct in
+
+  let bool_to_float_struct = (L.declare_global func_struct_ptr "bool_to_float_" the_module) in
+               let _ = L.set_externally_initialized true bool_to_float_struct     in
+
+  let bool_to_int_struct = (L.declare_global func_struct_ptr "bool_to_int_" the_module) in
+               let _ = L.set_externally_initialized true bool_to_int_struct     in
   
   let init_func = L.declare_function
                   "initialize"
@@ -117,8 +129,14 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
   let global_vars = StringMap.add "uni" uni_struct global_vars in
   let global_vars = StringMap.add "setSeed" set_seed_struct global_vars in
   let global_vars = StringMap.add "intToFloat" int_to_float_struct global_vars in
+  let global_vars = StringMap.add "intToBool" int_to_bool_struct global_vars in
   let global_vars = StringMap.add "floatToInt" float_to_int_struct global_vars in
+  let global_vars = StringMap.add "floatToBool" float_to_bool_struct global_vars in
+  let global_vars = StringMap.add "boolToInt" bool_to_int_struct global_vars in
+  let global_vars = StringMap.add "boolToFloat" bool_to_float_struct global_vars in
   let global_vars = StringMap.add "printFloat" print_float_struct global_vars in
+
+  
 
   
   (* Define each function (arguments and return type) so we can 

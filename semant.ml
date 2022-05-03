@@ -86,9 +86,13 @@ let check (_, struct_decls, globals, stmts) =
                  (Arrow([],    Float), "uni"    );
                  (Arrow([Int], Void),  "setSeed");
                  (Arrow([Int], Void),  "self");
-                 (Arrow([Int], Float), "intToFloat");
                  (Arrow([Float], Void),"printFloat");
-                 (Arrow([Float], Int), "floatToInt")] @ globals in
+                 (Arrow([Int], Float), "intToFloat");
+                 (Arrow([Int], Bool), "intToBool");
+                 (Arrow([Float], Int), "floatToInt");
+                 (Arrow([Float], Bool), "floatToBool");
+                 (Arrow([Bool], Float), "boolToFloat");
+                 (Arrow([Bool], Int), "boolToInt");] @ globals in
   let globals' = check_binds globals in 
   let global_env = (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
                                   StringMap.empty 
@@ -137,12 +141,16 @@ let check (_, struct_decls, globals, stmts) =
           let finalSB = if same
                         then (ty, SBinop((t1, e1'), op, (t2, e2')))
                         else if nullComparison
-                            then if t1 = Void
-                            then (ty, SBinop((t2, SNullPointerCast(t2, (Void, e1'))), op, (t2, e2')))
-                            else (ty, SBinop((t1, e1'), op, (t1, SNullPointerCast(t1, (Void, e2')))))
-                        else if t1 = Int
-                            then (ty, SBinop((Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t1, e1')])), op, (t2, e2')))
-                            else (ty, SBinop((t1, e1'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
+                             then if t1 = Void
+                                  then (ty, SBinop((t2, SNullPointerCast(t2, (Void, e1'))), op, (t2, e2')))
+                                  else (ty, SBinop((t1, e1'), op, (t1, SNullPointerCast(t1, (Void, e2')))))
+                             else if t1 = Int
+                                  then (ty, SBinop((Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t1, e1')])), op, (t2, e2')))
+                                  else if t2 = Int 
+                                       then (ty, SBinop((t1, e1'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
+                                       else if t1 = Bool
+                                            then (ty, SBinop((t1, e1'), op, (Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t2, e2')]))))
+                                            else (ty, SBinop((Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t1, e1')])), op, (t2, e2')))
           in finalSB
     | Assign(le, re) -> (match le with 
         Id(_) | RecordAccess(_, _) ->
@@ -222,11 +230,14 @@ let check (_, struct_decls, globals, stmts) =
     | Null           -> (Void, SNull)
     | Noexpr         -> (Void, SNoexpr)
 
-  and check_bool_expr envs e = 
+    and check_bool_expr envs e = 
     let (t', e') = expr envs e
     and err = "Expected Boolean or Float expression in " ^ string_of_expr e
     in if not ((t' = Bool) || (t' = Float)) (* TODO: use custom equality function? *) 
-      then raise (Failure err) else (t', e') 
+      then raise (Failure err)
+      else if t' = Float
+           then (Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t', e')]))
+           else (t', e') 
 
   (* Return a semantically-checked statement i.e. containing sexprs *)
   and check_stmt envs statement = match statement with

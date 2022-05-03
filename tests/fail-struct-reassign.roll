@@ -1,0 +1,19 @@
+struct T {Int i;};
+T t1;
+T t2;
+
+t1 = new T{i:67};
+
+t2 = new T{i:66};
+
+
+lambda () -> Void {
+    Int a;
+    T t3;
+    a = 7;
+    t3 = new T{i:65};
+    lambda () -> Void {
+        t3 = t1;
+    }();
+    putChar(t3.i);
+}();
