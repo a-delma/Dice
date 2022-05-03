@@ -1,0 +1,15 @@
+import "../stdlib/print.roll";
+
+Float r;
+Float c;
+Int size;
+Float toPrint;
+size = 30;
+
+for(c = 0.0; c < size; c=c+1){
+    for(r = 0.0; r < size; r=r+1){
+        printColor(uni() * (r/size + c/size));
+        putChar(32);
+    }
+    newline();
+}
