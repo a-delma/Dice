@@ -21,7 +21,7 @@ toplevel.native : parser.mly scanner.mll codegen.ml semant.ml closure.ml cimport
 # Testing
 #
 
-TARGET="tests/*"
+TARGET="tests/*-tests/*"
 
 test: toplevel.native cimport.o
 	./test.sh $(TARGET).roll
