@@ -18,6 +18,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
   let context    = L.global_context ()
   (* Add types to the context so we can use them in our LLVM code *)
   in let     i32_t      = L.i32_type    context
+  in let     i64_t      = L.i64_type    context
   in let     i1_t       = L.i1_type     context
   in let     float_t    = L.float_type context
   in let     void_t     = L.void_type   context 
@@ -81,7 +82,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
 
   let malloc_func  = L.declare_function 
                      "malloc_" 
-                     (L.function_type void_ptr_t [| i32_t |]) the_module in
+                     (L.function_type void_ptr_t [| i64_t |]) the_module in
   
   let putchar_struct = (L.declare_global func_struct_ptr "putchar_" the_module) in
                let _ = L.set_externally_initialized true putchar_struct     in
@@ -215,8 +216,9 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
 
     let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
         let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
-        in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b
-        in let opaque_value = L.build_call malloc_func [|size|] "opaque_value" malloc_b
+        in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b in
+        let temp_size = L.size_of t in
+        let opaque_value = L.build_call malloc_func [|temp_size|] "opaque_value" malloc_b
         in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
     in
     (* Construct code for an expression; return its value *)

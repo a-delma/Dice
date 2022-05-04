@@ -45,7 +45,7 @@ struct Function_ {
   struct Node_* closure;
 };
 
-char* malloc_(int size) {
+char* malloc_(int64_t size) {
   return (char*) malloc(size);
 }
 
