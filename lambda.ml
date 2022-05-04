@@ -1,3 +1,12 @@
+
+(* Checks and functions that traverse the whole tree, 
+   heavily relies on pass.ml
+   create_lambda_list generates a list of lambda expressions, 
+   return_pass guarantess all paths of lambdas return a value
+ * Author(s): Ezra Szanton
+ * 
+ *)
+
 module A = Ast
 open Sast
 open Pass

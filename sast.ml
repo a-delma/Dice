@@ -1,4 +1,9 @@
-(* Semantically-checked Abstract Syntax Tree and functions for printing it *)
+(*  *)
+
+(* Semantically-checked Abstract Syntax Tree and functions for printing it
+ * Based on the MicroC sast file
+ * Author(s): Ezra Szanton
+ *)
 
 open Ast
 

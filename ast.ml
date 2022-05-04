@@ -1,4 +1,9 @@
-(* Abstract Syntax Tree and functions for printing it *)
+
+(* Abstract Syntax Tree and functions for printing it
+ * Based on the MicroC ast file
+ * Author(s): 
+ * 
+ *)
 
 type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
           And | Or
