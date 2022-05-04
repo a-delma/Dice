@@ -22,6 +22,7 @@ toplevel.native : parser.mly scanner.mll codegen.ml semant.ml closure.ml cimport
 #
 
 TARGET="tests/*-tests/*"
+SEED=1
 
 test: toplevel.native cimport.o
 	./test.sh $(TARGET).roll
@@ -29,6 +30,11 @@ test: toplevel.native cimport.o
 
 comp_file: toplevel.native cimport.o
 	./toplevel.native $(TARGET).roll > $(TARGET).ll
+	llc -relocation-model=pic $(TARGET).ll > $(TARGET).s
+	cc -o $(TARGET).exe $(TARGET).s cimport.o
+
+comp_seed: toplevel.native cimport.o
+	./toplevel.native -seed $(SEED) $(TARGET).roll > $(TARGET).ll
 	llc -relocation-model=pic $(TARGET).ll > $(TARGET).s
 	cc -o $(TARGET).exe $(TARGET).s cimport.o
 

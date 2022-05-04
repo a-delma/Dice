@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
-//BEGINNING SEED
+
 
 
 // Basic lists (Node_) to use a closures
@@ -56,7 +57,8 @@ char* malloc_(int size) {
 // (myrand and mysrand) are modified version of corresponding 
 // functions from the Open Group Base Specifications C Documentation
 // (https://pubs.opengroup.org/onlinepubs/9699919799/functions/rand.html)
-static unsigned long next = 1;
+unsigned long next;
+
 float uni_helper(struct Function_* closure)  {
     next = next * 1103515245 + 12345;
     return ((unsigned)(next/65536) % 32768) / 32768.0;
@@ -109,8 +111,12 @@ struct Function_* float_to_bool_;
 struct Function_* bool_to_int_;
 struct Function_* bool_to_float_;
 
-void initialize(){
+void initialize(int seed){
   
+  //BEGINNING SEED
+  srand((unsigned long) time(NULL));
+  next = seed < 0  ? rand() : seed;
+
   putchar_ = (struct Function_*) malloc(sizeof(struct Function_));
   putchar_->closure = NULL;
   putchar_->ptr = (void*) putchar_helper;

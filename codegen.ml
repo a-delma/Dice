@@ -14,7 +14,7 @@ module StringMap = Map.Make(String)
 
 (* Code Generation from the SAST. Returns an LLVM module if successful,
    throws an exception if something is wrong. *)
-let translate ((struct_decls, struct_indices), globals, lambdas) =
+let translate ((struct_decls, struct_indices), globals, lambdas) seed =
   let context    = L.global_context ()
   (* Add types to the context so we can use them in our LLVM code *)
   in let     i32_t      = L.i32_type    context
@@ -115,7 +115,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
   
   let init_func = L.declare_function
                   "initialize"
-                  (L.function_type void_t [||]) the_module in 
+                  (L.function_type void_t [| i32_t |]) the_module in 
 
   let init t = match t with
     | A.Float -> L.const_float (ltype_of_typ t) 0.0
@@ -163,7 +163,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
     let _ = if lambda.sid = "main"
-            then ignore(L.build_call init_func [||] "" builder) (* TODO: What is this for? *)
+            then ignore(L.build_call init_func [| L.const_int i32_t !seed |] "" builder) (* TODO: What is this for? *)
           (* TODO possibly add another case if lambdas require it *)
       in
     (* Construct the function's "locals": formal arguments and locally

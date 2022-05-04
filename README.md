@@ -27,6 +27,9 @@ depending on whether the program is expected to successfully terminate or raise 
 
 `./compile.sh filename.roll`
 
+4) To compile the above program with a specified seed, for example, `42` run:
+`./compile.sh filename.roll 42`
+
 ## Description of each test case
 
 ### Float Tests
