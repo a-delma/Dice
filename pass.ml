@@ -1,19 +1,20 @@
-open Sast
 
+
+(* A very generalized higher order function to compute things about an sast. 
+ * Author(s): Ezra Szanton
+ * 
+ *)
+
+open Sast
 module StringMap = Map.Make(String)
 
-(* A very generalized higher order function to compute things about an sast.
-eval_expr and eval_stmt evaluate one sx or sstmt and will often be a pattern matching function with a large wildcard.
-zipper merges values together.
-empty is whatever the idea of nothing is for your operations.
-the root_stmt will often remain uncurried, it's how we actually accept the root of the tree.
-see below for an example which checks if the sast has a binary operation *)
-let fold_tree_with_stmt (eval_stmt : sstmt -> 'a) 
-              (eval_expr : sx -> 'a) 
-              (zipper : 'a -> 'a -> 'a) 
-              (empty : 'a)      
-              (compute_sublambdas : bool)
-              (root_stmt : sstmt)     = 
+let fold_tree_with_stmt 
+              (eval_stmt : sstmt -> 'a) (* Called on every statement before being zipped up *)
+              (eval_expr : sx -> 'a) (* Called on every expression before being zipped up *)
+              (zipper : 'a -> 'a -> 'a) (* Function called on all sub-returns *)
+              (empty : 'a) (* The idea of empty, often false or the empty list *)
+              (compute_sublambdas : bool) (* should you recurse on sub lambda expressions? Often not. *)
+              (root_stmt : sstmt)  (* Where to start computation on the tree *)   = 
   
   let rec fold_stmt stmt = zipper (eval_stmt stmt) (match stmt with
     SBlock(sl)          -> collect_stmt sl
@@ -52,6 +53,7 @@ let fold_tree (eval_expr : sx -> 'a)
               (root_stmt : sstmt) = 
   let throwout_stmt _ = empty in
   fold_tree_with_stmt throwout_stmt eval_expr zipper empty true root_stmt
+  
 (* 
 An example of how you might use fold_tree. is_binop is eval, bool is 'a,
     || is the zipper, and empty is false.

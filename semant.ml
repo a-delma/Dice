@@ -1,3 +1,9 @@
+
+(*
+ * Code for semantic checking, and turning an ast into an sast
+ * Author(s): Andrew DelMastro, Diego Griese, Ezra Szanton, Sasha Fedchin
+ *)
+
 open Sast
 open Ast
 open Closure

@@ -1,4 +1,9 @@
-(* open Ast *)
+
+(*
+ * Compiles .roll files into .ll files
+ * Based on the MicroC toplevel file
+ * Author(s): ?
+ *)
 
 type action = Ast | Sast | LLVM_IR | Compile
 

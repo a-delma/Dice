@@ -1,3 +1,12 @@
+
+
+(* Calculating closures given a lambda expression and environment
+ * Author(s): Diego Griese, Ezra Szanton
+ * 
+ * 
+ * 
+ *)
+
 open Sast
 open Pass
 

@@ -1,5 +1,10 @@
+
 (* Code generation: translate takes a semantically checked AST and
-produces LLVM IR *)
+   produces LLVM IR 
+ * Based on the MicroC codegen file
+ * Author(s): Andrew DelMastro, Diego Griese, Ezra Szanton, Sasha Fedchin
+ *)
+
 
 module L = Llvm
 module A = Ast
