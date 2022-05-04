@@ -133,13 +133,14 @@ let check (_, struct_decls, globals, stmts) =
       let nullComparison = (t1 = Void && is_not_primitive t2) || (t2 = Void && is_not_primitive t1) in
       let same = t1 = t2 in
       let bothNum = ((t1 = Int)||(t1 = Float))&&((t2 = Int)||(t2 = Float)) in
+      let bothBoollike = ((t1 = Bool)||(t1 = Float))&&((t2 = Bool)||(t2 = Float)) in
       (* Determine expression type based on operator and operand types *)
       let ty = match op with
         Add | Sub | Mult | Div     when same && t1 = Int                       -> Int
       | Add | Sub | Mult | Div     when bothNum                                -> Float
       | Equal | Neq                when same || bothNum || nullComparison      -> Bool
       | Less | Leq | Greater | Geq when bothNum                                -> Bool
-      | And | Or when same && t1 = Bool -> Bool
+      | And | Or when bothBoollike -> Bool
       | _ -> raise (
         Failure ("Illegal binary operator " ^
                   string_of_typ t1 ^ " " ^ string_of_op op ^ " " ^
