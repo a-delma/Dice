@@ -50,6 +50,9 @@ clean :
 	rm -f cimport.o
 
 clean_test:
+	rm -f -r *.ll
+	rm -f -r *.s
+	rm -f -r *.exe
 	rm -f -r */*.ll
 	rm -f -r */*.s
 	rm -f -r */*.exe

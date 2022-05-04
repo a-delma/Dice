@@ -169,7 +169,8 @@ if [ $# -ge 1 ]
 then
     files=$@
 else
-    files="tests/test-*.roll tests/fail-*.roll"
+    files="tests/*/test-*.roll tests/*/fail-*.roll"
+    echo $files
 fi
 
 make 
