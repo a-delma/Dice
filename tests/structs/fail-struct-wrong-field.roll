@@ -1,0 +1,7 @@
+struct T1 {
+    Int inner;
+};
+
+T1 str;
+
+str = new T1{test: 5};

@@ -1,7 +1,0 @@
-lambda () -> [Int] -> Void {
- if (5 > 2) {
-     return putChar;
- } else {
-     return null;
- }
-}()(65);
