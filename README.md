@@ -1,6 +1,6 @@
 #  DICE README  
 
-Andrew Delmastro,     
+Andrew DelMastro,     
 Ezra Szanton,         
 Sasha Fedchin,        
 Diego Griese          
