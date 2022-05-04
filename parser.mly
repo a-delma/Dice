@@ -21,7 +21,6 @@
 %nonassoc NOELSE
 %nonassoc ELSE
 %right ASSIGN
-%left DOT
 %left OR
 %left AND
 %left EQ NEQ
@@ -30,6 +29,7 @@
 %left TIMES DIVIDE
 %left ARROW /* Menhir says the precedence is never used */
 %right NOT
+%left DOT
 %nonassoc LPAREN
 
 %%
