@@ -27,10 +27,7 @@ depending on whether the program is expected to successfully terminate or raise 
 
 `./compile.sh filename.roll`
 
-
-
 ## Description of each test case
-
 
 ### Float Tests
 
