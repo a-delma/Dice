@@ -24,16 +24,22 @@ let () =
   let parsed   = ref [] in
   let _ = Arg.parse speclist (fun fn -> filename := fn) usage_msg in
 
+  (* Given a path to a file returns the shortest path to the file*)
+  let rec prune_path path = 
+    let re = Str.regexp {|\(^\|/\)[^\./][^/]*/\.\./|} in
+    let new_path = Str.global_replace re {|\1|} path in
+    if new_path = path then path else prune_path new_path
+  in
+
   let rec parse_file filename =
     if List.mem filename !parsed then ([], [], [], []) else
     let _ = parsed := filename::!parsed in
     let channel = if filename = "" then ref stdin else ref (open_in filename) in
     let lexbuf = Lexing.from_channel !channel in
     let (import_decls, _, _, _) as ast = Parser.program Scanner.token lexbuf in
-    let remove_last (l) = List.rev (List.tl (List.rev l)) in
-    let dir = String.concat "/" (remove_last (String.split_on_char '/' filename)) ^ "/" in
-    let dir = if dir = "/" then "" else dir in
-    let import_files = List.map (fun (path) -> String.concat "" [dir; path]) import_decls in
+    let dir = (Filename.dirname filename) in
+    let import_files = List.map (fun (path) -> prune_path (dir ^ "/" ^ path)) 
+                                import_decls in
     let asts = (List.map parse_file import_files) @ [ast] in
     ([], List.concat (List.map (fun (_, x, _, _) -> x) asts), 
          List.concat (List.map (fun (_, _, x, _) -> x) asts), 

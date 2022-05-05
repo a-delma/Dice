@@ -8,3 +8,5 @@ true : warn(+a-4)
 # "printbig.o": not_hygienic
 "cimport.o" : not_hygienic
 
+# import regular expression library
+true: use_str

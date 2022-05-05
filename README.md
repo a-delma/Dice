@@ -42,6 +42,9 @@ depending on whether the program is expected to successfully terminate or raise 
 
 ### Import Tests
 
+- `test-import-duplicates.roll` - test a situation in which the same file is imported twice (potentially via recursive dependencies)
+This is a **positive** test of a feature **not provided by MicroC**.
+
 - `test-import-recursive.roll` - test importing a file which imports another file (depends on test-import.roll).
 This is a **positive** test of a feature **not provided by MicroC**.
 

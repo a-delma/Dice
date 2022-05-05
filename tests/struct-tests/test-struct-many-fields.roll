@@ -1,4 +1,3 @@
-
 struct Temp2 {
     Int a;
     Int b;

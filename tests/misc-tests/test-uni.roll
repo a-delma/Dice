@@ -1,4 +1,4 @@
-import "../stdlib/print.roll";
+import "../../stdlib/print.roll";
 
 Float tmp1;
 Float tmp2;
