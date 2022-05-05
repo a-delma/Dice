@@ -1,0 +1,103 @@
+import "../stdlib/list.roll"; 
+
+Int size;
+Int frames;
+Int r;
+Int c;
+Int i;
+IntList grid;
+IntListUtils l;
+[]->Void printGrid;
+[Int, Int]->Int vec;
+[[Int, Int]->Void]->Void visit; //x, then y
+[]->Void update;
+[]->Void run;
+[Int, Int]->Int safeGet;
+size = 25;
+frames = 10;
+
+//renaming, ease of use
+l = intListUtils;
+
+grid = l.newIntList(size * size);
+
+visit = lambda ([Int, Int]->Void f)->Void  {
+  Int x;
+  Int y;
+  for(x = 0; x < size; x=x+1){
+    for(y = 0; y < size; y=y+1){
+      f(x, y);
+    }
+  }   
+};
+
+vec = lambda (Int x, Int y)->Int  {
+  return x + y*size;
+};
+
+safeGet = lambda (Int x, Int y)->Int  {
+  if(x < 0 || x >= size || y < 0 || y >= size){
+    return 0;
+  } else {
+    return l.getAt(grid, vec(x, y));
+  }
+};
+
+printGrid = lambda()->Void{
+  Int val;
+  for(r = 0; r < size; r=r+1){
+    for(c = 0; c < size; c=c+1){
+      val = l.getAt(grid, vec(c, r));
+      if(val > 0){
+        printColor(1.0);
+      } else {
+        printColor(0.3);
+      }
+      putChar(32);
+    }
+    newline();
+  } 
+};
+
+//init
+visit(lambda (Int x, Int y)->Void  {
+  l.updateAt(grid, floatToInt(uni()*1.2), vec(x, y));
+});
+
+update = lambda ()->Void  {
+  IntList newGrid;
+  newGrid = l.newIntList(size*size);
+  visit(lambda (Int x, Int y)->Void  {
+    Int newVal;
+    Int neighbors;
+    newVal = safeGet(x, y);
+    neighbors = safeGet(x+1, y+1) + 
+                safeGet(x+0, y+1) + 
+                safeGet(x+1, y+0) + 
+                safeGet(x-1, y-1) + 
+                safeGet(x+0, y-1) + 
+                safeGet(x-1, y+0) + 
+                safeGet(x+1, y-1) + 
+                safeGet(x-1, y+1);
+    if(neighbors < 2 || neighbors > 3){
+      newVal = 0;
+    } else if (neighbors == 3){
+      newVal = 1;
+    } 
+    l.updateAt(newGrid, newVal, vec(x, y));
+  });
+  grid = newGrid;
+};
+    
+run = lambda ()->Void  {
+  Int j;
+  for(j=0;j<frames;j=j+1){
+    printGrid();
+    newline();
+    for(i=0;i<size*2-1;i=i+1){putChar(45);}
+    newline();
+    update();    
+  }
+};
+
+run();
