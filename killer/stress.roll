@@ -4,8 +4,6 @@ import "../stdlib/print.roll";
 [Int]->Int base;
 [Int]->Int cursed;
 
-setSeed(6);
-
 base = lambda (Int i)->Int {
   return i;
 };

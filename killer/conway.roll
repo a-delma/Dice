@@ -16,8 +16,6 @@ IntListUtils l;
 size = 25;
 frames = 10;
 
-setSeed(7);
-
 //renaming, ease of use
 l = intListUtils;
 
