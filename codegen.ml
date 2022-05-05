@@ -215,9 +215,9 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
 
     let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
         let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
-        in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b in
-        let temp_size = L.size_of t in
-        let opaque_value = L.build_call malloc_func [|temp_size|] "opaque_value" malloc_b
+        in let _            = L.build_pointercast opaque_size (i32_t) "size_" malloc_b in
+        let temp_size       = L.size_of t in
+        let opaque_value    = L.build_call malloc_func [|temp_size|] "opaque_value" malloc_b
         in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
     in
     (* Construct code for an expression; return its value *)
