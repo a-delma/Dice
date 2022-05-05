@@ -1,5 +1,4 @@
-import "../stdlib/print.roll";
-
+//Private
 struct IntStack {
     IntStack next;
     Int value;
@@ -12,19 +11,26 @@ struct IntStackUtils {
     [IntStack]->Int pop;
 };
 
+//Public
 struct IntList{
   IntStack values;
   Int size;
 };
 
 struct IntListUtils{
+  //Arg: size of the new list
   [Int]->IntList newIntList;
+
+  //Args: list, new value, index
   [IntList, Int, Int]->Void updateAt;
+
+  //Args: list, index
   [IntList, Int]->Int getAt;
 };
 
-IntStackUtils intStackUtils;
-IntListUtils intListUtils;
+IntStackUtils intStackUtils; //Private
+
+IntListUtils intListUtils; //Public 
 
 intStackUtils = new IntStackUtils{ 
     newIntStack : lambda ()->IntStack  {
@@ -82,4 +88,5 @@ intListUtils = new IntListUtils{
       curr = curr.next;
     }
     return curr.value;
-  }}; 
+  }
+}; 

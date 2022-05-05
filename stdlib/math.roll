@@ -1,6 +1,9 @@
 
+//Args: dividend, divisor
 [Int, Int]->Int mod;
-[Int, Int] -> Int pow;
+
+//Args: base, power
+[Int, Int]->Int pow;
 
 pow = lambda (Int base, Int pow) -> Int {
   if (pow == 0) {
