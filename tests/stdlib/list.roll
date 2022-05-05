@@ -1,4 +1,4 @@
-import "../stdlib/print.roll";
+import "print.roll";
 
 struct IntStack {
     IntStack next;

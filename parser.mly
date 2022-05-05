@@ -38,7 +38,7 @@ program:
 
 imports_opt:
     /* nothing */ { [] }
-  | imports_list  { $1 }
+  | imports_list  { List.rev $1 }
 
 imports_list:
     IMPORT FILENAME SEMI              { [String.sub $2 1 ((String.length $2) - 2)]     }
