@@ -1,5 +1,13 @@
 
 [Int, Int]->Int mod;
+[Int, Int] -> Int pow;
+
+pow = lambda (Int base, Int pow) -> Int {
+  if (pow == 0) {
+    return 1;
+  }
+  return base * self(base, pow - 1);
+};
 
 //It is an error for divisor to be 0
 mod = lambda(Int dividend, Int divisor) -> Int{

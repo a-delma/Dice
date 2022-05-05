@@ -1,2 +1,2 @@
-import "../stdlib/pow.roll";
+import "../../stdlib/math.roll";
 putChar(pow(2, 6) + 2);

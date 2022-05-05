@@ -1,5 +1,4 @@
 import "../stdlib/math.roll"; 
-import "../stdlib/pow.roll"; 
 
 [] -> Void newline;
 [] -> Void dot;
@@ -8,12 +7,7 @@ import "../stdlib/pow.roll";
 [Float] -> Float mantissa;
 [Float, Int] -> Void printMantissa;
 [Bool] -> Void printBool;
-//[Float] -> Void printFloat;
 [Float] -> Void printColor;
-
-//how many decimal points to print for floats
-//Int floatPrecision;
-//floatPrecision = 4;
 
 newline = lambda()->Void{ putChar(10); };
 dot = lambda()->Void{ putChar(46); };

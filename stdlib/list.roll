@@ -26,8 +26,6 @@ struct IntListUtils{
 IntStackUtils intStackUtils;
 IntListUtils intListUtils;
 
-IntStack testStack;
-
 intStackUtils = new IntStackUtils{ 
     newIntStack : lambda ()->IntStack  {
         IntStack ret;

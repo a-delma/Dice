@@ -58,7 +58,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
 
   let make_struct_body name type_dict =
     let (_, types) = List.split (StringMap.bindings type_dict) in
-    let ltypes_list = List.map ltype_of_typ types in (* TODO: might need to call a different type convertion fucntion*)
+    let ltypes_list = List.map ltype_of_typ types in 
     let ltypes = Array.of_list ltypes_list in
     L.struct_set_body (StringMap.find name struct_dict) ltypes false
   in
@@ -164,8 +164,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
     let _ = if lambda.sid = "main"
-            then ignore(L.build_call init_func [| L.const_int i32_t !seed |] "" builder) (* TODO: What is this for? *)
-          (* TODO possibly add another case if lambdas require it *)
+            then ignore(L.build_call init_func [| L.const_int i32_t !seed |] "" builder)
       in
     (* Construct the function's "locals": formal arguments and locally
        declared variables.  Allocate each on the stack, initialize their
@@ -232,13 +231,11 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
         | (v, false) -> v)
       | SAssign((t, le), rse) -> 
           let rse' = (match (fst rse) with 
-          (* TODO rework this to actually create the llvm code for the function*)
             A.Void -> let _ = expr builder rse in (L.const_null (ltype_of_typ t))
           | _      -> expr builder rse) in
           (match le with 
           SId(s)-> 
             let le', _  = (lookup s) in
-            (* TODO include the null case for struct fields as well *)
             let _ = L.build_store rse' le' builder in expr builder (t, le)
           | SRecordAccess((ty, exp), field) ->
             let llstruct = expr builder (ty, exp) in
@@ -251,7 +248,6 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
         let (lt, _) = e1
         and e1' = expr builder e1
         and e2' = expr builder e2 in
-          (* TODO implement not equal as well *)
         if lt = A.Float then (match op with 
               A.Add     -> L.build_fadd
             | A.Sub     -> L.build_fsub
@@ -350,7 +346,6 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
                                                 func_ptr_t "func_opaque" builder
       in let _ = L.build_store func_opaque func_ptr builder
       in function_struct
-    (* TODO SNoexpr to get rid of pattern matching warning? *)
 
     in
     (* Invoke "instr builder" if the current block doesn't already
@@ -447,7 +442,6 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
       | A.Bool -> L.build_ret (L.const_int i1_t 0)
       | A.Arrow(_,_) -> L.build_ret (L.const_null func_struct_ptr)
       | t -> L.build_ret (L.const_null (ltype_of_typ t))
-      (* TODO add a type for TypVar AKA structs *)
       )
   in
 

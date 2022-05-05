@@ -221,16 +221,15 @@ let check (_, struct_decls, globals, stmts) =
       let locals'   = check_binds l.locals @ l.formals @ [(func_type, "self")]in
       let local_env = (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
                       StringMap.empty 
-                      locals') in (* TODO: Does this concatenation mean we can't check for shadowing? *)
-                                 (* TODO: It does. I think we should change LRM to reflect that. *)
+                      locals') in 
       let body      = (match (check_stmt (local_env::envs) (Block l.body)) with
           SBlock(sl) -> sl
-        | _          -> raise (Failure "Block didn't become a block?")) (* TODO: Why does microc has this? *)  
+        | _          -> raise (Failure "Block didn't become a block?")) 
       in let newId = !lambdaId
       in let _ = lambdaId := newId + 1 
       in (func_type, SLambda({st=l.t; 
                     sid="lambda" ^ (string_of_int newId); 
-                    sformals=(func_type, "self")::l.formals; (* TODO: rename main here? *)
+                    sformals=(func_type, "self")::l.formals; 
                     slocals=l.locals; 
                     sclosure=closure_stmt (local_env::envs) (SBlock (body)); 
                     sbody=body}))
@@ -240,7 +239,7 @@ let check (_, struct_decls, globals, stmts) =
     and check_bool_expr envs e = 
     let (t', e') = expr envs e
     and err = "Expected Boolean or Float expression in " ^ string_of_expr e
-    in if not ((t' = Bool) || (t' = Float)) (* TODO: use custom equality function? *) 
+    in if not ((t' = Bool) || (t' = Float)) 
       then raise (Failure err)
       else if t' = Float
            then (Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t', e')]))
@@ -254,7 +253,6 @@ let check (_, struct_decls, globals, stmts) =
         SFor(expr envs e1, check_bool_expr envs e2, expr envs e3, check_stmt envs st)
     | While(p, s) -> SWhile(check_bool_expr envs p, check_stmt envs s)
     | Return e -> 
-    (* TODO check for returning nothing (walk the AST and check that something returns the type we expect) *)
       let (t, e')   = expr envs e in
       let func_type = match (type_of_identifier "self" envs) with
         Arrow(_, return_type) -> return_type
@@ -270,7 +268,6 @@ let check (_, struct_decls, globals, stmts) =
         let rec check_stmt_list = function
             [Return _ as s] -> [check_stmt envs s]
           | Return _ :: _   -> raise (Failure "Nothing may follow a return")
-          (* TODO: does flattening works differently in Dice because of lambdas? *)
           | Block sl :: ss  -> check_stmt_list (sl @ ss) (* Flatten blocks *)
           | s :: ss         -> check_stmt envs s :: check_stmt_list ss
           | []              -> []

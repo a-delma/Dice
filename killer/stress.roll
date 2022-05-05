@@ -20,6 +20,7 @@ cursed = lambda (Int i)->Int  {
 };
 
 printInt(cursed(0));
+newline();
 printInt(cursed(0));
 
 
