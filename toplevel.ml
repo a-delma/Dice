@@ -19,7 +19,8 @@ let () =
       "Check and print the generated LLVM IR (default)");
     ("-seed", Arg.Set_int seed, "Set the seed when program is compiled")
   ] in
-  let usage_msg = "usage: ./toplevel.native [-a|-s|-l|-c] [-seed Natural] [file.roll]" in
+  let usage_msg = "usage: ./toplevel.native [-a|-s|-l|-c] " ^
+    "[-seed Natural] [file.roll]" in
   let filename = ref "" in
   let parsed   = ref [] in
   let _ = Arg.parse speclist (fun fn -> filename := fn) usage_msg in
@@ -53,7 +54,8 @@ let () =
   match !action with
       Ast     -> ()
     | Sast    -> print_string (Sast.string_of_sprogram sast)
-    | LLVM_IR -> print_string (Llvm.string_of_llmodule (Codegen.translate sast seed))
+    | LLVM_IR -> print_string (Llvm.string_of_llmodule (Codegen.translate 
+                                                            sast seed))
     | Compile -> let m = Codegen.translate sast seed in
 
     Llvm_analysis.assert_valid_module m;

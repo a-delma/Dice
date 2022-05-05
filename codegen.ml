@@ -28,8 +28,10 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
   in let     func_struct = L.named_struct_type context "Function_"  
   in let     node_struct_ptr = L.pointer_type node_struct
   in let     func_struct_ptr = L.pointer_type func_struct in
-  let _ = L.struct_set_body func_struct [| (func_ptr_t); (L.pointer_type node_struct) |] false in
-  let _ = L.struct_set_body node_struct [| (void_ptr_t); (L.pointer_type node_struct) |] false 
+  let _ = L.struct_set_body func_struct [| (func_ptr_t); 
+                                        (L.pointer_type node_struct) |] false in
+  let _ = L.struct_set_body node_struct [| (void_ptr_t); 
+                                        (L.pointer_type node_struct) |] false 
 
   in let the_module = L.create_module context "DICE" in
 
@@ -52,8 +54,9 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
 
   let ltype_of_func_type = function
       A.Arrow(args, ret) -> L.pointer_type(L.function_type (ltype_of_typ ret) 
-                            (Array.of_list (func_struct_ptr::(List.map ltype_of_typ args))))
-    | _                  -> raise (Failure "Invalid function cast")                 
+                            (Array.of_list (func_struct_ptr::(List.map 
+                                                          ltype_of_typ args))))
+    | _                  -> raise (Failure "Invalid function cast")
   in
 
   let make_struct_body name type_dict =
@@ -74,45 +77,55 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
 
   let getnode_func = L.declare_function 
                      "get_node" 
-                     (L.function_type void_ptr_t [| node_struct_ptr ; i32_t |]) the_module in
+                     (L.function_type void_ptr_t [| node_struct_ptr ; i32_t |]) 
+                        the_module in
 
   let append_func = L.declare_function 
                      "append_to_list" 
-                     (L.function_type node_struct_ptr [| node_struct_ptr ; void_ptr_t |]) the_module in
+                     (L.function_type node_struct_ptr [| node_struct_ptr ; 
+                          void_ptr_t |]) the_module in
 
   let malloc_func  = L.declare_function 
                      "malloc_" 
                      (L.function_type void_ptr_t [| i64_t |]) the_module in
   
-  let putchar_struct = (L.declare_global func_struct_ptr "putchar_" the_module) in
-               let _ = L.set_externally_initialized true putchar_struct     in
+  let putchar_struct = (L.declare_global func_struct_ptr "putchar_" the_module) 
+            in let _ = L.set_externally_initialized true putchar_struct     in
 
-  let print_float_struct = (L.declare_global func_struct_ptr "print_float_" the_module) in
+  let print_float_struct = (L.declare_global func_struct_ptr "print_float_" 
+                                                                the_module) in
                let _ = L.set_externally_initialized true print_float_struct in
 
   let uni_struct = (L.declare_global func_struct_ptr "uni_" the_module) in
                let _ = L.set_externally_initialized true uni_struct     in
 
-  let set_seed_struct = (L.declare_global func_struct_ptr "set_seed_" the_module) in
+  let set_seed_struct = (L.declare_global func_struct_ptr "set_seed_" 
+                                                            the_module) in
                let _ = L.set_externally_initialized true uni_struct     in
                
-  let int_to_float_struct = (L.declare_global func_struct_ptr "int_to_float_" the_module) in
-               let _ = L.set_externally_initialized true int_to_float_struct     in
+  let int_to_float_struct = (L.declare_global func_struct_ptr "int_to_float_" 
+                                                                the_module)  in
+               let _ = L.set_externally_initialized true int_to_float_struct in
 
-  let int_to_bool_struct = (L.declare_global func_struct_ptr "int_to_bool_" the_module) in
-               let _ = L.set_externally_initialized true int_to_bool_struct     in
+  let int_to_bool_struct = (L.declare_global func_struct_ptr "int_to_bool_" 
+                                                                the_module) in
+               let _ = L.set_externally_initialized true int_to_bool_struct in
 
-  let float_to_int_struct = (L.declare_global func_struct_ptr "float_to_int_" the_module) in
-               let _ = L.set_externally_initialized true float_to_int_struct     in
+  let float_to_int_struct = (L.declare_global func_struct_ptr "float_to_int_" 
+                                                                the_module)  in
+               let _ = L.set_externally_initialized true float_to_int_struct in
 
-  let float_to_bool_struct = (L.declare_global func_struct_ptr "float_to_bool_" the_module) in
+  let float_to_bool_struct = (L.declare_global func_struct_ptr "float_to_bool_" 
+                                                                the_module)   in
                let _ = L.set_externally_initialized true float_to_bool_struct in
 
-  let bool_to_float_struct = (L.declare_global func_struct_ptr "bool_to_float_" the_module) in
-               let _ = L.set_externally_initialized true bool_to_float_struct     in
+  let bool_to_float_struct = (L.declare_global func_struct_ptr "bool_to_float_" 
+                                                                the_module)   in
+               let _ = L.set_externally_initialized true bool_to_float_struct in
 
-  let bool_to_int_struct = (L.declare_global func_struct_ptr "bool_to_int_" the_module) in
-               let _ = L.set_externally_initialized true bool_to_int_struct     in
+  let bool_to_int_struct = (L.declare_global func_struct_ptr "bool_to_int_" 
+                                                                the_module) in
+               let _ = L.set_externally_initialized true bool_to_int_struct in
   
   let init_func = L.declare_function
                   "initialize"
@@ -131,16 +144,16 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
       let init_value = init t
       in StringMap.add n (L.define_global n init_value the_module) m in
     List.fold_left global_var StringMap.empty globals in
-  let global_vars = StringMap.add "putChar" putchar_struct global_vars in
-  let global_vars = StringMap.add "uni" uni_struct global_vars in
-  let global_vars = StringMap.add "setSeed" set_seed_struct global_vars in
-  let global_vars = StringMap.add "intToFloat" int_to_float_struct global_vars in
-  let global_vars = StringMap.add "intToBool" int_to_bool_struct global_vars in
-  let global_vars = StringMap.add "floatToInt" float_to_int_struct global_vars in
-  let global_vars = StringMap.add "floatToBool" float_to_bool_struct global_vars in
-  let global_vars = StringMap.add "boolToInt" bool_to_int_struct global_vars in
-  let global_vars = StringMap.add "boolToFloat" bool_to_float_struct global_vars in
-  let global_vars = StringMap.add "printFloat" print_float_struct global_vars in
+  let gvs = StringMap.add "putChar" putchar_struct global_vars in
+  let gvs = StringMap.add "uni" uni_struct gvs in
+  let gvs = StringMap.add "setSeed" set_seed_struct gvs in
+  let gvs = StringMap.add "intToFloat" int_to_float_struct gvs in
+  let gvs = StringMap.add "intToBool" int_to_bool_struct gvs in
+  let gvs = StringMap.add "floatToInt" float_to_int_struct gvs in
+  let gvs = StringMap.add "floatToBool" float_to_bool_struct gvs in
+  let gvs = StringMap.add "boolToInt" bool_to_int_struct gvs in
+  let gvs = StringMap.add "boolToFloat" bool_to_float_struct gvs in
+  let global_vars = StringMap.add "printFloat" print_float_struct gvs in
 
   
 
@@ -164,7 +177,8 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
     let _ = if lambda.sid = "main"
-            then ignore(L.build_call init_func [| L.const_int i32_t !seed |] "" builder)
+            then ignore(L.build_call init_func [| L.const_int i32_t !seed |] "" 
+                                     builder)
       in
     (* Construct the function's "locals": formal arguments and locally
        declared variables.  Allocate each on the stack, initialize their
@@ -194,11 +208,13 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
       then StringMap.empty else
       let function_ptr = (Array.get (L.params the_function) 0) in
       (* let function_val = L.build_load function_ptr "function" builder in *)
-      let closure_ptr  = L.build_struct_gep function_ptr 1 "closure_ptr" builder in
-      let loaded_closure_ptr = L.build_load closure_ptr "loaded_closure_ptr" builder in
+      let closure_ptr  = L.build_struct_gep function_ptr 1 "clsr_ptr" builder in
+      let loaded_closure_ptr = L.build_load closure_ptr "ld_clsr_ptr" builder in
       let add_closure (m,i) (t, n) =
-        let void_ptr = L.build_call getnode_func [|loaded_closure_ptr; L.const_int i32_t i|] "node_" builder in
-        let arg_ptr = L.build_pointercast void_ptr (L.pointer_type (ltype_of_typ t)) "arg_ptr" builder in
+        let void_ptr = L.build_call getnode_func [|loaded_closure_ptr; 
+                                        L.const_int i32_t i|] "node_" builder in
+        let arg_ptr = L.build_pointercast void_ptr 
+                          (L.pointer_type (ltype_of_typ t)) "arg_ptr" builder in
         let value = L.build_load arg_ptr "arg" builder in
       (* let closure_elem = L.build_alloca (ltype_of_typ t) n builder *)
         (StringMap.add n value m, i + 1)
@@ -209,15 +225,21 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
      * locals, then globals *)
     let lookup n  = try (StringMap.find n local_vars, true)
                     with Not_found -> (try (StringMap.find n closure, false)
-                                      with Not_found -> (try (StringMap.find n global_vars, true)
-                                                         with Not_found -> raise (Failure ("Cannot find variable " ^ n))))          
+                                      with Not_found -> (try (StringMap.find 
+                                                          n global_vars, true)
+                                                         with Not_found -> 
+                                raise (Failure ("Cannot find variable " ^ n))))
     in
 
     let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
-        let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
-        in let _            = L.build_pointercast opaque_size (i32_t) "size_" malloc_b in
+        let    opaque_size  = L.build_gep (L.const_null (L.pointer_type 
+                                  (L.pointer_type t))) 
+                                  [|L.const_int i32_t 1|] "opaque_size" malloc_b
+        in let _            = L.build_pointercast opaque_size (i32_t) 
+                                                  "size_" malloc_b in
         let temp_size       = L.size_of t in
-        let opaque_value    = L.build_call malloc_func [|temp_size|] "opaque_value" malloc_b
+        let opaque_value    = L.build_call malloc_func [|temp_size|] 
+                                           "opaque_value" malloc_b
         in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
     in
     (* Construct code for an expression; return its value *)
@@ -231,7 +253,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
         | (v, false) -> v)
       | SAssign((t, le), rse) -> 
           let rse' = (match (fst rse) with 
-            A.Void -> let _ = expr builder rse in (L.const_null (ltype_of_typ t))
+            A.Void -> let _ = expr builder rse in (L.const_null(ltype_of_typ t))
           | _      -> expr builder rse) in
           (match le with 
           SId(s)-> 
@@ -240,10 +262,12 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
           | SRecordAccess((ty, exp), field) ->
             let llstruct = expr builder (ty, exp) in
             let index = lookup_index ty field in
-            let elm_ptr = L.build_struct_gep llstruct index (field ^ "_ptr") builder in
+            let elm_ptr = L.build_struct_gep  llstruct index 
+                                              (field ^ "_ptr") builder in
             let _ = L.build_store rse' elm_ptr builder in
             rse'
-          | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
+          | _ -> raise (Failure ("Illegal left side," ^ 
+                                  "should be ID or Struct Field")))
       | SBinop (e1, op, e2) ->
         let (lt, _) = e1
         and e1' = expr builder e1
@@ -260,7 +284,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
             | A.Greater -> L.build_fcmp L.Fcmp.Ogt
             | A.Geq     -> L.build_fcmp L.Fcmp.Oge
             | A.And | A.Or -> raise 
-            (Failure "internal error: semant should have rejected and/or on float")
+            (Failure "intrn error: semant should have rejected and/or on float")
                 ) e1' e2' "tmp" builder 
             else (match op with
             | A.Add     -> L.build_add
@@ -293,33 +317,38 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
       let llvalues = List.map (expr builder) values in
 
       let sort_fun (_,s1) (_,s2) = s1 - s2 in
-      let order_values_pairs = List.sort sort_fun (List.combine llvalues indices) in
+      let ord_val_pairs = List.sort sort_fun (List.combine llvalues indices) in
       (* let ordered_values = (fst (List.split order_values_pairs)) in *)
       
       (* creating default values to make an empty struct *)
       let name = match ty with 
         | A.TypVar (n) -> n
         | _ -> raise (Failure "Building of non struct type") in
-      let types = (snd (List.split (StringMap.bindings (StringMap.find name struct_decls)))) in
+      let types = (snd (List.split (StringMap.bindings 
+                                    (StringMap.find name struct_decls)))) in
       let init_values = List.map init types in
       let array_of_inits = Array.of_list init_values in
       let init_struct = L.const_named_struct lty array_of_inits in
-      let add_elem acc (value, index) = L.build_insertvalue acc value index "building_struct" builder in
-      let lstruct = List.fold_left add_elem init_struct order_values_pairs in
+      let add_elem acc (value, index) = L.build_insertvalue acc value 
+                                        index "building_struct" builder in
+      let lstruct = List.fold_left add_elem init_struct ord_val_pairs in
       let str_ptr = malloc lty builder in
       let _ = L.build_store lstruct str_ptr builder in
       str_ptr
       (* SCall of null should be an error *)
     | SCall ((ty, callable), args) -> 
       let function_struct = expr builder (ty, callable) in
-      (* Extremely worth reading if you're confused about gep https://www.llvm.org/docs/GetElementPtr.html *)
       let ptr = L.build_struct_gep function_struct 0 "ptr" builder in
       let func_opq = L.build_load ptr "func_opq" builder in
-      let func =  L.build_pointercast func_opq (ltype_of_func_type ty) "func" builder in
-      (* If the func has a null return type, we can't set it to anything (hence the empty string) *)
+      let func =  L.build_pointercast func_opq (ltype_of_func_type ty) 
+                                      "func" builder in
       (match ty with 
-        A.Arrow(_, A.Void) -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "" builder
-      | _              -> L.build_call func (Array.of_list (function_struct::(List.map (expr builder) args))) "result" builder)
+        A.Arrow(_, A.Void) -> L.build_call func (Array.of_list 
+                                        (function_struct::(List.map 
+                                            (expr builder) args))) "" builder
+      | _                  -> L.build_call func (Array.of_list 
+                                        (function_struct::(List.map 
+                                          (expr builder) args))) "rst" builder)
     | SRecordAccess((ty, exp), field) -> 
       let llstruct = expr builder (ty, exp) in
       let index = lookup_index ty field in 
@@ -334,15 +363,16 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
         let llvalue = expr builder (ty, SId id)
         in let malloc_arg = malloc (ltype_of_typ ty) builder
         in let _ = L.build_store llvalue malloc_arg builder
-        in let opaque_arg = L.build_pointercast malloc_arg void_ptr_t "ptr_" builder
-        in L.build_call append_func [|closure; opaque_arg|] "new_closure" builder
+        in let op_arg = L.build_pointercast malloc_arg void_ptr_t "ptr_" builder
+        in L.build_call append_func [|closure; op_arg|] "new_closure" builder
       in let function_struct = malloc func_struct builder 
       in let closure_struct = L.const_null node_struct_ptr
-      in let full_closure = List.fold_left add_argument closure_struct l.sclosure
+      in let fl_closure = List.fold_left add_argument closure_struct l.sclosure
       in let closure_ptr = L.build_struct_gep function_struct 1 "ptr_" builder 
-      in let _ = L.build_store full_closure closure_ptr builder
+      in let _ = L.build_store fl_closure closure_ptr builder
       in let func_ptr = L.build_struct_gep function_struct 0 "ptr_" builder 
-      in let func_opaque = L.build_pointercast (fst (StringMap.find l.sid function_decls) )
+      in let func_opaque = L.build_pointercast (fst (StringMap.find l.sid 
+                                                      function_decls))
                                                 func_ptr_t "func_opaque" builder
       in let _ = L.build_store func_opaque func_ptr builder
       in function_struct
@@ -375,7 +405,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) seed =
       doesnt 'really' matter (seemingly). What hooks them up in the right order
       are the build_br functions used at the end of the then and else blocks (if
       they don't already have a terminator) and the build_cond_br function at
-      the end, which adds jump instructions to the "then" and "else" basic blocks *)
+      the end, which adds jump instructions to "then" and "else" basic blocks *)
       | SIf (predicate, then_stmt, else_stmt) ->
          let bool_val = expr builder predicate in
          (* Add "merge" basic block to our function's list of blocks *)

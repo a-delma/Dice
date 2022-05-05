@@ -9,12 +9,18 @@ open Sast
 module StringMap = Map.Make(String)
 
 let fold_tree_with_stmt 
-              (eval_stmt : sstmt -> 'a) (* Called on every statement before being zipped up *)
-              (eval_expr : sx -> 'a) (* Called on every expression before being zipped up *)
-              (zipper : 'a -> 'a -> 'a) (* Function called on all sub-returns *)
-              (empty : 'a) (* The idea of empty, often false or the empty list *)
-              (compute_sublambdas : bool) (* should you recurse on sub lambda expressions? Often not. *)
-              (root_stmt : sstmt)  (* Where to start computation on the tree *)   = 
+              (* Called on every statement before being zipped up *)
+              (eval_stmt : sstmt -> 'a)
+              (* Called on every expression before being zipped up *)
+              (eval_expr : sx -> 'a) 
+              (* Function called on all sub-returns *)
+              (zipper : 'a -> 'a -> 'a) 
+              (* The idea of empty, often false or the empty list *)
+              (empty : 'a) 
+              (* should you recurse on sub lambda expressions? Often not. *)
+              (compute_sublambdas : bool)
+              (* Where to start computation on the tree *)
+              (root_stmt : sstmt)     = 
   
   let rec fold_stmt stmt = zipper (eval_stmt stmt) (match stmt with
     SBlock(sl)          -> collect_stmt sl

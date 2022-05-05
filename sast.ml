@@ -61,11 +61,12 @@ let rec string_of_sexpr(sexpression) = match (snd sexpression) with
   | SAssignList(_, l) -> "{" ^
       String.concat ", " (List.map string_of_sfield_assign l) ^ "}"
   | SCall(e1, e2) ->
-      string_of_sexpr e1 ^ "(" ^ String.concat ", " (List.map string_of_sexpr e2) ^ ")"
+      string_of_sexpr e1 ^ "(" ^ String.concat ", " 
+                                    (List.map string_of_sexpr e2) ^ ")"
   | SRecordAccess(e, s) -> string_of_sexpr e ^ "." ^ s
   | SLambda l->
-      "lambda " ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair l.sformals) ^
-      ") -> " ^ string_of_typ l.st ^ " " ^ "{\n" ^
+      "lambda " ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair 
+        l.sformals) ^ ") -> " ^ string_of_typ l.st ^ " " ^ "{\n" ^
       String.concat "" (List.map string_of_vdecl l.slocals) ^
       String.concat "" (List.map string_of_sstmt l.sbody) ^ "Closure: " ^
       String.concat "" (List.map string_of_vdecl l.sclosure) ^
@@ -80,7 +81,8 @@ and string_of_sstmt = function
       "{\n" ^ String.concat "" (List.map string_of_sstmt stmts) ^ "}\n"
   | SExpr(expr) -> string_of_sexpr expr ^ ";\n";
   | SReturn(expr) -> "return " ^ string_of_sexpr expr ^ ";\n";
-  | SIf(e, s, SBlock([])) -> "if (" ^ string_of_sexpr e ^ ")\n" ^ string_of_sstmt s
+  | SIf(e, s, SBlock([])) -> "if (" ^ string_of_sexpr e ^ ")\n" ^ 
+                                                            string_of_sstmt s
   | SIf(e, s1, s2) ->  "if (" ^ string_of_sexpr e ^ ")\n" ^
       string_of_sstmt s1 ^ "else\n" ^ string_of_sstmt s2
   | SFor(e1, e2, e3, s) ->
@@ -95,7 +97,8 @@ and string_of_bind (name, typ) = (string_of_typ typ) ^ " " ^ name ^ ";\n"
 and string_of_senv (_, indices) =
     let fold_func key data acc =
         let indices = List.fold_left 
-            (fun str (field, index) -> str ^ "\t" ^ (string_of_int index ^ " : " ^ field ^ ";\n") ) "" (StringMap.bindings data) in
+            (fun str (field, index) -> str ^ "\t" ^ (string_of_int index ^ 
+                        " : " ^ field ^ ";\n") ) "" (StringMap.bindings data) in
         let struct_string = "struct " ^ key ^ " {\n" ^ indices ^ "};\n" 
     in
     struct_string::acc in

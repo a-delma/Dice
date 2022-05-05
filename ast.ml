@@ -110,11 +110,12 @@ let rec string_of_expr = function
   | AssignList(t, l) -> string_of_typ t ^ "{" ^
       String.concat ", " (List.map string_of_field_assign l) ^ "}"
   | Call(e1, e2) ->
-      string_of_expr e1 ^ "(" ^ String.concat ", " (List.map string_of_expr e2) ^ ")"
+      string_of_expr e1 ^ "(" ^ 
+          String.concat ", " (List.map string_of_expr e2) ^ ")"
   | RecordAccess(e, s) -> string_of_expr e ^ "." ^ s
   | Lambda l ->
-      "lambda " ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair l.formals) ^
-      ") -> " ^ string_of_typ l.t ^ " " ^ "{\n" ^
+      "lambda " ^ "(" ^ String.concat ", " (List.map string_of_typ_var_pair 
+          l.formals) ^ ") -> " ^ string_of_typ l.t ^ " " ^ "{\n" ^
       String.concat "" (List.map string_of_vdecl l.locals) ^
       String.concat "" (List.map string_of_stmt l.body) ^
       "}"
