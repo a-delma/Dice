@@ -1,13 +1,16 @@
-import "../stdlib/math.roll"; 
+import "math.roll"; 
 
+//Public
 [] -> Void newline;
 [] -> Void dot;
-[Int] -> Void printDigit;
 [Int] -> Void printInt;
-[Float] -> Float mantissa;
-[Float, Int] -> Void printMantissa;
 [Bool] -> Void printBool;
 [Float] -> Void printColor;
+
+// Private
+[Float, Int] -> Void printMantissa;
+[Float] -> Float mantissa;
+[Int] -> Void printDigit;
 
 newline = lambda()->Void{ putChar(10); };
 dot = lambda()->Void{ putChar(46); };
