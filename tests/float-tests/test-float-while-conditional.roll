@@ -1,0 +1,24 @@
+import "../stdlib/print.roll";
+
+Int a;
+a = 65;
+setSeed(1);
+while (0.9){
+    putChar(a);
+    a = a + 1;
+}
+newline();
+setSeed(2);
+a = 65;
+while (0.9){
+    putChar(a);
+    a = a + 1;
+}
+newline();
+a = 65;
+setSeed(3);
+while (0.9){
+    putChar(a);
+    a = a + 1;
+}
+

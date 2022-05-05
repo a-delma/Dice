@@ -1,9 +1,15 @@
-(* open Ast *)
+
+(*
+ * Compiles .roll files into .ll files
+ * Based on the MicroC toplevel file
+ * Author(s): ?
+ *)
 
 type action = Ast | Sast | LLVM_IR | Compile
 
 let () =
   let action = ref Compile in
+  let seed = ref ~-1 in
   let set_action a () = action := a in
   let speclist = [
     ("-a", Arg.Unit (set_action Ast), "Print the AST");
@@ -11,8 +17,9 @@ let () =
     ("-l", Arg.Unit (set_action LLVM_IR), "Print the generated LLVM IR");
     ("-c", Arg.Unit (set_action Compile),
       "Check and print the generated LLVM IR (default)");
+    ("-seed", Arg.Set_int seed, "Set the seed when program is compiled")
   ] in
-  let usage_msg = "usage: ./microc.native [-a|-s|-l|-c] [file.roll]" in
+  let usage_msg = "usage: ./toplevel.native [-a|-s|-l|-c] [-seed Natural] [file.roll]" in
   let filename = ref "" in
   let _ = Arg.parse speclist (fun fn -> filename := fn) usage_msg in
 
@@ -22,6 +29,7 @@ let () =
     let (import_decls, _, _, _) as ast = Parser.program Scanner.token lexbuf in
     let remove_last (l) = List.rev (List.tl (List.rev l)) in
     let dir = String.concat "/" (remove_last (String.split_on_char '/' filename)) ^ "/" in
+    let dir = if dir = "/" then "" else dir in
     let import_files = List.map (fun (path) -> String.concat "" [dir; path]) import_decls in
     (* let _ = print_endline "ast parsed" in *)
     let asts = List.rev (ast::(List.map parse_file import_files)) in
@@ -38,8 +46,8 @@ let () =
   match !action with
       Ast     -> ()
     | Sast    -> print_string (Sast.string_of_sprogram sast)
-    | LLVM_IR -> print_string (Llvm.string_of_llmodule (Codegen.translate sast))
-    | Compile -> let m = Codegen.translate sast in
+    | LLVM_IR -> print_string (Llvm.string_of_llmodule (Codegen.translate sast seed))
+    | Compile -> let m = Codegen.translate sast seed in
 
     Llvm_analysis.assert_valid_module m;
 	print_string (Llvm.string_of_llmodule m)

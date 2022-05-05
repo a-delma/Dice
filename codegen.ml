@@ -1,5 +1,10 @@
+
 (* Code generation: translate takes a semantically checked AST and
-produces LLVM IR *)
+   produces LLVM IR 
+ * Based on the MicroC codegen file
+ * Author(s): Andrew DelMastro, Diego Griese, Ezra Szanton, Sasha Fedchin
+ *)
+
 
 module L = Llvm
 module A = Ast
@@ -9,10 +14,11 @@ module StringMap = Map.Make(String)
 
 (* Code Generation from the SAST. Returns an LLVM module if successful,
    throws an exception if something is wrong. *)
-let translate ((struct_decls, struct_indices), globals, lambdas) =
+let translate ((struct_decls, struct_indices), globals, lambdas) seed =
   let context    = L.global_context ()
   (* Add types to the context so we can use them in our LLVM code *)
   in let     i32_t      = L.i32_type    context
+  in let     i64_t      = L.i64_type    context
   in let     i1_t       = L.i1_type     context
   in let     float_t    = L.float_type context
   in let     void_t     = L.void_type   context 
@@ -52,7 +58,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
 
   let make_struct_body name type_dict =
     let (_, types) = List.split (StringMap.bindings type_dict) in
-    let ltypes_list = List.map ltype_of_typ types in (* TODO: might need to call a different type convertion fucntion*)
+    let ltypes_list = List.map ltype_of_typ types in 
     let ltypes = Array.of_list ltypes_list in
     L.struct_set_body (StringMap.find name struct_dict) ltypes false
   in
@@ -76,7 +82,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
 
   let malloc_func  = L.declare_function 
                      "malloc_" 
-                     (L.function_type void_ptr_t [| i32_t |]) the_module in
+                     (L.function_type void_ptr_t [| i64_t |]) the_module in
   
   let putchar_struct = (L.declare_global func_struct_ptr "putchar_" the_module) in
                let _ = L.set_externally_initialized true putchar_struct     in
@@ -93,12 +99,24 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
   let int_to_float_struct = (L.declare_global func_struct_ptr "int_to_float_" the_module) in
                let _ = L.set_externally_initialized true int_to_float_struct     in
 
+  let int_to_bool_struct = (L.declare_global func_struct_ptr "int_to_bool_" the_module) in
+               let _ = L.set_externally_initialized true int_to_bool_struct     in
+
   let float_to_int_struct = (L.declare_global func_struct_ptr "float_to_int_" the_module) in
                let _ = L.set_externally_initialized true float_to_int_struct     in
+
+  let float_to_bool_struct = (L.declare_global func_struct_ptr "float_to_bool_" the_module) in
+               let _ = L.set_externally_initialized true float_to_bool_struct in
+
+  let bool_to_float_struct = (L.declare_global func_struct_ptr "bool_to_float_" the_module) in
+               let _ = L.set_externally_initialized true bool_to_float_struct     in
+
+  let bool_to_int_struct = (L.declare_global func_struct_ptr "bool_to_int_" the_module) in
+               let _ = L.set_externally_initialized true bool_to_int_struct     in
   
   let init_func = L.declare_function
                   "initialize"
-                  (L.function_type void_t [||]) the_module in 
+                  (L.function_type void_t [| i32_t |]) the_module in 
 
   let init t = match t with
     | A.Float -> L.const_float (ltype_of_typ t) 0.0
@@ -117,8 +135,14 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
   let global_vars = StringMap.add "uni" uni_struct global_vars in
   let global_vars = StringMap.add "setSeed" set_seed_struct global_vars in
   let global_vars = StringMap.add "intToFloat" int_to_float_struct global_vars in
+  let global_vars = StringMap.add "intToBool" int_to_bool_struct global_vars in
   let global_vars = StringMap.add "floatToInt" float_to_int_struct global_vars in
+  let global_vars = StringMap.add "floatToBool" float_to_bool_struct global_vars in
+  let global_vars = StringMap.add "boolToInt" bool_to_int_struct global_vars in
+  let global_vars = StringMap.add "boolToFloat" bool_to_float_struct global_vars in
   let global_vars = StringMap.add "printFloat" print_float_struct global_vars in
+
+  
 
   
   (* Define each function (arguments and return type) so we can 
@@ -140,8 +164,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
     let _ = if lambda.sid = "main"
-            then ignore(L.build_call init_func [||] "" builder) (* TODO: What is this for? *)
-          (* TODO possibly add another case if lambdas require it *)
+            then ignore(L.build_call init_func [| L.const_int i32_t !seed |] "" builder)
       in
     (* Construct the function's "locals": formal arguments and locally
        declared variables.  Allocate each on the stack, initialize their
@@ -192,8 +215,9 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
 
     let malloc (t : L.lltype) (malloc_b : L.llbuilder) = 
         let    opaque_size  = L.build_gep (L.const_null (L.pointer_type (L.pointer_type t))) [|L.const_int i32_t 1|] "opaque_size" malloc_b
-        in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b
-        in let opaque_value = L.build_call malloc_func [|size|] "opaque_value" malloc_b
+        in let size         = L.build_pointercast opaque_size (i32_t) "size_" malloc_b in
+        let temp_size = L.size_of t in
+        let opaque_value = L.build_call malloc_func [|temp_size|] "opaque_value" malloc_b
         in L.build_pointercast opaque_value (L.pointer_type t) "value_" malloc_b
     in
     (* Construct code for an expression; return its value *)
@@ -207,13 +231,11 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
         | (v, false) -> v)
       | SAssign((t, le), rse) -> 
           let rse' = (match (fst rse) with 
-          (* TODO rework this to actually create the llvm code for the function*)
             A.Void -> let _ = expr builder rse in (L.const_null (ltype_of_typ t))
           | _      -> expr builder rse) in
           (match le with 
           SId(s)-> 
             let le', _  = (lookup s) in
-            (* TODO include the null case for struct fields as well *)
             let _ = L.build_store rse' le' builder in expr builder (t, le)
           | SRecordAccess((ty, exp), field) ->
             let llstruct = expr builder (ty, exp) in
@@ -224,16 +246,9 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
           | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
       | SBinop (e1, op, e2) ->
         let (lt, _) = e1
-        and (rt, _) = e2
         and e1' = expr builder e1
         and e2' = expr builder e2 in
-          (* TODO implement not equal as well *)
-        (match op with 
-          A.Equal  when lt = A.Void -> L.build_is_null e2' "null_cmp" builder 
-        | A.Neq    when lt = A.Void -> L.build_is_not_null e2' "null_cmp" builder 
-        | A.Equal  when rt = A.Void -> L.build_is_null e1' "null_cmp" builder 
-        | A.Neq    when rt = A.Void -> L.build_is_not_null e1' "null_cmp" builder 
-        | _ -> if lt = A.Float then (match op with 
+        if lt = A.Float then (match op with 
               A.Add     -> L.build_fadd
             | A.Sub     -> L.build_fsub
             | A.Mult    -> L.build_fmul
@@ -260,7 +275,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
             | A.Leq     -> L.build_icmp L.Icmp.Sle
             | A.Greater -> L.build_icmp L.Icmp.Sgt
             | A.Geq     -> L.build_icmp L.Icmp.Sge
-            ) e1' e2' "tmp" builder)
+            ) e1' e2' "tmp" builder
     | SUnop(op, e) ->
             let (t, _) = e in
                   let e' = expr builder e in
@@ -310,7 +325,7 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
       let index = lookup_index ty field in 
       let elm_ptr = L.build_struct_gep llstruct index field builder 
       in L.build_load elm_ptr field builder
-    | SNull -> L.undef void_t
+    | SNull -> L.const_pointer_null void_t
     | SNullPointerCast (ty, exp) ->
       let _ = expr builder (exp) in
       L.const_pointer_null (ltype_of_typ ty)
@@ -331,7 +346,6 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
                                                 func_ptr_t "func_opaque" builder
       in let _ = L.build_store func_opaque func_ptr builder
       in function_struct
-    (* TODO SNoexpr to get rid of pattern matching warning? *)
 
     in
     (* Invoke "instr builder" if the current block doesn't already
@@ -424,7 +438,11 @@ let translate ((struct_decls, struct_indices), globals, lambdas) =
     add_terminal builder (match lambda.st with
         A.Void -> L.build_ret_void
       | A.Float -> L.build_ret (L.const_float float_t 0.0)
-      | t -> L.build_ret (L.const_int (ltype_of_typ t) 0))
+      | A.Int  -> L.build_ret (L.const_int i32_t 0)
+      | A.Bool -> L.build_ret (L.const_int i1_t 0)
+      | A.Arrow(_,_) -> L.build_ret (L.const_null func_struct_ptr)
+      | t -> L.build_ret (L.const_null (ltype_of_typ t))
+      )
   in
 
   List.iter build_function_body lambdas;

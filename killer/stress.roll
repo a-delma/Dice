@@ -1,0 +1,26 @@
+import "../stdlib/print.roll"; 
+
+[]->Void reassigner;
+[Int]->Int base;
+[Int]->Int cursed;
+
+base = lambda (Int i)->Int {
+  return i;
+};
+
+reassigner = lambda ()->Void {
+  if(0.1){
+    cursed = base;
+  }
+};
+
+cursed = lambda (Int i)->Int  {
+  reassigner();
+  return cursed(i) + 1;
+};
+
+printInt(cursed(0));
+newline();
+printInt(cursed(0));
+
+

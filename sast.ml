@@ -1,4 +1,9 @@
-(* Semantically-checked Abstract Syntax Tree and functions for printing it *)
+(*  *)
+
+(* Semantically-checked Abstract Syntax Tree and functions for printing it
+ * Based on the MicroC sast file
+ * Author(s): Ezra Szanton
+ *)
 
 open Ast
 
@@ -99,7 +104,7 @@ and string_of_senv (_, indices) =
 
 and string_of_slambda sl = 
       "id: " ^ sl.sid ^
-      ", return type: " ^ string_of_typ sl.st (* TODO: Different printings? *)
+      ", return type: " ^ string_of_typ sl.st 
       
 
 let string_of_sprogram (structs, vars, lambdas) =

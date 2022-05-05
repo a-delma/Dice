@@ -1,0 +1,3 @@
+
+
+putChar(floatToInt(34.3 + 31));

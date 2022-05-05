@@ -1,3 +1,12 @@
+
+
+(* Calculating closures given a lambda expression and environment
+ * Author(s): Diego Griese, Ezra Szanton
+ * 
+ * 
+ * 
+ *)
+
 open Sast
 open Pass
 
@@ -38,7 +47,6 @@ and eval = function
                         if loc
                         then []
                         else [(typ, s)]
-  (* TODO make it so you cant assign to structs in closure *)
   | SAssign(e1, _)       -> (match e1 with
     (_, SId(s)) -> let (loc, _) = location_and_type s in
                    if loc

@@ -1,3 +1,9 @@
+
+(*
+ * Code for semantic checking, and turning an ast into an sast
+ * Author(s): Andrew DelMastro, Diego Griese, Ezra Szanton, Sasha Fedchin
+ *)
+
 open Sast
 open Ast
 open Closure
@@ -86,9 +92,13 @@ let check (_, struct_decls, globals, stmts) =
                  (Arrow([],    Float), "uni"    );
                  (Arrow([Int], Void),  "setSeed");
                  (Arrow([Int], Void),  "self");
-                 (Arrow([Int], Float), "intToFloat");
                  (Arrow([Float], Void),"printFloat");
-                 (Arrow([Float], Int), "floatToInt")] @ globals in
+                 (Arrow([Int], Float), "intToFloat");
+                 (Arrow([Int], Bool), "intToBool");
+                 (Arrow([Float], Int), "floatToInt");
+                 (Arrow([Float], Bool), "floatToBool");
+                 (Arrow([Bool], Float), "boolToFloat");
+                 (Arrow([Bool], Int), "boolToInt");] @ globals in
   let globals' = check_binds globals in 
   let global_env = (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
                                   StringMap.empty 
@@ -121,15 +131,16 @@ let check (_, struct_decls, globals, stmts) =
       let (t1, e1') = expr envs e1 
       and (t2, e2') = expr envs e2 in
       let nullComparison = (t1 = Void && is_not_primitive t2) || (t2 = Void && is_not_primitive t1) in
-      let same = t1 = t2 && t1 != Void in
+      let same = t1 = t2 in
       let bothNum = ((t1 = Int)||(t1 = Float))&&((t2 = Int)||(t2 = Float)) in
+      let bothBoollike = ((t1 = Bool)||(t1 = Float))&&((t2 = Bool)||(t2 = Float)) in
       (* Determine expression type based on operator and operand types *)
       let ty = match op with
         Add | Sub | Mult | Div     when same && t1 = Int                       -> Int
       | Add | Sub | Mult | Div     when bothNum                                -> Float
       | Equal | Neq                when same || bothNum || nullComparison      -> Bool
       | Less | Leq | Greater | Geq when bothNum                                -> Bool
-      | And | Or when same && t1 = Bool -> Bool
+      | And | Or when bothBoollike -> Bool
       | _ -> raise (
         Failure ("Illegal binary operator " ^
                   string_of_typ t1 ^ " " ^ string_of_op op ^ " " ^
@@ -137,12 +148,16 @@ let check (_, struct_decls, globals, stmts) =
           let finalSB = if same
                         then (ty, SBinop((t1, e1'), op, (t2, e2')))
                         else if nullComparison
-                            then if t1 = Void
-                            then (ty, SBinop((t2, SNullPointerCast(t2, (Void, e1'))), op, (t2, e2')))
-                            else (ty, SBinop((t1, e1'), op, (t1, SNullPointerCast(t1, (Void, e2')))))
-                        else if t1 = Int
-                            then (ty, SBinop((Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t1, e1')])), op, (t2, e2')))
-                            else (ty, SBinop((t1, e1'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
+                             then if t1 = Void
+                                  then (ty, SBinop((t2, SNullPointerCast(t2, (Void, e1'))), op, (t2, e2')))
+                                  else (ty, SBinop((t1, e1'), op, (t1, SNullPointerCast(t1, (Void, e2')))))
+                             else if t1 = Int
+                                  then (ty, SBinop((Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t1, e1')])), op, (t2, e2')))
+                                  else if t2 = Int 
+                                       then (ty, SBinop((t1, e1'), op, (Float, SCall((Arrow([Int], Float), SId "intToFloat"), [(t2, e2')]))))
+                                       else if t1 = Bool
+                                            then (ty, SBinop((t1, e1'), op, (Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t2, e2')]))))
+                                            else (ty, SBinop((Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t1, e1')])), op, (t2, e2')))
           in finalSB
     | Assign(le, re) -> (match le with 
         Id(_) | RecordAccess(_, _) ->
@@ -151,7 +166,7 @@ let check (_, struct_decls, globals, stmts) =
           if lt = rt
             then (rt, SAssign((lt ,lse), (rt, rse)))
             else if (rt = Void && (is_not_primitive lt))
-            then (rt, SAssign((lt ,lse), (lt, SNullPointerCast(lt, (rt, rse)))))
+            then (lt, SAssign((lt ,lse), (lt, SNullPointerCast(lt, (rt, rse)))))
             else raise (Failure ("Expected equal types but found " ^ string_of_typ lt ^ " != " ^ string_of_typ rt))
       | _ -> raise (Failure "Illegal left side, should be ID or Struct Field"))
     | AssignList(typ, assigns) -> 
@@ -206,27 +221,29 @@ let check (_, struct_decls, globals, stmts) =
       let locals'   = check_binds l.locals @ l.formals @ [(func_type, "self")]in
       let local_env = (List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
                       StringMap.empty 
-                      locals') in (* TODO: Does this concatenation mean we can't check for shadowing? *)
-                                 (* TODO: It does. I think we should change LRM to reflect that. *)
+                      locals') in 
       let body      = (match (check_stmt (local_env::envs) (Block l.body)) with
           SBlock(sl) -> sl
-        | _          -> raise (Failure "Block didn't become a block?")) (* TODO: Why does microc has this? *)  
+        | _          -> raise (Failure "Block didn't become a block?")) 
       in let newId = !lambdaId
       in let _ = lambdaId := newId + 1 
       in (func_type, SLambda({st=l.t; 
                     sid="lambda" ^ (string_of_int newId); 
-                    sformals=(func_type, "self")::l.formals; (* TODO: rename main here? *)
+                    sformals=(func_type, "self")::l.formals; 
                     slocals=l.locals; 
                     sclosure=closure_stmt (local_env::envs) (SBlock (body)); 
                     sbody=body}))
     | Null           -> (Void, SNull)
     | Noexpr         -> (Void, SNoexpr)
 
-  and check_bool_expr envs e = 
+    and check_bool_expr envs e = 
     let (t', e') = expr envs e
     and err = "Expected Boolean or Float expression in " ^ string_of_expr e
-    in if not ((t' = Bool) || (t' = Float)) (* TODO: use custom equality function? *) 
-      then raise (Failure err) else (t', e') 
+    in if not ((t' = Bool) || (t' = Float)) 
+      then raise (Failure err)
+      else if t' = Float
+           then (Bool, SCall((Arrow([Float], Bool), SId "floatToBool"), [(t', e')]))
+           else (t', e') 
 
   (* Return a semantically-checked statement i.e. containing sexprs *)
   and check_stmt envs statement = match statement with
@@ -236,7 +253,6 @@ let check (_, struct_decls, globals, stmts) =
         SFor(expr envs e1, check_bool_expr envs e2, expr envs e3, check_stmt envs st)
     | While(p, s) -> SWhile(check_bool_expr envs p, check_stmt envs s)
     | Return e -> 
-    (* TODO check for returning nothing (walk the AST and check that something returns the type we expect) *)
       let (t, e')   = expr envs e in
       let func_type = match (type_of_identifier "self" envs) with
         Arrow(_, return_type) -> return_type
@@ -252,7 +268,6 @@ let check (_, struct_decls, globals, stmts) =
         let rec check_stmt_list = function
             [Return _ as s] -> [check_stmt envs s]
           | Return _ :: _   -> raise (Failure "Nothing may follow a return")
-          (* TODO: does flattening works differently in Dice because of lambdas? *)
           | Block sl :: ss  -> check_stmt_list (sl @ ss) (* Flatten blocks *)
           | s :: ss         -> check_stmt envs s :: check_stmt_list ss
           | []              -> []

@@ -1,0 +1,3 @@
+struct T1 {
+    T2 test;
+};
