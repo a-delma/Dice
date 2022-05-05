@@ -99,6 +99,8 @@ This is a **positive** test.
 
 - `test-struct-init.roll` - tests the initialization of struct types in Dice. This is a **positive** test. 
 
+- `test-struct-many-fields.roll` - tests the size capabilities of structs. This is a **positive** test.
+
 - `test-struct-nested.roll` - tests the nesting capability of structs. This is a **postive** test. 
 
 - `test-struct-return.roll` - ensures that structs can be properly returned from functions. This is a **postive** test. 
