@@ -30,6 +30,15 @@ depending on whether the program is expected to successfully terminate or raise 
 4) To compile the above program with a specified seed, for example, `42` run:
 `./compile.sh filename.roll 42`
 
+## Demos
+
+These "killer apps" are found in the "killer" subdirectory.
+ - `stress.roll` is a strange way to do recursion in Dice by reassigning the variable storing the recursive function.
+ - `snow.roll` is a short file showing a semi-random image of static (tv "snow") in a grid
+ - `conway.roll` uses the list standard library to implement a version of the famous "conway's game of life" 
+
+The standard library is found in stdlib subdirectory
+
 ## Description of each test case
 
 ### Float Tests
