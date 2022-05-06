@@ -1,8 +1,7 @@
-
 (*
  * Compiles .roll files into .ll files
- * Based on the MicroC toplevel file
- * Author(s): ?
+ * Based on the Dice toplevel file
+ * Author(s): Sasha Fedchin (file import logic)
  *)
 
 type action = Ast | Sast | LLVM_IR | Compile

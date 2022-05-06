@@ -1,4 +1,5 @@
-(* Ocamllex scanner for MicroC *)
+(* Ocamllex scanner for Dice *)
+(* Author(s): Andrew DelMastro, Diego Griese, Ezra Szanton, Sasha Fedchin *)
 
 { open Parser }
 

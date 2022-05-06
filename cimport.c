@@ -1,9 +1,9 @@
+// The file with the C code to be imported at code generation phase
+// Author(s): Sasha Fedchin, Diego Griese
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-
-
-
+#include <time.h>             
 
 // Basic lists (Node_) to use a closures
 // Plus accompanying functions:

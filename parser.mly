@@ -1,4 +1,5 @@
-/* Ocamlyacc parser for MicroC */
+/* Ocamlyacc parser for Dice */
+/* Author(s): Andrew DelMastro, Diego Griese, Ezra Szanton, Sasha Fedchin */
 
 %{ open Ast %}
 

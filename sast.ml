@@ -1,8 +1,6 @@
-(*  *)
-
 (* Semantically-checked Abstract Syntax Tree and functions for printing it
  * Based on the MicroC sast file
- * Author(s): Ezra Szanton
+ * Author(s): Andrew DelMastro, Diego Griese, Ezra Szanton, Sasha Fedchin 
  *)
 
 open Ast

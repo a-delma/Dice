@@ -4,7 +4,6 @@
    create_lambda_list generates a list of lambda expressions, 
    return_pass guarantess all paths of lambdas return a value
  * Author(s): Ezra Szanton
- * 
  *)
 
 module A = Ast

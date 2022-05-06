@@ -1,8 +1,7 @@
 
 (* Abstract Syntax Tree and functions for printing it
  * Based on the MicroC ast file
- * Author(s): 
- * 
+ * Author(s): Andrew DelMastro, Diego Griese, Ezra Szanton, Sasha Fedchin        
  *)
 
 type op = Add | Sub | Mult | Div | Equal | Neq | Less | Leq | Greater | Geq |
